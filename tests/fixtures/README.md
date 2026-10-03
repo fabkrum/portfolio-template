@@ -11,3 +11,7 @@ placeholders; never put real ones in, this repo is public.
   tests lay the folder over a copy of `site/`.
 - `clean-sites/` – the same, for sites with tricky but harmless content (dates,
   ISBNs, "Corso di Laurea") that must pass every item.
+- `design/` – a made-up Stitch export of a fictional person and a screenshot of
+  it, the two inputs the Designer skill accepts. `design/briefs/` holds the
+  briefs the skill wrote from each in a proxy run (a fresh agent on the
+  smallest model); they must stay ready for the Developer.
