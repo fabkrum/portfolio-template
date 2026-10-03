@@ -11,6 +11,30 @@ Your own portfolio site, built with AI agents and published on GitHub Pages. The
 
 A few minutes later your site is live at `https://YOUR-USERNAME.github.io/portfolio/`. Until you add your own content it shows Ada Example, a fictional person.
 
+## Set up your laptop
+
+Paste one line into a terminal and press Enter. It asks for your GitHub username.
+
+**macOS** (Terminal):
+
+```
+curl -fsSL https://raw.githubusercontent.com/fabkrum/portfolio-template/main/install.sh | sh
+```
+
+**Linux** (Terminal):
+
+```
+wget -qO- https://raw.githubusercontent.com/fabkrum/portfolio-template/main/install.sh | sh
+```
+
+**Windows** (PowerShell):
+
+```
+irm https://raw.githubusercontent.com/fabkrum/portfolio-template/main/install.ps1 | iex
+```
+
+It checks Google Chrome and Antigravity IDE, installs Git and Node where they are missing, puts your repo in a `portfolio` folder in your home folder and opens it in Antigravity IDE. Whatever it cannot do itself, it tells you in plain words, with what to do next. Run it again any time; it only does what is still missing.
+
 ## Check your site
 
 From your repo folder, run:
@@ -27,6 +51,7 @@ It looks at your site in your own Chrome and reports each item as PASS or NEEDS 
 - `site/content.schema.json` – what the content file may contain.
 - `site/` – the site itself: plain HTML, CSS and JavaScript, no build step.
 - `tools/check.mjs` – the Check.
+- `install.sh`, `install.ps1` – the Install script for macOS/Linux and for Windows.
 - `AGENTS.md` – the rules your agent follows.
 
 Every push to `main` publishes the site again.
