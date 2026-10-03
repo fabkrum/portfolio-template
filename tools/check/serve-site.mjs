@@ -1,4 +1,5 @@
-// Serves the site folder on a free local port, like the participant's preview.
+// Serves the site folder on a local port: the Check's own server, and the
+// participant's preview (tools/preview.mjs). Port 0 picks a free one.
 import { readFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, join, normalize, resolve, sep } from "node:path";
@@ -19,10 +20,13 @@ const CONTENT_TYPES = {
   ".ico": "image/x-icon",
   ".pdf": "application/pdf",
   ".woff2": "font/woff2",
+  ".woff": "font/woff",
+  ".ttf": "font/ttf",
+  ".otf": "font/otf",
   ".txt": "text/plain; charset=utf-8",
 };
 
-export function serveSite(siteDir) {
+export function serveSite(siteDir, port = 0) {
   const root = resolve(siteDir);
   const server = createServer(async (request, response) => {
     try {
@@ -42,9 +46,10 @@ export function serveSite(siteDir) {
   });
   return new Promise((done, fail) => {
     server.once("error", fail);
-    server.listen(0, "127.0.0.1", () => {
+    server.listen(port, "127.0.0.1", () => {
       done({
         origin: `http://127.0.0.1:${server.address().port}`,
+        port: server.address().port,
         close() {
           server.close();
           server.closeAllConnections();

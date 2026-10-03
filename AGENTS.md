@@ -45,4 +45,6 @@ Prefer one command at a time over long chains on every system.
 - All content lives in `site/content.json`, which must match `site/content.schema.json`. Change content there, not in the HTML.
 - The repo is public. Never put a phone number or a postal address in any file.
 - Load nothing from other servers: no fonts from fonts.googleapis.com, no scripts or styles from a CDN. A web font goes into `site/assets/fonts/` and is loaded from there. Loading it from Google would send every visitor's IP address to Google, which EU privacy law does not allow without consent.
+- Preview the site with `node tools/preview.mjs` (the same command on every system). It prints a local address to open in Chrome.
+- Before choosing how to build any part of the page, read the matching guide in Modern Web Guidance, `.agents/skills/modern-web-guidance/`. Your training data is older than today's web.
 - Check the site with `node tools/check.mjs` (the same command on every system). The Check is a tool next to the site, not part of it: it uses Node, the site never does. It reports what passes and what needs attention and never blocks; read its findings back to the person in plain words.

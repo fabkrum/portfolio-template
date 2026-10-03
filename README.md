@@ -35,6 +35,16 @@ irm https://raw.githubusercontent.com/fabkrum/portfolio-template/main/install.ps
 
 It checks Google Chrome and Antigravity IDE, installs Git and Node where they are missing, puts your repo in a `portfolio` folder in your home folder and opens it in Antigravity IDE. Whatever it cannot do itself, it tells you in plain words, with what to do next. Run it again any time; it only does what is still missing.
 
+## Preview your site
+
+From your repo folder, run:
+
+```
+node tools/preview.mjs
+```
+
+It prints a local address such as `http://localhost:8000`. Open it in Chrome to see your site before you publish it. Press Ctrl+C to stop the preview.
+
 ## Check your site
 
 From your repo folder, run:
@@ -52,9 +62,11 @@ It looks at your site in your own Chrome and reports each item as PASS or NEEDS 
 - `design/brief.md` – your design brief: colours, fonts, shapes and layout. It starts as a plain default design; the Designer role replaces it with yours from Stitch.
 - `design/default-brief.md` – that default design, kept so you can always go back to it.
 - `site/` – the site itself: plain HTML, CSS and JavaScript, no build step.
+- `tools/preview.mjs` – the preview.
 - `tools/check.mjs` – the Check.
 - `tools/check-brief.mjs` – checks the design brief: every section there, every colour readable on its background.
 - `.agents/skills/` – one skill per role. Antigravity IDE finds them when you open the repo.
+- `.agents/skills/modern-web-guidance/` – Modern Web Guidance by the Chrome team: current best practices the Developer reads before building. Stored in the repo, so nothing is downloaded.
 - `install.sh`, `install.ps1` – the Install script for macOS/Linux and for Windows.
 - `AGENTS.md` – the rules your agent follows.
 

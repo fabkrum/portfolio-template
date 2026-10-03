@@ -17,3 +17,13 @@ placeholders; never put real ones in, this repo is public.
   agent on Claude Haiku 4.5, standing in for the smallest Gemini Flash, with
   only the template, AGENTS.md and the skill. They must stay ready for the
   Developer.
+- `built-sites/` – sites the Developer skill built in proxy runs on 2026-10-04,
+  the same way: a fresh agent on Claude Haiku 4.5 with only the template,
+  AGENTS.md and the skills. Each folder holds the files the run changed in
+  `site/`, laid over the sample site, and a `fixture.json` whose `brief` names
+  the brief it built from. `default-brief` is the sample content with the
+  default brief; `stitch-web-font` used the brief from
+  `design/briefs/from-stitch-html.md`, with the Plus Jakarta Sans files a
+  participant downloads from Google Fonts already in `assets/fonts/` (SIL Open
+  Font License, `OFL.txt` beside them). Each must pass the Check, define the
+  brief's six colours with `light-dark()` and load nothing from other servers.

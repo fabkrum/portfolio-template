@@ -127,3 +127,8 @@ export function checkBrief(markdown) {
   }
   return problems;
 }
+
+// The brief's six colour tokens per mode, e.g. { Light: { accent: "#1a56db", … }, Dark: { … } }.
+export function briefColours(markdown) {
+  return readColours(sections(markdown).get("Colours") ?? "").colours;
+}

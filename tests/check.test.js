@@ -1,36 +1,20 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
-import { cp, mkdtemp, readdir, readFile, rm } from "node:fs/promises";
+import { cp, mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runCheck } from "../tools/check/run-check.mjs";
+import { buildFixtureSite as buildSite, fixtureNames, sampleSite } from "./fixture-site.js";
 
-const sampleSite = fileURLToPath(new URL("../site", import.meta.url));
 const brokenSites = fileURLToPath(new URL("./fixtures/broken-sites", import.meta.url));
 const cleanSites = fileURLToPath(new URL("./fixtures/clean-sites", import.meta.url));
 
-// Fixture folders only, so a stray .DS_Store or desktop.ini is not a fixture.
-const fixtureNames = async (dir) =>
-  (await readdir(dir, { withFileTypes: true })).filter((entry) => entry.isDirectory()).map((entry) => entry.name);
-
 const ITEMS = ["content", "accessibility", "console", "privacy", "private-data"];
 
-// A fixture site = the sample site, with the fixture's files laid over it
-// and the files its fixture.json lists under "remove" deleted.
 async function buildFixtureSite(fixturesDir, name) {
-  const fixtureDir = join(fixturesDir, name);
-  const fixturePath = join(fixtureDir, "fixture.json");
-  const fixture = existsSync(fixturePath) ? JSON.parse(await readFile(fixturePath, "utf8")) : {};
-  const siteDir = await mkdtemp(join(tmpdir(), `broken-${name}-`));
-  await cp(sampleSite, siteDir, { recursive: true });
-  await cp(fixtureDir, siteDir, {
-    recursive: true,
-    filter: (source) => !source.endsWith("fixture.json"),
-  });
-  for (const file of fixture.remove ?? []) await rm(join(siteDir, file));
+  const { siteDir, fixture } = await buildSite(fixturesDir, name);
   return { siteDir, expect: fixture.expect, finding: fixture.finding };
 }
 
