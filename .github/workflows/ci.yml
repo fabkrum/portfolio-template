@@ -42,21 +42,20 @@ jobs:
       - name: PSScriptAnalyzer
         shell: pwsh
         run: |
-          Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
-          $findings = 'install.ps1', 'tests/install/assert-ready.ps1' | ForEach-Object { Invoke-ScriptAnalyzer -Path $_ -Settings tests/install/PSScriptAnalyzerSettings.psd1 }
+          $findings = Get-ChildItem install.ps1, tests/install/*.ps1 | ForEach-Object { Invoke-ScriptAnalyzer -Path $_.FullName -Settings tests/install/PSScriptAnalyzerSettings.psd1 }
           $findings | Format-Table -AutoSize | Out-String -Width 200 | Write-Output
           if ($findings) { exit 1 }
 
   # The runners ship Git, Node and Chrome. Each job first takes away what a
   # fresh laptop would not have, then runs the one line exactly as the guide
-  # shows it, fetched from this commit. Each job then runs it a second time,
-  # as a participant would after a half-finished first run.
+  # shows it, fetched from this commit, and runs it again afterwards.
   install-linux:
     runs-on: ubuntu-latest
     env:
       INSTALL_URL: https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/install.sh
       PORTFOLIO_GITHUB_USER: ${{ github.repository_owner }}
       PORTFOLIO_REPO: ${{ github.event.repository.name }}
+      ORIGIN: https://github.com/${{ github.repository }}.git
     steps:
       - uses: actions/checkout@v4
         with:
@@ -82,15 +81,20 @@ jobs:
       - name: Chrome comes back (the participant installed it)
         run: while read -r path; do sudo mv "$path.hidden" "$path"; done < "$RUNNER_TEMP/hidden-chrome"
       - name: Ready after the first run
-        run: bash under-test/tests/install/assert-ready.sh "$HOME/$PORTFOLIO_REPO" "https://github.com/$PORTFOLIO_GITHUB_USER/$PORTFOLIO_REPO.git"
-      - name: Second run
-        run: wget -qO- "$INSTALL_URL" | sh 2>&1 | tee "$RUNNER_TEMP/second-run.log"
-      - name: Second run found everything in place
+        run: bash under-test/tests/install/assert-ready.sh "$HOME/$PORTFOLIO_REPO" "$ORIGIN"
+      # This time nothing answers the question up front: the participant types
+      # (here: pastes their repo link) into a real terminal.
+      - name: Second run, answering the question in a terminal
+        run: >
+          printf '%s\n' "https://github.com/$PORTFOLIO_GITHUB_USER/$PORTFOLIO_REPO"
+          | env -u PORTFOLIO_GITHUB_USER -u PORTFOLIO_REPO script -qec 'wget -qO- "$INSTALL_URL" | sh' /dev/null
+          | tee "$RUNNER_TEMP/second-run.log"
+      - name: Second run asked, then found everything in place
         run: >
           bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/second-run.log"
-          "Your repo is already in" "Run this command again any time"
+          "What is your GitHub username?" "Your repo is already in" "Run this command again any time"
       - name: Still ready after the second run
-        run: bash under-test/tests/install/assert-ready.sh "$HOME/$PORTFOLIO_REPO" "https://github.com/$PORTFOLIO_GITHUB_USER/$PORTFOLIO_REPO.git"
+        run: bash under-test/tests/install/assert-ready.sh "$HOME/$PORTFOLIO_REPO" "$ORIGIN"
 
   install-macos:
     runs-on: macos-latest
@@ -98,6 +102,7 @@ jobs:
       INSTALL_URL: https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/install.sh
       PORTFOLIO_GITHUB_USER: ${{ github.repository_owner }}
       PORTFOLIO_REPO: ${{ github.event.repository.name }}
+      ORIGIN: https://github.com/${{ github.repository }}.git
     steps:
       - uses: actions/checkout@v4
         with:
@@ -124,7 +129,7 @@ jobs:
           "command line developer tools" "Antigravity IDE is not installed"
           "open a new terminal window" "Run this command again any time"
       - name: Downloaded without Git after the first run
-        run: bash under-test/tests/install/assert-ready.sh "$HOME/$PORTFOLIO_REPO" "https://github.com/$PORTFOLIO_GITHUB_USER/$PORTFOLIO_REPO.git" --without-git
+        run: bash under-test/tests/install/assert-ready.sh "$HOME/$PORTFOLIO_REPO" "$ORIGIN" --without-git
       - name: Second run (developer tools now installed)
         run: curl -fsSL "$INSTALL_URL" | sh 2>&1 | tee "$RUNNER_TEMP/second-run.log"
       - name: Second run connected the download to Git
@@ -132,14 +137,21 @@ jobs:
           bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/second-run.log"
           "Connected your repo folder to Git" "Run this command again any time"
       - name: Ready after the second run
-        run: bash under-test/tests/install/assert-ready.sh "$HOME/$PORTFOLIO_REPO" "https://github.com/$PORTFOLIO_GITHUB_USER/$PORTFOLIO_REPO.git"
+        run: bash under-test/tests/install/assert-ready.sh "$HOME/$PORTFOLIO_REPO" "$ORIGIN"
 
+  # Two Windows laptops: one with winget (most Windows 10 and 11), one without
+  # it, where the script falls back to downloads and connects Git later.
   install-windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        winget: [present, missing]
     runs-on: windows-latest
     env:
       INSTALL_URL: https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/install.ps1
       PORTFOLIO_GITHUB_USER: ${{ github.repository_owner }}
       PORTFOLIO_REPO: ${{ github.event.repository.name }}
+      ORIGIN: https://github.com/${{ github.repository }}.git
     defaults:
       run:
         shell: pwsh
@@ -158,22 +170,31 @@ jobs:
           foreach ($tool in 'git', 'node') {
             if (Get-Command $tool -ErrorAction SilentlyContinue) { Write-Output "$tool is still there"; exit 1 }
           }
+      # A winget that always fails, first on PATH, plays the laptop without it.
+      - name: "Without winget: hide it for the first run"
+        if: matrix.winget == 'missing'
+        run: |
+          New-Item -ItemType Directory -Force "$env:RUNNER_TEMP\no-winget" | Out-Null
+          Set-Content "$env:RUNNER_TEMP\no-winget\winget.cmd" '@exit /b 1'
       - name: First run, in Windows PowerShell with the default execution policy
-        run: powershell.exe -NoProfile -ExecutionPolicy Restricted -Command "irm $env:INSTALL_URL | iex" *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\first-run.log"
-      # Git Bash left with Git, so the log checks here are PowerShell.
+        run: |
+          if ('${{ matrix.winget }}' -eq 'missing') { $env:Path = "$env:RUNNER_TEMP\no-winget;$env:Path" }
+          powershell.exe -NoProfile -ExecutionPolicy Restricted -Command "irm $env:INSTALL_URL | iex" *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\first-run.log"
       - name: First run told the participant what is missing
+        run: under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\first-run.log" -Message 'Antigravity IDE is not installed', 'open a new terminal window', 'Run this command again any time'
+      - name: "With winget: ready after the first run"
+        if: matrix.winget == 'present'
+        run: under-test/tests/install/assert-ready.ps1 -RepoDir "$HOME\$env:PORTFOLIO_REPO" -Origin $env:ORIGIN
+      - name: "Without winget: told about Git, downloaded the repo, Node from nodejs.org"
+        if: matrix.winget == 'missing'
         run: |
-          foreach ($message in 'Antigravity IDE is not installed', 'open a new terminal window', 'Run this command again any time') {
-            if (-not (Select-String -Path "$env:RUNNER_TEMP\first-run.log" -SimpleMatch $message -Quiet)) { Write-Output "FAIL: said `"$message`""; exit 1 }
-          }
-      - name: Ready after the first run
-        run: under-test/tests/install/assert-ready.ps1 -RepoDir "$HOME\$env:PORTFOLIO_REPO" -Origin "https://github.com/$env:PORTFOLIO_GITHUB_USER/$env:PORTFOLIO_REPO.git"
-      - name: Second run
+          under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\first-run.log" -Message 'Git could not be installed', 'Downloading Node from nodejs.org'
+          under-test/tests/install/assert-ready.ps1 -RepoDir "$HOME\$env:PORTFOLIO_REPO" -Origin $env:ORIGIN -WithoutGit
+      - name: Second run (winget available again in the missing case)
         run: powershell.exe -NoProfile -ExecutionPolicy Restricted -Command "irm $env:INSTALL_URL | iex" *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\second-run.log"
-      - name: Second run found everything in place
+      - name: Second run found the repo in place, or connected the download to Git
         run: |
-          foreach ($message in 'Your repo is already in', 'Run this command again any time') {
-            if (-not (Select-String -Path "$env:RUNNER_TEMP\second-run.log" -SimpleMatch $message -Quiet)) { Write-Output "FAIL: said `"$message`""; exit 1 }
-          }
-      - name: Still ready after the second run
-        run: under-test/tests/install/assert-ready.ps1 -RepoDir "$HOME\$env:PORTFOLIO_REPO" -Origin "https://github.com/$env:PORTFOLIO_GITHUB_USER/$env:PORTFOLIO_REPO.git"
+          $expected = if ('${{ matrix.winget }}' -eq 'missing') { 'Connected your repo folder to Git' } else { 'Your repo is already in' }
+          under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\second-run.log" -Message $expected, 'Run this command again any time'
+      - name: Ready after the second run
+        run: under-test/tests/install/assert-ready.ps1 -RepoDir "$HOME\$env:PORTFOLIO_REPO" -Origin $env:ORIGIN

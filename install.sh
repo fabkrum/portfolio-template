@@ -88,6 +88,9 @@ ask_github_user() {
   case $GH_USER in
     '' | *[!A-Za-z0-9-]*) return 1 ;;
   esac
+  case $REPO in
+    '' | . | .. | *[!A-Za-z0-9._-]*) return 1 ;;
+  esac
   REPO_DIR="$HOME/$REPO"
   REPO_URL="https://github.com/$GH_USER/$REPO"
 }
@@ -100,8 +103,11 @@ check_chrome() {
       if [ -d "$app" ]; then ok "Google Chrome is installed."; return 0; fi
     done
   else
-    for name in google-chrome google-chrome-stable chromium chromium-browser; do
+    for name in google-chrome google-chrome-stable; do
       if have "$name"; then ok "Google Chrome is installed."; return 0; fi
+    done
+    for name in chromium chromium-browser; do
+      if have "$name"; then ok "Chromium is installed (the Check can use it instead of Chrome)."; return 0; fi
     done
   fi
   todo "Google Chrome is not installed." \
@@ -265,11 +271,18 @@ looks_like_the_template() {
   [ -f "$1/tools/check.mjs" ] || [ -f "$1/site/content.json" ]
 }
 
+# The finished copy replaces the repo folder only if that folder is missing or
+# empty, so a half-finished run never ends up inside an existing folder.
+move_into_place() {
+  rmdir "$REPO_DIR" 2>/dev/null
+  if [ -e "$REPO_DIR" ]; then return 1; fi
+  mv "$REPO_DIR.partial" "$REPO_DIR"
+}
+
 clone_repo() {
   rm -rf "$REPO_DIR.partial"
   GIT_TERMINAL_PROMPT=0 git clone -q "$REPO_URL.git" "$REPO_DIR.partial" || return 1
-  rmdir "$REPO_DIR" 2>/dev/null
-  mv "$REPO_DIR.partial" "$REPO_DIR"
+  move_into_place
 }
 
 # A folder downloaded while Git was missing gets Git's history added; the
@@ -287,8 +300,7 @@ download_repo() {
   rm -rf "$REPO_DIR.partial"
   mkdir "$REPO_DIR.partial"
   tar -xzf "$WORK/repo.tar.gz" -C "$REPO_DIR.partial" --strip-components=1 || return 1
-  rmdir "$REPO_DIR" 2>/dev/null
-  mv "$REPO_DIR.partial" "$REPO_DIR"
+  move_into_place
 }
 
 get_repo() {
@@ -310,6 +322,9 @@ get_repo() {
       ok "Connected your repo folder to Git: $REPO_DIR"
       return 0
     fi
+    todo "Your repo folder could not be connected to Git yet." \
+      "Check your internet connection, then run this command again."
+    return 1
   fi
   if ! page_exists "$REPO_URL"; then
     todo "I could not find your repo at $REPO_URL." \
@@ -337,7 +352,8 @@ open_in_ide() {
     opened=$(open -a "$IDE_APP" "$REPO_DIR" >/dev/null 2>&1 && echo yes)
   else
     nohup "$IDE_APP" "$REPO_DIR" >/dev/null 2>&1 &
-    opened=yes
+    ok "Opening your repo in Antigravity IDE."
+    return 0
   fi
   if [ "$opened" = yes ]; then
     ok "Opened your repo in Antigravity IDE."
@@ -357,7 +373,7 @@ if [ "$OS" = other ]; then
 fi
 
 if ! ask_github_user; then
-  printf '\nThat does not look like a GitHub username: "%s".\n' "$GH_USER"
+  printf '\nThat does not look like a GitHub username: "%s".\n' "$GH_USER${REPO:+/$REPO}"
   printf 'Run this command again and type just your username, for example: ada-lovelace\n'
   exit 1
 fi

@@ -33,25 +33,27 @@
     function Write-Heading($text) { Write-Host ''; Write-Host $text }
     function Test-Command($name) { [bool](Get-Command $name -ErrorAction SilentlyContinue) }
 
-    # Picks up what an installer just added to PATH, in this window too.
-    function Sync-SessionPath {
-        $known = $env:Path -split ';'
-        foreach ($scope in 'Machine', 'User') {
-            foreach ($entry in ([Environment]::GetEnvironmentVariable('Path', $scope) -split ';')) {
-                if ($entry -and ($known -notcontains $entry)) {
-                    $env:Path = "$env:Path;$entry"
-                    $state.NewTerminal = $true
-                }
-            }
+    function Get-SavedPath {
+        @('Machine', 'User') | ForEach-Object { [Environment]::GetEnvironmentVariable('Path', $_) -split ';' } | Where-Object { $_ }
+    }
+
+    # Picks up what an installer just added to PATH, in this window too. Other
+    # windows only see it once they are opened again.
+    function Sync-SessionPath($before) {
+        $session = $env:Path -split ';'
+        foreach ($entry in Get-SavedPath) {
+            if ($session -notcontains $entry) { $env:Path = "$env:Path;$entry" }
+            if ($before -notcontains $entry) { $state.NewTerminal = $true }
         }
     }
 
     function Invoke-Winget($id) {
         if (-not (Test-Command winget)) { return }
         Write-Info 'Windows may ask whether to allow the installer to make changes: click Yes.'
+        $before = Get-SavedPath
         $output = & winget install --id $id --exact --source winget --silent --accept-package-agreements --accept-source-agreements 2>&1
         if ($LASTEXITCODE -ne 0) { Write-Info "(winget: $(($output | Select-Object -Last 1) -join ' '))" }
-        Sync-SessionPath
+        Sync-SessionPath $before
     }
 
     function Test-Page($url) {
@@ -75,9 +77,9 @@
             $user = $Matches[1]
             $repo = $Matches[2] -replace '\.git$', ''
         }
-        if ($user -notmatch '^[A-Za-z0-9-]+$') {
+        if ($user -notmatch '^[A-Za-z0-9-]+$' -or $repo -notmatch '^[A-Za-z0-9._-]+$' -or $repo -match '^\.\.?$') {
             Write-Host ''
-            Write-Host "That does not look like a GitHub username: `"$user`"."
+            Write-Host "That does not look like a GitHub username: `"$user/$repo`"."
             Write-Host 'Run this command again and type just your username, for example: ada-lovelace'
             return $null
         }
@@ -167,25 +169,40 @@
         }
     }
 
+    # New windows search the machine-wide PATH before the user's, so an old
+    # Node installed for all users would hide the one in the user folder.
+    function Test-NodeForNewTerminal {
+        foreach ($dir in Get-SavedPath) {
+            $exe = Join-Path $dir 'node.exe'
+            if (Test-Path $exe) {
+                if ((Get-NodeMajor $exe) -lt $nodeMin) {
+                    Write-Todo "New windows would still find an older Node in $dir." 'Uninstall "Node.js" in Settings > Apps, then run this command again.'
+                }
+                return
+            }
+        }
+    }
+
     function Install-Node {
         if ((Get-NodeMajor node) -ge $nodeMin) {
             Write-Ok "Node is installed ($(& node --version))."
             return
         }
         if (Test-Command node) { Write-Info "Your Node is $(& node --version); the Check needs $nodeMin or newer." }
-        Write-Info 'Installing Node...'
-        Invoke-Winget 'OpenJS.NodeJS.LTS'
+        if ((Get-NodeMajor (Join-Path $nodeHome 'node.exe')) -ge $nodeMin) {
+            # Downloaded by an earlier run; this window just does not know it yet.
+            $env:Path = "$nodeHome;$env:Path"
+        } else {
+            Write-Info 'Installing Node...'
+            Invoke-Winget 'OpenJS.NodeJS.LTS'
+        }
         if ((Get-NodeMajor node) -lt $nodeMin) {
-            $localNode = Join-Path $nodeHome 'node.exe'
-            if ((Get-NodeMajor $localNode) -ge $nodeMin) {
-                $env:Path = "$nodeHome;$env:Path"
-            } else {
-                Write-Info 'Downloading Node from nodejs.org instead...'
-                Install-NodeZip | Out-Null
-            }
+            Write-Info 'Downloading Node from nodejs.org instead...'
+            Install-NodeZip | Out-Null
         }
         if ((Get-NodeMajor node) -ge $nodeMin) {
             Write-Ok "Node is installed ($(& node --version))."
+            Test-NodeForNewTerminal
             return
         }
         Write-Todo 'Node could not be installed.' 'Install the LTS version from https://nodejs.org (the Check needs it), then run this command again.'
@@ -205,13 +222,22 @@
         return ($LASTEXITCODE -eq 0)
     }
 
+    # The finished copy replaces the repo folder only if that folder is missing
+    # or empty, so a half-finished run never ends up inside an existing folder.
+    function Move-IntoPlace($from, $repo) {
+        if (Test-Path $repo.Dir) {
+            if (Get-ChildItem $repo.Dir -Force | Select-Object -First 1) { return $false }
+            Remove-Item $repo.Dir -Force
+        }
+        Move-Item $from $repo.Dir
+        return $true
+    }
+
     function Copy-RepoWithGit($repo) {
         $partial = "$($repo.Dir).partial"
         if (Test-Path $partial) { Remove-Item $partial -Recurse -Force }
         if (-not (Invoke-Git clone -q "$($repo.Url).git" $partial)) { return $false }
-        if (Test-Path $repo.Dir) { Remove-Item $repo.Dir -Force }
-        Move-Item $partial $repo.Dir
-        return $true
+        return (Move-IntoPlace $partial $repo)
     }
 
     # A folder downloaded while Git was missing gets Git's history added; the
@@ -234,10 +260,9 @@
             Invoke-WebRequest -Uri "$($repo.Url)/archive/HEAD.zip" -OutFile $zip -UseBasicParsing
             Expand-Archive -Path $zip -DestinationPath (Join-Path $work 'files') -Force
             $top = Get-ChildItem (Join-Path $work 'files') -Directory | Select-Object -First 1
-            if (Test-Path $repo.Dir) { Remove-Item $repo.Dir -Force }
-            Move-Item $top.FullName $repo.Dir
+            $moved = Move-IntoPlace $top.FullName $repo
             Remove-Item $work -Recurse -Force
-            return $true
+            return $moved
         } catch {
             return $false
         }
@@ -262,6 +287,8 @@
                 Write-Ok "Connected your repo folder to Git: $dir"
                 return
             }
+            Write-Todo 'Your repo folder could not be connected to Git yet.' 'Check your internet connection, then run this command again.'
+            return
         }
         if (-not (Test-Page $repo.Url)) {
             Write-Todo "I could not find your repo at $($repo.Url)." "Check your username, and that you created your copy from the template, named it `"$($repo.Name)`" and made it Public. Then run this command again."
