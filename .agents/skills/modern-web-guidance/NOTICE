@@ -1,0 +1,15 @@
+Modern Web Guidance
+===================
+
+The guides/ folder is a copy of the guides in modern-web-guidance 0.0.191
+(skill version 2026_09_04-7de96777), published on npm by GoogleChrome:
+
+    https://github.com/GoogleChrome/modern-web-guidance
+
+Copyright the modern-web-guidance authors. Licensed under the Apache License,
+Version 2.0; see LICENSE in this folder for the full terms.
+
+The guides are unmodified. index.md is generated from the package's own guide
+descriptions by tools/vendor/modern-web-guidance.mjs. SKILL.md is written for
+this template: it reads the guides from this folder instead of running the
+upstream search tool, which needs npx and a download.
