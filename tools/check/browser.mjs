@@ -37,8 +37,10 @@ async function inspectPage(cdp, url, axeSource) {
   const { targetId } = await cdp.send("Target.createTarget", { url: "about:blank" });
   const { sessionId } = await cdp.send("Target.attachToTarget", { targetId, flatten: true });
   const consoleErrors = [];
-  let markIdle;
-  const idle = new Promise((done) => (markIdle = done));
+  // Chrome replays lifecycle events for the blank start page, so only the
+  // "network idle" of our own navigation (its loaderId) counts.
+  const idleLoaders = new Set();
+  let onIdle = () => {};
 
   const stopListening = cdp.onEvent((event) => {
     if (event.sessionId !== sessionId) return;
@@ -50,14 +52,19 @@ async function inspectPage(cdp, url, axeSource) {
     } else if (method === "Log.entryAdded" && params.entry.level === "error") {
       consoleErrors.push(params.entry.url ? `${params.entry.text} (${params.entry.url})` : params.entry.text);
     } else if (method === "Page.lifecycleEvent" && params.name === "networkIdle") {
-      markIdle();
+      idleLoaders.add(params.loaderId);
+      onIdle();
     }
   });
 
   try {
     for (const domain of ["Runtime", "Log", "Page"]) await cdp.send(`${domain}.enable`, {}, sessionId);
     await cdp.send("Page.setLifecycleEventsEnabled", { enabled: true }, sessionId);
-    await cdp.send("Page.navigate", { url }, sessionId);
+    const { loaderId } = await cdp.send("Page.navigate", { url }, sessionId);
+    const idle = new Promise((done) => {
+      onIdle = () => idleLoaders.has(loaderId) && done();
+      onIdle();
+    });
     await waitAtMost(idle, TIMEOUT_MS);
 
     await cdp.send("Runtime.evaluate", { expression: axeSource }, sessionId);
