@@ -32,4 +32,147 @@ jobs:
         run: bash tests/validate-content.sh
       - name: The Check on the sample site, as a participant sees it
         run: node tools/check.mjs
-      # Later tickets add: install scripts, shellcheck, PSScriptAnalyzer.
+
+  lint-install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: shellcheck
+        run: shellcheck install.sh tests/install/*.sh
+      - name: PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
+          $findings = Invoke-ScriptAnalyzer -Path install.ps1, tests/install/assert-ready.ps1 -Settings tests/install/PSScriptAnalyzerSettings.psd1
+          $findings | Format-Table -AutoSize | Out-String -Width 200 | Write-Output
+          if ($findings) { exit 1 }
+
+  # The runners ship Git, Node and Chrome. Each job first takes away what a
+  # fresh laptop would not have, then runs the one line exactly as the guide
+  # shows it, fetched from this commit. Each job then runs it a second time,
+  # as a participant would after a half-finished first run.
+  install-linux:
+    runs-on: ubuntu-latest
+    env:
+      INSTALL_URL: https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/install.sh
+      PORTFOLIO_GITHUB_USER: ${{ github.repository_owner }}
+      PORTFOLIO_REPO: ${{ github.event.repository.name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: under-test
+      - name: "Make it a fresh laptop: no Git, Ubuntu's own Node 18 (too old), no Chrome"
+        run: |
+          sudo apt-get remove -y git
+          sudo rm -f /usr/local/bin/node /usr/local/bin/npm /usr/local/bin/npx
+          sudo apt-get install -y nodejs
+          for name in google-chrome google-chrome-stable chromium chromium-browser; do
+            if path=$(command -v "$name"); then sudo mv "$path" "$path.hidden"; echo "$path" >> "$RUNNER_TEMP/hidden-chrome"; fi
+          done
+          if command -v git; then echo "Git is still there"; exit 1; fi
+          node --version
+      - name: First run
+        run: wget -qO- "$INSTALL_URL" | sh 2>&1 | tee "$RUNNER_TEMP/first-run.log"
+      - name: First run told the participant what is missing
+        run: >
+          bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/first-run.log"
+          "Google Chrome is not installed" "Antigravity IDE is not installed"
+          "open a new terminal window" "Run this command again any time"
+      - name: Chrome comes back (the participant installed it)
+        run: while read -r path; do sudo mv "$path.hidden" "$path"; done < "$RUNNER_TEMP/hidden-chrome"
+      - name: Ready after the first run
+        run: bash under-test/tests/install/assert-ready.sh "$HOME/$PORTFOLIO_REPO" "https://github.com/$PORTFOLIO_GITHUB_USER/$PORTFOLIO_REPO.git"
+      - name: Second run
+        run: wget -qO- "$INSTALL_URL" | sh 2>&1 | tee "$RUNNER_TEMP/second-run.log"
+      - name: Second run found everything in place
+        run: >
+          bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/second-run.log"
+          "Your repo is already in" "Run this command again any time"
+      - name: Still ready after the second run
+        run: bash under-test/tests/install/assert-ready.sh "$HOME/$PORTFOLIO_REPO" "https://github.com/$PORTFOLIO_GITHUB_USER/$PORTFOLIO_REPO.git"
+
+  install-macos:
+    runs-on: macos-latest
+    env:
+      INSTALL_URL: https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/install.sh
+      PORTFOLIO_GITHUB_USER: ${{ github.repository_owner }}
+      PORTFOLIO_REPO: ${{ github.event.repository.name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: under-test
+      # On a fresh Mac, /usr/bin/git is only a stub that fails until the
+      # command line developer tools are installed. /usr/bin is protected on
+      # the runner, so a stub placed first on PATH plays that part.
+      - name: "Make it a fresh laptop: Git is only the stub, no Node"
+        run: |
+          mkdir -p "$RUNNER_TEMP/fresh-mac"
+          printf '%s\n' '#!/bin/sh' 'echo "xcrun: error: invalid active developer path (/Library/Developer/CommandLineTools), missing xcrun" >&2' 'exit 1' > "$RUNNER_TEMP/fresh-mac/git"
+          chmod +x "$RUNNER_TEMP/fresh-mac/git"
+          for _ in 1 2 3 4 5; do
+            path=$(command -v node) || break
+            sudo rm -f "$path"
+            hash -r
+          done
+          if command -v node; then echo "Node is still there"; exit 1; fi
+      - name: First run (Git missing)
+        run: curl -fsSL "$INSTALL_URL" | PATH="$RUNNER_TEMP/fresh-mac:$PATH" sh 2>&1 | tee "$RUNNER_TEMP/first-run.log"
+      - name: First run told the participant what is missing
+        run: >
+          bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/first-run.log"
+          "command line developer tools" "Antigravity IDE is not installed"
+          "open a new terminal window" "Run this command again any time"
+      - name: Downloaded without Git after the first run
+        run: bash under-test/tests/install/assert-ready.sh "$HOME/$PORTFOLIO_REPO" "https://github.com/$PORTFOLIO_GITHUB_USER/$PORTFOLIO_REPO.git" --without-git
+      - name: Second run (developer tools now installed)
+        run: curl -fsSL "$INSTALL_URL" | sh 2>&1 | tee "$RUNNER_TEMP/second-run.log"
+      - name: Second run connected the download to Git
+        run: >
+          bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/second-run.log"
+          "Connected your repo folder to Git" "Run this command again any time"
+      - name: Ready after the second run
+        run: bash under-test/tests/install/assert-ready.sh "$HOME/$PORTFOLIO_REPO" "https://github.com/$PORTFOLIO_GITHUB_USER/$PORTFOLIO_REPO.git"
+
+  install-windows:
+    runs-on: windows-latest
+    env:
+      INSTALL_URL: https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/install.ps1
+      PORTFOLIO_GITHUB_USER: ${{ github.repository_owner }}
+      PORTFOLIO_REPO: ${{ github.event.repository.name }}
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: under-test
+      - name: "Make it a fresh laptop: no Git, no Node"
+        run: |
+          Start-Process "$env:ProgramFiles\Git\unins000.exe" -ArgumentList '/VERYSILENT', '/NORESTART', '/SUPPRESSMSGBOXES' -Wait
+          $uninstallKeys = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*'
+          Get-ItemProperty $uninstallKeys | Where-Object { $_.DisplayName -like 'Node.js*' } | ForEach-Object {
+            Start-Process msiexec.exe -ArgumentList '/x', $_.PSChildName, '/qn', '/norestart' -Wait
+          }
+          $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
+          foreach ($tool in 'git', 'node') {
+            if (Get-Command $tool -ErrorAction SilentlyContinue) { Write-Output "$tool is still there"; exit 1 }
+          }
+      - name: First run, in Windows PowerShell with the default execution policy
+        run: powershell.exe -NoProfile -ExecutionPolicy Restricted -Command "irm $env:INSTALL_URL | iex" *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\first-run.log"
+      # Git Bash left with Git, so the log checks here are PowerShell.
+      - name: First run told the participant what is missing
+        run: |
+          foreach ($message in 'Antigravity IDE is not installed', 'open a new terminal window', 'Run this command again any time') {
+            if (-not (Select-String -Path "$env:RUNNER_TEMP\first-run.log" -SimpleMatch $message -Quiet)) { Write-Output "FAIL: said `"$message`""; exit 1 }
+          }
+      - name: Ready after the first run
+        run: under-test/tests/install/assert-ready.ps1 -RepoDir "$HOME\$env:PORTFOLIO_REPO" -Origin "https://github.com/$env:PORTFOLIO_GITHUB_USER/$env:PORTFOLIO_REPO.git"
+      - name: Second run
+        run: powershell.exe -NoProfile -ExecutionPolicy Restricted -Command "irm $env:INSTALL_URL | iex" *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\second-run.log"
+      - name: Second run found everything in place
+        run: |
+          foreach ($message in 'Your repo is already in', 'Run this command again any time') {
+            if (-not (Select-String -Path "$env:RUNNER_TEMP\second-run.log" -SimpleMatch $message -Quiet)) { Write-Output "FAIL: said `"$message`""; exit 1 }
+          }
+      - name: Still ready after the second run
+        run: under-test/tests/install/assert-ready.ps1 -RepoDir "$HOME\$env:PORTFOLIO_REPO" -Origin "https://github.com/$env:PORTFOLIO_GITHUB_USER/$env:PORTFOLIO_REPO.git"
