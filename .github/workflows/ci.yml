@@ -43,7 +43,7 @@ jobs:
         shell: pwsh
         run: |
           Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
-          $findings = Invoke-ScriptAnalyzer -Path install.ps1, tests/install/assert-ready.ps1 -Settings tests/install/PSScriptAnalyzerSettings.psd1
+          $findings = 'install.ps1', 'tests/install/assert-ready.ps1' | ForEach-Object { Invoke-ScriptAnalyzer -Path $_ -Settings tests/install/PSScriptAnalyzerSettings.psd1 }
           $findings | Format-Table -AutoSize | Out-String -Width 200 | Write-Output
           if ($findings) { exit 1 }
 
@@ -63,7 +63,8 @@ jobs:
           path: under-test
       - name: "Make it a fresh laptop: no Git, Ubuntu's own Node 18 (too old), no Chrome"
         run: |
-          sudo apt-get remove -y git
+          # git-man goes too: the runner's newer one from the Git PPA would block Ubuntu's own git.
+          sudo apt-get purge -y git git-man
           sudo rm -f /usr/local/bin/node /usr/local/bin/npm /usr/local/bin/npx
           sudo apt-get install -y nodejs
           for name in google-chrome google-chrome-stable chromium chromium-browser; do

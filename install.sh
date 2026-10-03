@@ -205,7 +205,7 @@ download_node() {
   # A Terminal running under Rosetta reports x86_64 on an Apple silicon Mac.
   if [ "$OS" = darwin ] && [ "$(sysctl -n hw.optional.arm64 2>/dev/null)" = 1 ]; then arch=arm64; fi
   fetch https://nodejs.org/dist/index.json "$WORK/index.json" || return 1
-  version=$(grep '"lts":"' "$WORK/index.json" | head -n 1 | sed 's/.*"version":"\(v[0-9.]*\)".*/\1/')
+  version=$(awk '/"lts":"/ { print; exit }' "$WORK/index.json" | sed 's/.*"version":"\(v[0-9.]*\)".*/\1/')
   [ -n "$version" ] || return 1
   file="node-$version-$OS-$arch.tar.gz"
   fetch "https://nodejs.org/dist/$version/$file" "$WORK/$file" || return 1

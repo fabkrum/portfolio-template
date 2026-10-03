@@ -43,7 +43,8 @@ if [ "$without_git" = "--without-git" ]; then
   if [ -d "$repo_dir/.git" ]; then fail "no Git connection yet"; else pass "downloaded without Git"; fi
 else
   git_version=$(in_fresh_terminal 'git --version')
-  if [ -n "$git_version" ]; then pass "$git_version in a fresh terminal"; else fail "Git in a fresh terminal"; fi
+  # Ubuntu answers an unknown command with advice, so match the real output.
+  if printf '%s' "$git_version" | grep -q '^git version'; then pass "$git_version in a fresh terminal"; else fail "Git in a fresh terminal"; fi
   actual_origin=$(git -C "$repo_dir" remote get-url origin 2>/dev/null)
   if [ "$actual_origin" = "$origin" ]; then pass "origin is $origin"; else fail "origin is $origin (got '$actual_origin')"; fi
   changes=$(git -C "$repo_dir" status --porcelain 2>&1)
