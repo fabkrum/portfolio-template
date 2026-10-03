@@ -44,3 +44,4 @@ Prefer one command at a time over long chains on every system.
 - The site is plain HTML, CSS and JavaScript in `site/`. No build step, no Node, no npm packages.
 - All content lives in `site/content.json`, which must match `site/content.schema.json`. Change content there, not in the HTML.
 - The repo is public. Never put a phone number or a postal address in any file.
+- Check the site with `node tools/check.mjs` (the same command on every system). It reports what passes and what needs attention and never blocks; read its findings back to the person in plain words.

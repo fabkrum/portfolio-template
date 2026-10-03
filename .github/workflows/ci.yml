@@ -23,9 +23,13 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install check-jsonschema
-      - name: Renderer tests
+      # Includes the Check against the sample site and every broken fixture site,
+      # in the runner's own Chrome.
+      - name: Tests (renderer and Check)
         run: node --test
       - name: Content file matches the schema
         shell: bash
         run: bash tests/validate-content.sh
-      # Later tickets add: install scripts, shellcheck, PSScriptAnalyzer, the Check.
+      - name: The Check on the sample site, as a participant sees it
+        run: node tools/check.mjs
+      # Later tickets add: install scripts, shellcheck, PSScriptAnalyzer.

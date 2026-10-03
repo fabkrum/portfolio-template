@@ -11,11 +11,22 @@ Your own portfolio site, built with AI agents and published on GitHub Pages. The
 
 A few minutes later your site is live at `https://YOUR-USERNAME.github.io/portfolio/`. Until you add your own content it shows Ada Example, a fictional person.
 
+## Check your site
+
+From your repo folder, run:
+
+```
+node tools/check.mjs
+```
+
+It looks at your site in your own Chrome and reports each item as PASS or NEEDS ATTENTION: the content file matches the schema, accessibility (axe, the engine behind Lighthouse), no errors in the browser console, a privacy page, and no phone number or postal address in the content file. It only reports; it never stops you from publishing. It needs Node 22 or newer and Google Chrome.
+
 ## What is where
 
 - `site/content.json` – all your content. Edit this file, not the HTML.
 - `site/content.schema.json` – what the content file may contain.
 - `site/` – the site itself: plain HTML, CSS and JavaScript, no build step.
+- `tools/check.mjs` – the Check.
 - `AGENTS.md` – the rules your agent follows.
 
 Every push to `main` publishes the site again.
