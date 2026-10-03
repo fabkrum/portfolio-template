@@ -1,0 +1,13 @@
+{
+  "name": "Sam Fixture",
+  "headline": "Test person",
+  "bio": [
+    "Fictional test data."
+  ],
+  "links": [
+    {
+      "label": "Call me",
+      "url": "tel:0000000000"
+    }
+  ]
+}

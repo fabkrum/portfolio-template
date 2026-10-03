@@ -1,0 +1,8 @@
+{
+  "name": "Sam Fixture",
+  "headline": "Test person",
+  "bio": [
+    "Fictional test data."
+  ],
+  "phone": "000 000 0000"
+}

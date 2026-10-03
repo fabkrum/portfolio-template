@@ -1,0 +1,57 @@
+/* Plain starting styles. The Developer role replaces them with the design brief. */
+:root {
+  color-scheme: light dark;
+  --text: light-dark(#1b1b1f, #ececf1);
+  --muted: light-dark(#5a5a66, #a8a8b3);
+  --background: light-dark(#ffffff, #121216);
+  --accent: light-dark(#1a56db, #8fb2ff);
+  font-family: system-ui, sans-serif;
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--background);
+}
+
+body {
+  margin: 0;
+}
+
+main,
+footer {
+  max-width: 44rem;
+  margin-inline: auto;
+  padding: 2rem 1.25rem;
+}
+
+a {
+  color: var(--accent);
+}
+
+.headline,
+.period {
+  color: var(--muted);
+}
+
+.projects,
+.links,
+.cv-list {
+  list-style: none;
+  padding: 0;
+}
+
+.project,
+.cv-list li {
+  margin-block-end: 1.5rem;
+}
+
+.project-links,
+.links,
+.skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.skills {
+  padding: 0;
+  list-style: none;
+}

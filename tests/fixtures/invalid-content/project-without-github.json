@@ -1,0 +1,13 @@
+{
+  "name": "Sam Fixture",
+  "headline": "Test person",
+  "bio": [
+    "Fictional test data."
+  ],
+  "projects": [
+    {
+      "title": "X",
+      "description": "Y"
+    }
+  ]
+}
