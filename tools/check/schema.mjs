@@ -29,13 +29,13 @@ function resolveRef(root, ref) {
     .reduce((node, key) => node?.[key], root);
 }
 
-function check(root, schema, value, path, problems) {
+function validateNode(root, schema, value, path, problems) {
   for (const keyword of Object.keys(schema)) {
     if (!ANNOTATIONS.has(keyword) && !UNDERSTOOD.has(keyword)) {
       throw new Error(`The Check does not understand the schema keyword "${keyword}".`);
     }
   }
-  if (schema.$ref) check(root, resolveRef(root, schema.$ref), value, path, problems);
+  if (schema.$ref) validateNode(root, resolveRef(root, schema.$ref), value, path, problems);
 
   if (schema.type && typeOf(value) !== schema.type) {
     problems.push(`${describe(path)} must be ${schema.type === "array" ? "a list" : `a ${schema.type}`}.`);
@@ -48,7 +48,7 @@ function check(root, schema, value, path, problems) {
     }
     for (const [key, entry] of Object.entries(value)) {
       const propertySchema = schema.properties?.[key];
-      if (propertySchema) check(root, propertySchema, entry, [...path, key], problems);
+      if (propertySchema) validateNode(root, propertySchema, entry, [...path, key], problems);
       else if (schema.additionalProperties === false) {
         problems.push(`"${key}" is not allowed in ${describe(path)}.`);
       }
@@ -61,7 +61,7 @@ function check(root, schema, value, path, problems) {
     }
     if (schema.items) {
       for (const [index, entry] of value.entries()) {
-        check(root, schema.items, entry, [...path, index + 1], problems);
+        validateNode(root, schema.items, entry, [...path, index + 1], problems);
       }
     }
   }
@@ -80,6 +80,6 @@ function check(root, schema, value, path, problems) {
 // Returns a list of problems in plain language; empty means valid.
 export function validateContent(schema, content) {
   const problems = [];
-  check(schema, schema, content, [], problems);
+  validateNode(schema, schema, content, [], problems);
   return problems;
 }

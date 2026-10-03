@@ -1,1 +1,1 @@
-{"expect": "private-data"}
+{"expect": "private-data", "finding": "000 0000 000.*phone number"}

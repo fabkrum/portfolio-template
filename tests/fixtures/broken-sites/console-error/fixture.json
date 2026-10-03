@@ -1,1 +1,1 @@
-{ "expect": "console" }
+{"expect": "console", "finding": "showGreting is not defined"}

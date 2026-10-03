@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { cp, mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -9,14 +10,20 @@ import { runCheck } from "../tools/check/run-check.mjs";
 
 const sampleSite = fileURLToPath(new URL("../site", import.meta.url));
 const brokenSites = fileURLToPath(new URL("./fixtures/broken-sites", import.meta.url));
+const cleanSites = fileURLToPath(new URL("./fixtures/clean-sites", import.meta.url));
+
+// Fixture folders only, so a stray .DS_Store or desktop.ini is not a fixture.
+const fixtureNames = async (dir) =>
+  (await readdir(dir, { withFileTypes: true })).filter((entry) => entry.isDirectory()).map((entry) => entry.name);
 
 const ITEMS = ["content", "accessibility", "console", "privacy", "private-data"];
 
-// A broken site = the sample site, with the fixture's files laid over it
+// A fixture site = the sample site, with the fixture's files laid over it
 // and the files its fixture.json lists under "remove" deleted.
-async function buildBrokenSite(name) {
-  const fixtureDir = join(brokenSites, name);
-  const fixture = JSON.parse(await readFile(join(fixtureDir, "fixture.json"), "utf8"));
+async function buildFixtureSite(fixturesDir, name) {
+  const fixtureDir = join(fixturesDir, name);
+  const fixturePath = join(fixtureDir, "fixture.json");
+  const fixture = existsSync(fixturePath) ? JSON.parse(await readFile(fixturePath, "utf8")) : {};
   const siteDir = await mkdtemp(join(tmpdir(), `broken-${name}-`));
   await cp(sampleSite, siteDir, { recursive: true });
   await cp(fixtureDir, siteDir, {
@@ -24,7 +31,7 @@ async function buildBrokenSite(name) {
     filter: (source) => !source.endsWith("fixture.json"),
   });
   for (const file of fixture.remove ?? []) await rm(join(siteDir, file));
-  return { siteDir, expect: fixture.expect };
+  return { siteDir, expect: fixture.expect, finding: fixture.finding };
 }
 
 test("the sample site passes every item", async () => {
@@ -36,9 +43,9 @@ test("the sample site passes every item", async () => {
   for (const item of items) assert.equal(item.pass, true, `${item.id}: ${item.details}`);
 });
 
-for (const name of await readdir(brokenSites)) {
+for (const name of await fixtureNames(brokenSites)) {
   test(`broken site "${name}" is reported under exactly its expected item`, async () => {
-    const { siteDir, expect } = await buildBrokenSite(name);
+    const { siteDir, expect, finding } = await buildFixtureSite(brokenSites, name);
     try {
       const items = await runCheck(siteDir);
       const flagged = items.filter((item) => !item.pass);
@@ -47,7 +54,7 @@ for (const name of await readdir(brokenSites)) {
         [expect],
         JSON.stringify(flagged, null, 2),
       );
-      assert.ok(flagged[0].details.length > 0, "a finding must say what is wrong");
+      assert.match(flagged[0].details.join("\n"), new RegExp(finding, "i"));
     } finally {
       await rm(siteDir, { recursive: true, force: true });
     }
@@ -71,10 +78,23 @@ for (const file of await readdir(invalidContent)) {
   });
 }
 
+for (const name of await fixtureNames(cleanSites)) {
+  test(`clean site "${name}" passes every item`, async () => {
+    const { siteDir } = await buildFixtureSite(cleanSites, name);
+    try {
+      for (const item of await runCheck(siteDir)) {
+        assert.equal(item.pass, true, `${item.id}: ${item.details}`);
+      }
+    } finally {
+      await rm(siteDir, { recursive: true, force: true });
+    }
+  });
+}
+
 const checkCommand = fileURLToPath(new URL("../tools/check.mjs", import.meta.url));
 
 test("the one command reports in plain language and never fails, even with findings", async () => {
-  const { siteDir } = await buildBrokenSite("no-privacy-page");
+  const { siteDir } = await buildFixtureSite(brokenSites, "no-privacy-page");
   try {
     const run = spawnSync(process.execPath, [checkCommand, siteDir], { encoding: "utf8" });
     assert.equal(run.status, 0, run.stderr);

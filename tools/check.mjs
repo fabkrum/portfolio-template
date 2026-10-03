@@ -10,8 +10,8 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runCheck } from "./check/run-check.mjs";
 
-const PASS = "PASS           ";
 const ATTENTION = "NEEDS ATTENTION";
+const PASS = "PASS".padEnd(ATTENTION.length);
 const INDENT = " ".repeat(PASS.length + 4);
 
 const siteDir = process.argv[2]

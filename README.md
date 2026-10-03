@@ -19,7 +19,7 @@ From your repo folder, run:
 node tools/check.mjs
 ```
 
-It looks at your site in your own Chrome and reports each item as PASS or NEEDS ATTENTION: the content file matches the schema, accessibility (axe, the engine behind Lighthouse), no errors in the browser console, a privacy page, and no phone number or postal address in the content file. It only reports; it never stops you from publishing. It needs Node 22 or newer and Google Chrome.
+It looks at your site in your own Chrome and reports each item as PASS or NEEDS ATTENTION: the content file matches the schema, accessibility (the axe rules behind Lighthouse's accessibility score), no errors in the browser console, a privacy page, and no phone number or postal address in the content file. It only reports; it never stops you from publishing. It needs Node 22 or newer and Google Chrome.
 
 ## What is where
 

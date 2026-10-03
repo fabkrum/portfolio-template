@@ -1,1 +1,1 @@
-{ "expect": "privacy", "remove": ["privacy.html"] }
+{"expect": "privacy", "remove": ["privacy.html"], "finding": "no privacy\\.html"}

@@ -9,29 +9,32 @@ import { validateContent } from "./schema.mjs";
 
 const item = (id, title, problems) => ({ id, title, pass: problems.length === 0, details: problems });
 
-async function browserItems(siteDir) {
-  const pagePaths = ["index.html", "privacy.html"].filter((page) => existsSync(join(siteDir, page)));
+// Console errors and accessibility per page, or one reason for both items
+// when the browser part could not run.
+async function browserProblems(siteDir) {
   const chromePath = findChrome();
-  let problems;
   if (!chromePath) {
-    const missing = ["Google Chrome was not found, so this could not be checked. Install Chrome and run the Check again."];
-    problems = { accessibility: missing, console: missing };
-  } else {
-    try {
-      const pages = await inspectSite(siteDir, pagePaths, chromePath);
-      problems = {
-        accessibility: pages.flatMap((page) =>
-          page.violations.map((v) => `${page.path}: ${v.help} (${v.targets.join(", ")})`),
-        ),
-        console: pages.flatMap((page) => page.consoleErrors.map((error) => `${page.path}: ${error}`)),
-      };
-    } catch (error) {
-      const failed = [`Chrome could not open the site, so this could not be checked: ${error.message}`];
-      problems = { accessibility: failed, console: failed };
-    }
+    return "Google Chrome was not found, so this could not be checked. Install Chrome and run the Check again.";
   }
+  const pagePaths = ["index.html", "privacy.html"].filter((page) => existsSync(join(siteDir, page)));
+  try {
+    const pages = await inspectSite(siteDir, pagePaths, chromePath);
+    return {
+      accessibility: pages.flatMap((page) =>
+        page.violations.map((v) => `${page.path}: ${v.help} (${v.targets.join(", ")})`),
+      ),
+      console: pages.flatMap((page) => page.consoleErrors.map((error) => `${page.path}: ${error}`)),
+    };
+  } catch (error) {
+    return `Chrome could not open the site, so this could not be checked: ${error.message}`;
+  }
+}
+
+async function browserItems(siteDir) {
+  const found = await browserProblems(siteDir);
+  const problems = typeof found === "string" ? { accessibility: [found], console: [found] } : found;
   return [
-    item("accessibility", "Accessibility (axe, the engine behind Lighthouse)", problems.accessibility),
+    item("accessibility", "Accessibility (the axe rules Lighthouse scores)", problems.accessibility),
     item("console", "No errors in the browser console", problems.console),
   ];
 }
