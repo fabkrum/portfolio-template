@@ -7,15 +7,15 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkBrief } from "../tools/brief/check-brief.mjs";
 
-const read = async (path) => readFile(new URL(path, import.meta.url), "utf8");
+// Git on Windows may check files out with CRLF line endings.
+const read = async (path) => (await readFile(new URL(path, import.meta.url), "utf8")).replaceAll("\r\n", "\n");
 const repoDir = fileURLToPath(new URL("..", import.meta.url));
 
 // The command as the Designer skill runs it, from the repo folder.
 const runCommand = (...args) =>
   spawnSync(process.execPath, ["tools/check-brief.mjs", ...args], { cwd: repoDir, encoding: "utf8" });
 
-// Git on Windows may check the brief out with CRLF line endings.
-const defaultBrief = (await read("../design/brief.md")).replaceAll("\r\n", "\n");
+const defaultBrief = await read("../design/brief.md");
 
 // The default brief with one "## " section cut out.
 const withoutSection = (heading) =>
@@ -50,13 +50,25 @@ test("text too light to read on its background is named with its contrast", () =
   const brief = defaultBrief.replace("| muted | #5a5a66 |", "| muted | #777777 |");
   const problems = checkBrief(brief);
   assert.equal(problems.length, 2, problems.join("\n")); // on background and on surface
-  assert.match(problems[0], /"muted" on "background" \(Light\).*4\.48:1/);
+  assert.ok(problems.some((problem) => /"muted" on "background" \(Light\).*4\.48:1/.test(problem)), problems.join("\n"));
 });
 
 test("text on an accent-coloured button must be readable too", () => {
   const brief = defaultBrief.replace("| on-accent | #ffffff | #121216 |", "| on-accent | #ffffff | #ffffff |");
   const problems = checkBrief(brief);
   assert.ok(problems.some((problem) => problem.includes('"on-accent" on "accent" (Dark)')), problems.join("\n"));
+});
+
+for (const heading of ["Shapes", "Layout", "Components"]) {
+  test(`an empty ${heading} section says so`, () => {
+    const brief = withoutSection(heading).replace("## Colours", `## ${heading}\n\n## Colours`);
+    const problems = checkBrief(brief);
+    assert.ok(problems.some((problem) => problem.includes(`"${heading}"`) && /empty/.test(problem)), problems.join("\n"));
+  });
+}
+
+test("the default brief also ships as a copy the Designer can always go back to", async () => {
+  assert.equal(await read("../design/default-brief.md"), defaultBrief);
 });
 
 test("a type table without a font for body text says so", () => {
@@ -127,9 +139,8 @@ test("the Designer skill writes the brief the Developer reads and checks it", as
 // Briefs the Designer skill wrote in proxy runs on the two Stitch inputs in
 // tests/fixtures/design/; the Developer must be able to build from each.
 const proxyBriefs = new URL("./fixtures/design/briefs/", import.meta.url);
-for (const name of await readdir(proxyBriefs)) {
+for (const name of (await readdir(proxyBriefs)).filter((file) => file.endsWith(".md"))) {
   test(`the brief the skill wrote ${name.replace(".md", "").replaceAll("-", " ")} is ready for the Developer`, async () => {
-    const brief = (await readFile(new URL(name, proxyBriefs), "utf8")).replaceAll("\r\n", "\n");
-    assert.deepEqual(checkBrief(brief), []);
+    assert.deepEqual(checkBrief(await read(`./fixtures/design/briefs/${name}`)), []);
   });
 }

@@ -13,5 +13,7 @@ placeholders; never put real ones in, this repo is public.
   ISBNs, "Corso di Laurea") that must pass every item.
 - `design/` – a made-up Stitch export of a fictional person and a screenshot of
   it, the two inputs the Designer skill accepts. `design/briefs/` holds the
-  briefs the skill wrote from each in a proxy run (a fresh agent on the
-  smallest model); they must stay ready for the Developer.
+  briefs the skill wrote from each in a proxy run on 2026-10-03: a fresh
+  agent on Claude Haiku 4.5, standing in for the smallest Gemini Flash, with
+  only the template, AGENTS.md and the skill. They must stay ready for the
+  Developer.

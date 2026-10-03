@@ -50,6 +50,7 @@ It looks at your site in your own Chrome and reports each item as PASS or NEEDS 
 - `site/content.json` – all your content. Edit this file, not the HTML.
 - `site/content.schema.json` – what the content file may contain.
 - `design/brief.md` – your design brief: colours, fonts, shapes and layout. It starts as a plain default design; the Designer role replaces it with yours from Stitch.
+- `design/default-brief.md` – that default design, kept so you can always go back to it.
 - `site/` – the site itself: plain HTML, CSS and JavaScript, no build step.
 - `tools/check.mjs` – the Check.
 - `tools/check-brief.mjs` – checks the design brief: every section there, every colour readable on its background.

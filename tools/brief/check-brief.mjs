@@ -5,6 +5,9 @@
 const SECTIONS = ["Colours", "Type", "Shapes", "Layout", "Components"];
 const TOKENS = ["background", "surface", "text", "muted", "accent", "on-accent"];
 const TYPE_ROLES = ["headings", "body"];
+const MODES = ["Light", "Dark"];
+// Sections written as a list of points, which must not be left empty.
+const PROSE_SECTIONS = ["Shapes", "Layout", "Components"];
 
 // The body of every "## " section, by heading.
 function sections(markdown) {
@@ -20,8 +23,11 @@ function sections(markdown) {
 // without the header row and the |---| line.
 function tableRows(body) {
   const rows = new Map();
-  const lines = body.split("\n").filter((line) => line.trim().startsWith("|"));
-  for (const line of lines.slice(2)) {
+  const lines = body.split("\n");
+  const start = lines.findIndex((line) => line.trim().startsWith("|"));
+  if (start === -1) return rows;
+  const end = lines.findIndex((line, index) => index > start && !line.trim().startsWith("|"));
+  for (const line of lines.slice(start + 2, end === -1 ? undefined : end)) {
     const cells = line.trim().replace(/^\||\|$/g, "").split("|").map((cell) => cell.trim());
     rows.set(cells[0], cells.slice(1));
   }
@@ -33,7 +39,7 @@ const HEX = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
 // The six colour tokens per mode, or the problems that stop us from reading them.
 function readColours(body) {
   const rows = tableRows(body);
-  const colours = { Light: {}, Dark: {} };
+  const colours = Object.fromEntries(MODES.map((mode) => [mode, {}]));
   const problems = [];
   for (const token of TOKENS) {
     const row = rows.get(token);
@@ -41,7 +47,7 @@ function readColours(body) {
       problems.push(`The colour table has no row for "${token}". Add it with a Light and a Dark hex value.`);
       continue;
     }
-    ["Light", "Dark"].forEach((mode, column) => {
+    MODES.forEach((mode, column) => {
       const value = row[column] ?? "";
       if (HEX.test(value)) colours[mode][token] = value;
       else problems.push(`"${token}" (${mode}) is "${value}", not a hex colour like #1a56db.`);
@@ -80,7 +86,7 @@ function contrast(foreground, background) {
 
 function contrastProblems(colours) {
   const problems = [];
-  for (const mode of ["Light", "Dark"]) {
+  for (const mode of MODES) {
     for (const [foreground, background] of PAIRS) {
       const [fg, bg] = [colours[mode][foreground], colours[mode][background]];
       if (!fg || !bg) continue;
@@ -114,5 +120,10 @@ export function checkBrief(markdown) {
     problems.push(...unreadable, ...contrastProblems(colours));
   }
   if (found.has("Type")) problems.push(...typeProblems(found.get("Type")));
+  for (const heading of PROSE_SECTIONS) {
+    if (found.has(heading) && !found.get(heading).trim()) {
+      problems.push(`The "${heading}" section is empty. Describe the design's ${heading.toLowerCase()} in a few points.`);
+    }
+  }
   return problems;
 }
