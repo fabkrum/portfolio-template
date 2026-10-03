@@ -54,17 +54,17 @@ A stack that starts with a web font, such as `"Plus Jakarta Sans", system-ui, sa
 
 ## 4. Write the stylesheet
 
-Replace all of `site/assets/styles.css`. Start with the six colour tokens from the brief, each with `light-dark()`: the Light hex value first, the Dark one second, exactly as the brief has them.
+Replace all of `site/assets/styles.css`. Start with the six colour tokens from the brief's Colours table, each with `light-dark()`: the Light hex value first, the Dark one second. Copy each value exactly from the brief; `LIGHT` and `DARK` below stand for them.
 
 ```css
 :root {
   color-scheme: light dark;
-  --background: light-dark(#ffffff, #121216);
-  --surface: light-dark(#f4f4f6, #1c1c22);
-  --text: light-dark(#1b1b1f, #ececf1);
-  --muted: light-dark(#5a5a66, #a8a8b3);
-  --accent: light-dark(#1a56db, #8fb2ff);
-  --on-accent: light-dark(#ffffff, #121216);
+  --background: light-dark(LIGHT, DARK);
+  --surface: light-dark(LIGHT, DARK);
+  --text: light-dark(LIGHT, DARK);
+  --muted: light-dark(LIGHT, DARK);
+  --accent: light-dark(LIGHT, DARK);
+  --on-accent: light-dark(LIGHT, DARK);
 }
 ```
 
@@ -97,15 +97,15 @@ Two rules that keep the layout right:
 
 ## 6. Look at it, then run the Check
 
-Start the preview. It is the same command on every operating system:
+Start the preview in a terminal of its own, so it keeps running while you go on working. It is the same command on every operating system:
 
 ```
 node tools/preview.mjs
 ```
 
-It prints an address such as `http://localhost:8000`. If you can open pages in a browser yourself, look at it first, at a phone width and at a wide width, and compare it with the brief: the colours, the fonts, and the project cards in columns from the width the brief names. Fix what differs. Then ask the person to open it in Chrome, look at it, and switch their computer between light and dark mode. The preview keeps running until they press Ctrl+C in its terminal.
+It prints an address such as `http://localhost:8000`. It never finishes by itself, so do not wait for it to end. If you can open pages in a browser yourself, look at it first, at a phone width and at a wide width, and compare it with the brief: the colours, the fonts, and the project cards in columns from the width the brief names. Fix what differs. Then ask the person to open it in Chrome, look at it, and switch their computer between light and dark mode. The preview keeps running until they press Ctrl+C in its terminal.
 
-Then run the Check:
+Then run the Check in another terminal:
 
 ```
 node tools/check.mjs

@@ -1,6 +1,6 @@
 # Modern Web Guidance: index
 
-161 guides from modern-web-guidance 0.0.191, grouped by topic. Each line names the file to open and what the guide covers.
+162 guides from modern-web-guidance 0.0.191, grouped by topic. Each line names the file to open and what the guide covers.
 
 ## accessibility
 
@@ -11,6 +11,7 @@
 
 - `guides/built-in-ai/language-detection.md`: Detect the language of user-generated content or already present site content. Uses: Language detector.
 - `guides/built-in-ai/language-model.md`: Run on-device natural language inference in the browser using the Prompt API, with streaming output, structured JSON responses, and multi-turn session management. Uses: LanguageModel.
+- `guides/built-in-ai/prompt-api.md`: Language Model.
 - `guides/built-in-ai/summarizer.md`: Summarize text content using the on-device Summarizer API. Uses: Summarizer.
 - `guides/built-in-ai/translator.md`: Translate text between languages using the on-device Translator API. Uses: Translator.
 

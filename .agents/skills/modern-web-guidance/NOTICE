@@ -7,7 +7,9 @@ The guides/ folder is a copy of the guides in modern-web-guidance 0.0.191
     https://github.com/GoogleChrome/modern-web-guidance
 
 Copyright the modern-web-guidance authors. Licensed under the Apache License,
-Version 2.0; see LICENSE in this folder for the full terms.
+Version 2.0; see LICENSE in this folder for the full terms. The package ships
+no NOTICE file of its own; its THIRD_PARTY_NOTICES covers the JavaScript
+libraries of its search tool, which are not copied here.
 
 The guides are unmodified. index.md is generated from the package's own guide
 descriptions by tools/vendor/modern-web-guidance.mjs. SKILL.md is written for

@@ -3,7 +3,7 @@
 // build from it.
 
 const SECTIONS = ["Colours", "Type", "Shapes", "Layout", "Components"];
-const TOKENS = ["background", "surface", "text", "muted", "accent", "on-accent"];
+export const TOKENS = ["background", "surface", "text", "muted", "accent", "on-accent"];
 const TYPE_ROLES = ["headings", "body"];
 const MODES = ["Light", "Dark"];
 // Sections written as a list of points, which must not be left empty.

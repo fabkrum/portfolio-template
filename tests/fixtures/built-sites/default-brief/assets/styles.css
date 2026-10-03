@@ -1,4 +1,4 @@
-/* Colour tokens */
+/* Colour tokens from the design brief */
 :root {
   color-scheme: light dark;
   --background: light-dark(#ffffff, #121216);
@@ -9,93 +9,99 @@
   --on-accent: light-dark(#ffffff, #121216);
 }
 
-/* Base typography and spacing */
+/* Semantic typography tokens */
+:root {
+  /* Headings */
+  --font-heading: system-ui, sans-serif;
+  --weight-heading: 700;
+  --size-name: 2.5rem;
+  --size-section-heading: 1.5rem;
+  --size-card-heading: 1.125rem;
+
+  /* Body text */
+  --font-body: system-ui, sans-serif;
+  --weight-body: 400;
+  --size-body: 1rem;
+  --line-height-body: 1.6;
+}
+
+/* Global styles */
 html {
-  font-family: system-ui, sans-serif;
-  font-size: 1rem;
-  line-height: 1.6;
+  background: var(--background);
   color: var(--text);
-  background-color: var(--background);
 }
 
 body {
   margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--size-body);
+  font-weight: var(--weight-body);
+  line-height: var(--line-height-body);
 }
 
-/* Page container: max width, centered, with side spacing on phones */
+/* Layout containers */
 main,
 footer {
-  max-inline-size: 44rem;
+  max-width: 44rem;
   margin-inline: auto;
-  padding-inline: 1.25rem;
-  padding-block: 2rem;
+  padding: 2rem 1.25rem;
 }
 
-/* Space between sections */
+/* Sections */
 .section + .section {
   margin-block-start: 4rem;
 }
 
 /* Headings */
 h1 {
-  font-size: 2.5rem;
-  font-weight: 700;
-  line-height: 1.2;
+  font-family: var(--font-heading);
+  font-size: var(--size-name);
+  font-weight: var(--weight-heading);
   margin: 0 0 0.5rem 0;
 }
 
 h2 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  line-height: 1.2;
+  font-family: var(--font-heading);
+  font-size: var(--size-section-heading);
+  font-weight: var(--weight-heading);
   margin: 0 0 1.5rem 0;
 }
 
 h3 {
-  font-size: 1.125rem;
-  font-weight: 700;
-  line-height: 1.2;
-  margin: 0 0 0.5rem 0;
+  font-family: var(--font-heading);
+  font-size: var(--size-card-heading);
+  font-weight: var(--weight-heading);
+  margin: 0 0 0.75rem 0;
 }
 
 h4 {
-  font-size: 1rem;
-  font-weight: 700;
-  margin: 0 0 0.25rem 0;
+  font-family: var(--font-heading);
+  font-weight: var(--weight-heading);
+  margin: 0 0 0.5rem 0;
 }
 
-/* Body text */
-p {
-  margin: 0 0 1rem 0;
-}
-
-p:last-child {
-  margin-block-end: 0;
-}
-
-/* Headline under the name (muted text) */
+/* Headline and period text */
 .headline,
 .period {
   color: var(--muted);
-  font-size: 1rem;
-  margin-block-end: 0.5rem;
+  margin: 0.5rem 0;
 }
 
 /* Links */
 a {
   color: var(--accent);
-  text-underline-offset: 0.25em;
-  transition: text-decoration 0.15s ease;
+  text-decoration: underline;
+  transition: text-decoration-color 200ms ease;
 }
 
-a:hover {
-  text-decoration: none;
+a:hover:not(:focus-visible) {
+  text-decoration-color: transparent;
 }
 
-/* Focus ring: 2px accent ring */
 a:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+  border-radius: 2px;
 }
 
 /* Lists */
@@ -104,53 +110,52 @@ a:focus-visible {
 .cv-list,
 .skills {
   list-style: none;
-  margin: 0;
   padding: 0;
+  margin: 0;
 }
 
 /* Project cards */
 .projects {
   display: grid;
   gap: 1.5rem;
-  /* One column by default, two columns from 40rem screen width */
-  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 40rem) {
+  .projects {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 .project {
-  background-color: var(--surface);
+  background: var(--surface);
   border-radius: 0.75rem;
   padding: 1.5rem;
   margin: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .project h3 {
   margin-top: 0;
+  margin-bottom: 0.75rem;
 }
 
-.project p {
-  margin-block-end: 1rem;
+.project > p:not(.project-links) {
+  margin: 0 0 1rem 0;
+  flex: 1;
 }
 
-.project p:last-child {
-  margin-block-end: 0;
-}
-
-/* Project links at the bottom of the card */
 .project-links {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
-  margin-block: 1.5rem 0;
-  padding-block-start: 1.5rem;
-  border-block-start: 1px solid var(--muted);
-  opacity: 0.7;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.project-links a {
-  font-size: 0.875rem;
-}
-
-/* Links section list */
+/* Links list */
 .links {
   display: flex;
   flex-wrap: wrap;
@@ -164,19 +169,22 @@ a:focus-visible {
 
 /* CV sections */
 .cv-list {
-  margin-block-end: 2rem;
-}
-
-.cv-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
   margin-block-end: 1.5rem;
 }
 
-.cv-list li:last-child {
-  margin-block-end: 0;
+.cv-list li {
+  margin: 0;
+}
+
+.cv-list h4 {
+  margin: 0 0 0.5rem 0;
 }
 
 .cv-list p {
-  margin-block-end: 0.5rem;
+  margin: 0.25rem 0;
 }
 
 /* Skill tags */
@@ -188,32 +196,37 @@ a:focus-visible {
 }
 
 .skills li {
-  background-color: var(--surface);
-  border-radius: 1rem;
+  background: var(--surface);
+  border-radius: 9999px;
   padding: 0.25rem 0.75rem;
-  font-size: 0.875rem;
   margin: 0;
+  font-size: 0.875rem;
+  color: var(--text);
 }
 
 /* Footer */
 footer {
-  font-size: 0.875rem;
+  padding: 2rem 1.25rem;
   color: var(--muted);
-  border-block-start: 1px solid var(--surface);
-  padding-block-start: 1.5rem;
-  text-align: center;
+  font-size: 0.875rem;
 }
 
 footer a {
-  color: var(--muted);
-  text-decoration: none;
+  color: var(--accent);
 }
 
-footer a:hover {
-  text-decoration: underline;
+/* Paragraphs */
+p {
+  margin: 0.75rem 0;
 }
 
-footer a:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+header p {
+  margin: 0.5rem 0;
+}
+
+/* Remove default margin on lists within project cards and CV */
+.project ul,
+.cv-list ul {
+  margin: 0;
+  padding: 0;
 }
