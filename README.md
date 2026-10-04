@@ -53,7 +53,17 @@ From your repo folder, run:
 node tools/check.mjs
 ```
 
-It looks at your site in your own Chrome and reports each item as PASS or NEEDS ATTENTION: the content file matches the schema, accessibility (the axe rules behind Lighthouse's accessibility score), no errors in the browser console, a privacy page, and no phone number or postal address in the content file. It only reports; it never stops you from publishing. It needs Node 22 or newer and Google Chrome.
+It looks at your site in your own Chrome and reports each item as PASS or NEEDS ATTENTION: the content file matches the schema, accessibility (the axe rules behind Lighthouse's accessibility score), no errors in the browser console, a privacy page written for your site, and no phone number or postal address anywhere in the site. The privacy page needs attention until the Lawyer role has written it. It only reports; it never stops you from publishing. It needs Node 22 or newer and Google Chrome.
+
+## Look at your site
+
+From your repo folder, run:
+
+```
+node tools/look.mjs
+```
+
+It saves screenshots of every page at phone and wide width, in light and dark mode, into the folder `qa/`, and tells you how fast the home page shows up on a phone with a slow connection (LCP) and whether it jumps while it loads (CLS). The QA role uses it; you can open the screenshots too.
 
 ## What is where
 
@@ -63,6 +73,7 @@ It looks at your site in your own Chrome and reports each item as PASS or NEEDS 
 - `design/default-brief.md` – that default design, kept so you can always go back to it.
 - `site/` – the site itself: plain HTML, CSS and JavaScript, no build step.
 - `tools/preview.mjs` – the preview.
+- `tools/look.mjs` – screenshots and load speed, for QA.
 - `tools/check.mjs` – the Check.
 - `tools/check-brief.mjs` – checks the design brief: every section there, every colour readable on its background.
 - `.agents/skills/` – one skill per role. Antigravity IDE finds them when you open the repo.
