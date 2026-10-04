@@ -45,4 +45,5 @@ placeholders; never put real ones in, this repo is public.
   which the Check cannot see. For the Lawyer, a phone number (the Check finds
   it) and a birth date (it does not) in the content file, and the template's
   placeholder privacy page. `after/` holds the files the run changed, laid over
-  `before/`.
+  `before/`; `report.md` holds what the agent told the person. Both runs used
+  the final wording of the skills.
