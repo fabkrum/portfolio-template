@@ -60,10 +60,13 @@ async function fetchOnline(baseUrl, path) {
   return response.ok ? Buffer.from(await response.arrayBuffer()) : null;
 }
 
-// "live" when every file in site/ of the last commit is online unchanged.
+// "live" when every file in site/ of the last commit is online unchanged,
+// "missing" when there is no home page online at all.
 async function onlineState(baseUrl, files) {
+  // The home page first: without it, nothing of the site is online.
+  const ordered = ["site/index.html", ...files.filter((path) => path !== "site/index.html")];
   try {
-    for (const path of files) {
+    for (const path of ordered) {
       const online = await fetchOnline(baseUrl, path.slice("site/".length));
       if (!online) return path === "site/index.html" ? "missing" : "older";
       if (!online.equals(git("show", `HEAD:${path}`).stdout)) return "older";

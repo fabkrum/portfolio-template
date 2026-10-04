@@ -77,7 +77,11 @@ test("after a push, it names the site's address and says it is live once the onl
 
 test("a site that never shows up gets the one-time Pages setting explained, step by step", async () => {
   const { repo, remove } = await participantRepo();
-  const online = await onlineSite(async (dir) => rm(join(dir, "index.html")));
+  // GitHub Pages switched off: every address answers 404.
+  const online = await onlineSite(async (dir) => {
+    await rm(dir, { recursive: true });
+    await mkdir(dir);
+  });
   try {
     const { stdout, status } = await runLive(repo, { online: online.url });
     assert.equal(status, 0);
