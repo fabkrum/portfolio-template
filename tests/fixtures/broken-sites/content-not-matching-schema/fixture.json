@@ -1,1 +1,1 @@
-{"expect": "content", "finding": "\"nickname\" is not allowed"}
+{"base": "../../finished-privacy", "expect": "content", "finding": "\"nickname\" is not allowed"}

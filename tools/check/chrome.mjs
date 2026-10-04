@@ -135,3 +135,37 @@ export async function launchChrome(chromePath) {
     throw error;
   }
 }
+
+// Opens a new tab on a blank page and returns its session id.
+export async function openTab(cdp) {
+  const { targetId } = await cdp.send("Target.createTarget", { url: "about:blank" });
+  const { sessionId } = await cdp.send("Target.attachToTarget", { targetId, flatten: true });
+  return { sessionId, close: () => cdp.send("Target.closeTarget", { targetId }).catch(() => {}) };
+}
+
+// Loads the url in the tab and waits until the network has been quiet, so
+// scripts that fetch the content file have run; at most TIMEOUT_MS.
+export async function navigate(cdp, sessionId, url) {
+  // Chrome replays lifecycle events for the blank start page, so only the
+  // "network idle" of our own navigation (its loaderId) counts.
+  const idleLoaders = new Set();
+  let onIdle = () => {};
+  const stopListening = cdp.onEvent(({ sessionId: from, method, params }) => {
+    if (from === sessionId && method === "Page.lifecycleEvent" && params.name === "networkIdle") {
+      idleLoaders.add(params.loaderId);
+      onIdle();
+    }
+  });
+  try {
+    await cdp.send("Page.enable", {}, sessionId);
+    await cdp.send("Page.setLifecycleEventsEnabled", { enabled: true }, sessionId);
+    const { loaderId } = await cdp.send("Page.navigate", { url }, sessionId);
+    const idle = new Promise((done) => {
+      onIdle = () => idleLoaders.has(loaderId) && done();
+      onIdle();
+    });
+    await waitAtMost(idle, TIMEOUT_MS);
+  } finally {
+    stopListening();
+  }
+}

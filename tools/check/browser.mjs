@@ -3,7 +3,7 @@
 // accessibility problems found by axe-core, the engine behind Lighthouse's
 // accessibility audits. Uses only Node built-ins: no npm packages.
 import { readFile } from "node:fs/promises";
-import { launchChrome, TIMEOUT_MS, waitAtMost } from "./chrome.mjs";
+import { launchChrome, navigate, openTab } from "./chrome.mjs";
 import { serveSite } from "./serve-site.mjs";
 
 export { findChrome } from "./chrome.mjs";
@@ -34,14 +34,8 @@ function describeException({ exceptionDetails }) {
 }
 
 async function inspectPage(cdp, url, axeSource) {
-  const { targetId } = await cdp.send("Target.createTarget", { url: "about:blank" });
-  const { sessionId } = await cdp.send("Target.attachToTarget", { targetId, flatten: true });
+  const { sessionId, close } = await openTab(cdp);
   const consoleErrors = [];
-  // Chrome replays lifecycle events for the blank start page, so only the
-  // "network idle" of our own navigation (its loaderId) counts.
-  const idleLoaders = new Set();
-  let onIdle = () => {};
-
   const stopListening = cdp.onEvent((event) => {
     if (event.sessionId !== sessionId) return;
     const { method, params } = event;
@@ -51,21 +45,12 @@ async function inspectPage(cdp, url, axeSource) {
       consoleErrors.push(describeException(params));
     } else if (method === "Log.entryAdded" && params.entry.level === "error") {
       consoleErrors.push(params.entry.url ? `${params.entry.text} (${params.entry.url})` : params.entry.text);
-    } else if (method === "Page.lifecycleEvent" && params.name === "networkIdle") {
-      idleLoaders.add(params.loaderId);
-      onIdle();
     }
   });
 
   try {
-    for (const domain of ["Runtime", "Log", "Page"]) await cdp.send(`${domain}.enable`, {}, sessionId);
-    await cdp.send("Page.setLifecycleEventsEnabled", { enabled: true }, sessionId);
-    const { loaderId } = await cdp.send("Page.navigate", { url }, sessionId);
-    const idle = new Promise((done) => {
-      onIdle = () => idleLoaders.has(loaderId) && done();
-      onIdle();
-    });
-    await waitAtMost(idle, TIMEOUT_MS);
+    for (const domain of ["Runtime", "Log"]) await cdp.send(`${domain}.enable`, {}, sessionId);
+    await navigate(cdp, sessionId, url);
 
     await cdp.send("Runtime.evaluate", { expression: axeSource }, sessionId);
     const { result, exceptionDetails } = await cdp.send(
@@ -88,7 +73,7 @@ async function inspectPage(cdp, url, axeSource) {
     return { url, consoleErrors, violations: result.value };
   } finally {
     stopListening();
-    await cdp.send("Target.closeTarget", { targetId }).catch(() => {});
+    await close();
   }
 }
 

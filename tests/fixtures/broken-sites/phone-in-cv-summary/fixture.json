@@ -1,1 +1,1 @@
-{"expect": "private-data", "finding": "000 0000 000.*phone number"}
+{"base": "../../finished-privacy", "expect": "private-data", "finding": "000 0000 000.*phone number"}

@@ -4,7 +4,7 @@ import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { findChrome, inspectSite } from "./browser.mjs";
-import { findPrivateData } from "./private-data.mjs";
+import { findPrivateData, findPrivateDataInFiles } from "./private-data.mjs";
 import { validateContent } from "./schema.mjs";
 
 const item = (id, title, problems) => ({ id, title, pass: problems.length === 0, details: problems });
@@ -63,22 +63,30 @@ async function schemaProblems(siteDir, content, unreadable) {
   }
 }
 
+// The template ships privacy.html as a placeholder marked data-placeholder;
+// the Lawyer role writes the real page from a template with [[BLANKS]].
+async function privacyProblems(siteDir) {
+  const path = join(siteDir, "privacy.html");
+  if (!existsSync(path)) return ["There is no privacy.html in the site folder. The Lawyer role adds one."];
+  const page = await readFile(path, "utf8");
+  if (/\bdata-placeholder\b/.test(page)) {
+    return ["privacy.html is still the placeholder from the template. The Lawyer role writes the real page."];
+  }
+  const blanks = [...new Set(page.match(/\[\[[A-Z_]+\]\]/g) ?? [])];
+  return blanks.length > 0
+    ? [`privacy.html still has blanks to fill in: ${blanks.join(", ")}. The Lawyer role fills them in.`]
+    : [];
+}
+
 export async function runCheck(siteDir) {
   const { content, unreadable } = await readContent(siteDir);
   return [
     item("content", "Content file matches the schema", await schemaProblems(siteDir, content, unreadable)),
     ...(await browserItems(siteDir)),
-    item(
-      "privacy",
-      "Privacy page present",
-      existsSync(join(siteDir, "privacy.html"))
-        ? []
-        : ["There is no privacy.html in the site folder. The Lawyer role adds one."],
-    ),
-    item(
-      "private-data",
-      "No phone number or postal address in the content file",
-      unreadable ? [`${unreadable} So this could not be checked.`] : findPrivateData(content),
-    ),
+    item("privacy", "Privacy page written", await privacyProblems(siteDir)),
+    item("private-data", "No phone number or postal address in the site", [
+      ...(unreadable ? [`${unreadable} So it could not be searched.`] : findPrivateData(content)),
+      ...(await findPrivateDataInFiles(siteDir)),
+    ]),
   ];
 }

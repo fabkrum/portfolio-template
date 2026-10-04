@@ -1,1 +1,1 @@
-{"expect": "console", "finding": "showGreting is not defined"}
+{"base": "../../finished-privacy", "expect": "console", "finding": "showGreting is not defined"}

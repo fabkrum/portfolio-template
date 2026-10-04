@@ -1,6 +1,9 @@
-// Finds text in the content file that looks like a phone number or a postal
-// address. The repo is public, so these must never be in it. A heuristic:
-// it reports what looks suspicious; the person decides.
+// Finds text in the content file and in the site's other text files that
+// looks like a phone number or a postal address. The repo is public, so these
+// must never be in it. A heuristic: it reports what looks suspicious; the
+// person decides.
+import { readdir, readFile } from "node:fs/promises";
+import { extname, join, relative } from "node:path";
 
 // Digits with spaces, dots, dashes, slashes or brackets between them.
 const PHONE_CANDIDATE = /(?:\+|\b00)?\d[\d\s().\/-]{5,}\d/g;
@@ -45,20 +48,53 @@ function* textValues(value, path = []) {
   }
 }
 
+// What in one piece of text looks like a phone number or a postal address.
+function findInText(text) {
+  const found = [];
+  for (const match of text.matchAll(PHONE_CANDIDATE)) {
+    const candidate = match[0];
+    if (looksLikePhone(candidate, text.slice(0, match.index))) {
+      found.push(`"${candidate.trim()}" looks like a phone number.`);
+    }
+  }
+  // One address finding per text: street and postcode are the same address.
+  const address = ADDRESS_PATTERNS.map((pattern) => text.match(pattern)).find(Boolean);
+  if (address) found.push(`"${address[0]}" looks like a postal address.`);
+  return found;
+}
+
 export function findPrivateData(content) {
   const findings = [];
   for (const { path, text } of textValues(content)) {
     if (isPlainWebLink(text)) continue;
-    const where = path.join(" > ");
-    for (const match of text.matchAll(PHONE_CANDIDATE)) {
-      const candidate = match[0];
-      if (looksLikePhone(candidate, text.slice(0, match.index))) {
-        findings.push(`${where}: "${candidate.trim()}" looks like a phone number.`);
-      }
-    }
-    // One address finding per text: street and postcode are the same address.
-    const address = ADDRESS_PATTERNS.map((pattern) => text.match(pattern)).find(Boolean);
-    if (address) findings.push(`${where}: "${address[0]}" looks like a postal address.`);
+    const where = ["content.json", ...path].join(" > ");
+    for (const finding of findInText(text)) findings.push(`${where}: ${finding}`);
   }
   return findings;
+}
+
+// Files a person or an agent writes text into. Fonts, images and SVG drawings
+// (whose path data is long runs of digits) are left out.
+const TEXT_FILES = new Set([".html", ".htm", ".js", ".mjs", ".css", ".json", ".md", ".txt", ".xml", ".webmanifest"]);
+
+// Web links, except the ones that carry a phone number by design.
+const WEB_LINK = /https?:\/\/(?!wa\.me\/|api\.whatsapp\.com\/)[^\s"'<>)]+/g;
+
+// The same search in every text file of the site but content.json, line by line.
+export async function findPrivateDataInFiles(siteDir) {
+  const findings = [];
+  const entries = await readdir(siteDir, { recursive: true, withFileTypes: true });
+  for (const entry of entries) {
+    if (!entry.isFile() || !TEXT_FILES.has(extname(entry.name).toLowerCase())) continue;
+    const path = join(entry.parentPath, entry.name);
+    const where = relative(siteDir, path).replaceAll("\\", "/");
+    if (where === "content.json") continue;
+    const lines = (await readFile(path, "utf8")).split("\n");
+    for (const [index, line] of lines.entries()) {
+      for (const finding of findInText(line.replace(WEB_LINK, " "))) {
+        findings.push(`${where}, line ${index + 1}: ${finding}`);
+      }
+    }
+  }
+  return findings.sort();
 }

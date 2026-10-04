@@ -167,10 +167,13 @@ test("there is a site the skill built from the default brief and one from a Stit
 });
 
 for (const name of builtSiteNames) {
-  test(`built site "${name}" passes every item of the Check`, async () => {
+  // The Developer comes before the Lawyer, so the placeholder privacy page is still there.
+  test(`built site "${name}" passes every item of the Check but the Lawyer's privacy page`, async () => {
     const { siteDir, remove } = await buildFixtureSite(builtSites, name);
     try {
-      for (const item of await runCheck(siteDir)) assert.equal(item.pass, true, `${item.id}: ${item.details}`);
+      for (const item of await runCheck(siteDir)) {
+        assert.equal(item.pass, item.id !== "privacy", `${item.id}: ${item.details}`);
+      }
     } finally {
       await remove();
     }

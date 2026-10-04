@@ -8,18 +8,34 @@ import { fileURLToPath } from "node:url";
 import { runCheck } from "../tools/check/run-check.mjs";
 import { buildFixtureSite, fixtureNames, sampleSite } from "./fixture-site.js";
 
+const fixturesDir = fileURLToPath(new URL("./fixtures", import.meta.url));
 const brokenSites = fileURLToPath(new URL("./fixtures/broken-sites", import.meta.url));
 const cleanSites = fileURLToPath(new URL("./fixtures/clean-sites", import.meta.url));
 
 const ITEMS = ["content", "accessibility", "console", "privacy", "private-data"];
 
-test("the sample site passes every item", async () => {
+// The template ships a placeholder privacy page; the Lawyer role replaces it.
+test("the sample site passes every item but the privacy page, which waits for the Lawyer", async () => {
   const items = await runCheck(sampleSite);
   assert.deepEqual(
     items.map((item) => item.id),
     ITEMS,
   );
-  for (const item of items) assert.equal(item.pass, true, `${item.id}: ${item.details}`);
+  for (const item of items.filter((item) => item.id !== "privacy")) {
+    assert.equal(item.pass, true, `${item.id}: ${item.details}`);
+  }
+  const privacy = items.find((item) => item.id === "privacy");
+  assert.equal(privacy.pass, false);
+  assert.match(privacy.details.join("\n"), /placeholder.*Lawyer/);
+});
+
+test("the sample site with a finished privacy page passes every item", async () => {
+  const { siteDir, remove } = await buildFixtureSite(fixturesDir, "finished-privacy");
+  try {
+    for (const item of await runCheck(siteDir)) assert.equal(item.pass, true, `${item.id}: ${item.details}`);
+  } finally {
+    await remove();
+  }
 });
 
 for (const name of await fixtureNames(brokenSites)) {
@@ -78,7 +94,7 @@ test("the one command reports in plain language and never fails, even with findi
     const run = spawnSync(process.execPath, [checkCommand, siteDir], { encoding: "utf8" });
     assert.equal(run.status, 0, run.stderr);
     assert.match(run.stdout, /PASS\s+Content file matches the schema/);
-    assert.match(run.stdout, /NEEDS ATTENTION\s+Privacy page present/);
+    assert.match(run.stdout, /NEEDS ATTENTION\s+Privacy page/);
     assert.match(run.stdout, /There is no privacy\.html in the site folder/);
     assert.match(run.stdout, /4 of 5 items pass, 1 needs attention\./);
     assert.match(run.stdout, /never stops you from publishing/);
@@ -90,7 +106,8 @@ test("the one command reports in plain language and never fails, even with findi
 test("the one command checks the repo's own site when given no folder", () => {
   const run = spawnSync(process.execPath, [checkCommand], { encoding: "utf8", cwd: tmpdir() });
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /5 of 5 items pass\./);
+  assert.match(run.stdout, /4 of 5 items pass, 1 needs attention\./);
+  assert.match(run.stdout, /NEEDS ATTENTION\s+Privacy page/);
 });
 
 test("the one command explains a wrong folder instead of crashing", () => {
