@@ -7,9 +7,10 @@ on:
 permissions:
   contents: read
 
-# "Use this template" copies this workflow into every participant's repo, where
-# these tests fail once their site differs from the sample and GitHub emails
-# them "Run failed". So every job runs in the template only.
+# "Use this template" copies this workflow into every participant's repo. Its
+# jobs test the template, not their site: there the tests fail once the site
+# differs from the sample, and GitHub emails them "Run failed". So every job
+# runs in the template only.
 jobs:
   test:
     if: github.repository == 'fabkrum/portfolio-template'
