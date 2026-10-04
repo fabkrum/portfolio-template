@@ -60,3 +60,26 @@ ones in: this repo is public.
   none of the planted data and pass every item of the Check but the Lawyer's
   privacy page. All three runs used the final wording of the skill, in the
   fifth round; `report.md` notes what the earlier rounds changed.
+- `clean-sites/all-optional-modules/` – the sample content with entries for
+  all five Optional modules (videos, podcasts, blog posts, resources, project
+  ideas). Video IDs such as `EXAMPLE0001` and every `example.com` address are
+  made up.
+- `module-runs/` – the Optional-module skill in proxy runs on 2026-10-04, the
+  same way as the Analyst runs: one folder per recipe, with `answers.md`,
+  `report.md` and in `site/` the content file the agent wrote, laid over the
+  site it started from (the `default-brief` built site; for `ideas`, the
+  Italian content of `analyst-runs/cv`). The answers plant what the skill must
+  handle: an `http://` link, a request to embed the YouTube player, a phone
+  number in a podcast answer, dates written out in words, and an Italian site
+  whose new heading and entries must be in Italian. In each run the content
+  file was the only file the agent changed. All five are the second round, on
+  the final wording.
+- `deploy-run/` – the Ops skill in a proxy run on 2026-10-04. The repo was the
+  template, committed and pushed once, with the Developer's and the Lawyer's
+  work not committed yet and a stray `My CV.pdf` in the folder. Its GitHub
+  address led to a bare repo on disk, and `tools/live.mjs` looked at a local
+  stand-in for GitHub Pages that answered 404 until the person had switched
+  Pages on. `pushed.txt` lists the commits that reached the stand-in GitHub
+  after the template's own, newest first, with the files of each; `report.md`
+  is what the agent told the person. It is the fourth round; `report.md` notes
+  what the earlier ones changed.

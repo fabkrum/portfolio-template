@@ -2,6 +2,10 @@
 
 Claude Haiku 4.5 as the agent in Antigravity, with only the template, AGENTS.md and the skills. The person's answers came from `answers.md`, word for word. Below is everything the agent wrote in the chat, in order; tool calls are left out. Everything in it is fake: a fictional person and planted data.
 
+## Earlier rounds
+
+This is the second round. In the first, AGENTS.md said modules come only once the site is published, so the blog run asked whether it was, together with which section, in one message; that line is gone. The project ideas run kept the titles in English on the Italian site; the skill now says to translate titles too.
+
 ## Questions
 
 **Person:** Hi! I'd like to add a YouTube section with my videos to my site.

@@ -83,25 +83,34 @@ test("a phone number in a module entry is named like anywhere else", async () =>
   }
 });
 
-// The section headings the page shows in Chrome, in order, for the sample
-// site with this content file and, if given, this index.html.
-async function headingsInChrome(content, indexHtml) {
-  const siteDir = await mkdtemp(join(tmpdir(), "modules-"));
-  await cp(sampleSite, siteDir, { recursive: true });
-  await writeFile(join(siteDir, "content.json"), JSON.stringify(content));
-  if (indexHtml) await writeFile(join(siteDir, "index.html"), indexHtml);
+// Evaluates an expression in the page Chrome shows for this site folder.
+async function inChrome(siteDir, expression) {
   const server = await serveSite(siteDir);
   let chrome;
   try {
     chrome = await launchChrome(findChrome());
     const { sessionId } = await openTab(chrome.cdp);
     await navigate(chrome.cdp, sessionId, `${server.origin}/`);
-    const expression = `[...document.querySelectorAll("main > .section:not([hidden]) > h2")].map((h) => h.textContent.trim())`;
     const { result } = await chrome.cdp.send("Runtime.evaluate", { expression, returnByValue: true }, sessionId);
     return result.value;
   } finally {
     await chrome?.close();
     server.close();
+  }
+}
+
+const VISIBLE_HEADINGS = `[...document.querySelectorAll("main > .section:not([hidden]) > h2")].map((h) => h.textContent.trim())`;
+
+// The section headings the page shows in Chrome, in order, for the sample
+// site with this content file and, if given, this index.html.
+async function headingsInChrome(content, indexHtml) {
+  const siteDir = await mkdtemp(join(tmpdir(), "modules-"));
+  try {
+    await cp(sampleSite, siteDir, { recursive: true });
+    await writeFile(join(siteDir, "content.json"), JSON.stringify(content));
+    if (indexHtml) await writeFile(join(siteDir, "index.html"), indexHtml);
+    return await inChrome(siteDir, VISIBLE_HEADINGS);
+  } finally {
     await rm(siteDir, { recursive: true, force: true });
   }
 }
@@ -194,6 +203,30 @@ for (const [run, { started, module }] of Object.entries(RUNS)) {
   test(`${run} run: at most two questions, one for the module and one for its entries`, async () => {
     const answers = await answersIn(run);
     assert.ok(answers >= 1 && answers <= 2, `${answers} answers`);
+  });
+
+  test(`${run} run: in Chrome, the new section comes last and shows every entry's title and link`, async () => {
+    const content = await runContent(run);
+    const { siteDir, remove } = await buildFixtureSite(fixturesDir, `module-runs/${run}/site`);
+    try {
+      const shown = await inChrome(siteDir, `(() => {
+        const section = document.getElementById(${JSON.stringify(module)});
+        return {
+          last: [...document.querySelectorAll("main > .section:not([hidden])")].at(-1)?.id,
+          heading: section.querySelector("h2")?.textContent.trim(),
+          titles: [...section.querySelectorAll("li h3")].map((h) => h.textContent.trim()),
+          links: [...section.querySelectorAll("li h3 a")].map((a) => a.getAttribute("href")),
+        };
+      })()`);
+      assert.deepEqual(shown, {
+        last: module,
+        heading: content.labels?.[module] ?? MODULES[module],
+        titles: content[module].map((entry) => entry.title),
+        links: content[module].filter((entry) => entry.url).map((entry) => entry.url),
+      });
+    } finally {
+      await remove();
+    }
   });
 
   test(`${run} run: laid over the site it started from, every item of the Check passes but the Lawyer's privacy page`, async () => {
