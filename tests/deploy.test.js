@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { agentText, turnsIn } from "./proxy-report.js";
 
 // Git on Windows may check files out with CRLF line endings.
 const read = async (path) => (await readFile(new URL(path, import.meta.url), "utf8")).replaceAll("\r\n", "\n");
@@ -71,8 +72,7 @@ test("Ops run: after the person switched Pages on, it published again", async ()
 });
 
 test("Ops run: it named the CV, explained the Pages setting and reported the live address", async () => {
-  const report = await read("./fixtures/deploy-run/report.md");
-  const agentSaid = report.split(/^\*\*Person:\*\*/m).map((turn) => turn.split(/^\*\*Agent:\*\*/m).slice(1).join("")).join("\n");
+  const agentSaid = agentText(turnsIn(await read("./fixtures/deploy-run/report.md"), "Chat"));
   assert.match(agentSaid, /My CV\.pdf/);
   assert.match(agentSaid, /Source/);
   assert.match(agentSaid, /GitHub Actions/);

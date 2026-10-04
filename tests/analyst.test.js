@@ -10,6 +10,7 @@ import { findPrivateDataInContent } from "../tools/check/private-data.mjs";
 import { validateContent } from "../tools/check/schema.mjs";
 import { buildFixtureSite } from "./fixture-site.js";
 import { italianLabels } from "./italian-labels.js";
+import { agentText, answerCount, turnsIn } from "./proxy-report.js";
 
 // Git on Windows may check files out with CRLF line endings.
 const read = async (path) => (await readFile(new URL(path, import.meta.url), "utf8")).replaceAll("\r\n", "\n");
@@ -123,18 +124,9 @@ const runContent = async (run) => JSON.parse(await read(`./fixtures/analyst-runs
 // content file was written, and one for reading it back. Every message of the
 // person in the first section after the agent's first one answers a question.
 async function questionsOf(run) {
-  const report = await read(`./fixtures/analyst-runs/${run}/report.md`);
-  const questions = report.split(/^## /m).find((section) => section.startsWith("Questions"));
-  assert.ok(questions, "report.md has no Questions section");
-  const turns = questions.split(/^\*\*(Agent|Person):\*\*/m).slice(1);
-  const agentSaid = [];
-  let answers = 0;
-  for (let index = 0; index < turns.length; index += 2) {
-    if (turns[index] === "Agent") agentSaid.push(turns[index + 1]);
-    // The person's first message opens the chat; it answers nothing.
-    else if (agentSaid.length > 0) answers += 1;
-  }
-  return { answers, agentSaid: agentSaid.join("\n") };
+  const turns = turnsIn(await read(`./fixtures/analyst-runs/${run}/report.md`), "Questions");
+  assert.ok(turns, "report.md has no Questions section");
+  return { answers: answerCount(turns), agentSaid: agentText(turns) };
 }
 
 // What the person put in that must never reach the content file or the spec.

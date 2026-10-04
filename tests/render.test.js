@@ -4,9 +4,8 @@ import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pageLabels, renderSections } from "../site/assets/render.js";
-import { findChrome, launchChrome, navigate, openTab } from "../tools/check/chrome.mjs";
-import { serveSite } from "../tools/check/serve-site.mjs";
 import { sampleSite } from "./fixture-site.js";
+import { inChrome } from "./in-chrome.js";
 import { italianLabels } from "./italian-labels.js";
 
 const sample = JSON.parse(
@@ -106,25 +105,16 @@ test("the schema and the page name the same labels, and the skills translate eve
 // language, headings, project links and the footer link.
 async function pageWords(content) {
   const siteDir = await mkdtemp(join(tmpdir(), "page-words-"));
-  await cp(sampleSite, siteDir, { recursive: true });
-  await writeFile(join(siteDir, "content.json"), JSON.stringify(content));
-  const server = await serveSite(siteDir);
-  let chrome;
   try {
-    chrome = await launchChrome(findChrome());
-    const { sessionId } = await openTab(chrome.cdp);
-    await navigate(chrome.cdp, sessionId, `${server.origin}/`);
-    const expression = `({
+    await cp(sampleSite, siteDir, { recursive: true });
+    await writeFile(join(siteDir, "content.json"), JSON.stringify(content));
+    return await inChrome(siteDir, `({
       lang: document.documentElement.lang,
       headings: [...document.querySelectorAll("h2, h3")].map((h) => h.textContent.trim()),
       projectLinks: [...document.querySelectorAll(".project-links a")].map((a) => a.textContent.trim()),
       footer: document.querySelector("footer a[href='privacy.html']").textContent.trim(),
-    })`;
-    const { result } = await chrome.cdp.send("Runtime.evaluate", { expression, returnByValue: true }, sessionId);
-    return result.value;
+    })`);
   } finally {
-    await chrome?.close();
-    server.close();
     await rm(siteDir, { recursive: true, force: true });
   }
 }
