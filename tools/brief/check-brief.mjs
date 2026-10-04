@@ -132,3 +132,9 @@ export function checkBrief(markdown) {
 export function briefColours(markdown) {
   return readColours(sections(markdown).get("Colours") ?? "").colours;
 }
+
+// The brief's font stacks, e.g. { headings: '"Inter", system-ui, sans-serif', body: … }.
+export function briefFonts(markdown) {
+  const rows = tableRows(sections(markdown).get("Type") ?? "");
+  return Object.fromEntries(TYPE_ROLES.map((role) => [role, rows.get(role)?.[0] ?? ""]));
+}

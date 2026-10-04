@@ -65,11 +65,8 @@ async function schemaProblems(siteDir, content, unreadable) {
 
 // The template ships privacy.html as a placeholder, marked data-placeholder
 // and saying so; the Lawyer role writes the real page from a template with
-// [[BLANKS]].
-async function privacyProblems(siteDir) {
-  const path = join(siteDir, "privacy.html");
-  if (!existsSync(path)) return ["There is no privacy.html in the site folder. The Lawyer role adds one."];
-  const page = await readFile(path, "utf8");
+// [[BLANKS]]. No problems means the Lawyer has written the page.
+export function privacyPageProblems(page) {
   if (/\bdata-placeholder\b/.test(page) || page.includes("The Lawyer role replaces it")) {
     return ["privacy.html is still the placeholder from the template. The Lawyer role writes the real page."];
   }
@@ -77,6 +74,12 @@ async function privacyProblems(siteDir) {
   return blanks.length > 0
     ? [`privacy.html still has blanks to fill in: ${blanks.join(", ")}. The Lawyer role fills them in.`]
     : [];
+}
+
+async function privacyProblems(siteDir) {
+  const path = join(siteDir, "privacy.html");
+  if (!existsSync(path)) return ["There is no privacy.html in the site folder. The Lawyer role adds one."];
+  return privacyPageProblems(await readFile(path, "utf8"));
 }
 
 export async function runCheck(siteDir) {

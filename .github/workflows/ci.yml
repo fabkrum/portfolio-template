@@ -23,14 +23,22 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install check-jsonschema
-      # Includes the Check against the sample site and every broken fixture site,
-      # in the runner's own Chrome.
-      - name: Tests (renderer and Check)
+      # Includes the Check against the sample site, against every checkpoint
+      # (applied to a fresh copy, with the sample content and with a
+      # participant's own) and against every broken fixture site, in the
+      # runner's own Chrome.
+      - name: Tests (renderer, Check and checkpoints)
         run: node --test
       - name: Content file matches the schema
         shell: bash
         run: bash tests/validate-content.sh
       - name: The Check on the sample site, as a participant sees it
+        run: node tools/check.mjs
+      # The one documented action, run the way a participant runs it: from the
+      # repo folder, in the runner's default shell (PowerShell on Windows).
+      - name: Jump to the Lawyer's checkpoint, as a participant does
+        run: node tools/checkpoint.mjs lawyer
+      - name: The Check on the Lawyer's checkpoint, as a participant sees it
         run: node tools/check.mjs
 
   lint-install:

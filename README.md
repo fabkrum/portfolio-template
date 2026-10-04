@@ -75,6 +75,16 @@ node tools/live.mjs
 
 It prints your site's address and waits up to two minutes until the site online matches your last commit. If the site does not show up at all, it walks you through the one-time GitHub Pages setting.
 
+## Fell behind?
+
+The room works through the roles together. If you fell behind, jump to the checkpoint of the block the room has just finished, and you are back in step. From your repo folder, run this with that block's role, `analyst`, `designer`, `developer`, `qa`, `lawyer` or `ops`:
+
+```
+node tools/checkpoint.mjs developer
+```
+
+It brings your site to the end of that block and keeps your own content file, design brief and spec. If you have none, it puts in the sample person, the default design brief and the sample spec. From the Developer's checkpoint on, your site takes the colours and fonts of your design brief. It tells you what it kept and what it changed, and which role to ask for next, in a fresh chat. It is the same command on every system and needs no Git. You can also ask your agent to do it for you.
+
 ## Add more sections
 
 Once your site is live, you can add Optional modules: a section for YouTube videos, podcasts, a blog, resources or project ideas. Start a fresh chat and ask to add one; the `portfolio-add-module` skill asks you for the entries and writes them into `site/content.json`. The section shows up below your CV.
@@ -93,6 +103,8 @@ Once your site is live, you can add Optional modules: a section for YouTube vide
 - `tools/check.mjs` – the Check.
 - `tools/check-content.mjs` – checks the content file: does it match the schema, and is there no phone number or postal address in it.
 - `tools/check-brief.mjs` – checks the design brief: every section there, every colour readable on its background.
+- `tools/checkpoint.mjs` – jumps to a checkpoint.
+- `checkpoints/` – one checkpoint per block of the workshop: the repo at the end of that block. `checkpoints/README.md` explains them.
 - `.agents/skills/` – one skill per role, plus `portfolio-add-module` for Optional modules. Antigravity IDE finds them when you open the repo.
 - `.agents/skills/modern-web-guidance/` – Modern Web Guidance by the Chrome team: current best practices the Developer reads before building. Stored in the repo, so nothing is downloaded.
 - `install.sh`, `install.ps1` – the Install script for macOS/Linux and for Windows.
