@@ -60,3 +60,38 @@ test("optional parts may be missing without breaking the page", () => {
   assert.equal(sections.links, "");
   assert.equal(sections.cv, "");
 });
+
+// A site in Italian: the Analyst writes the page's own words as labels.
+const italianLabels = {
+  projects: "Progetti",
+  links: "Dove trovarmi",
+  cv: "Curriculum",
+  experience: "Esperienza",
+  education: "Formazione",
+  skills: "Competenze",
+  code: "Codice su GitHub",
+  live: "Online",
+  privacy: "Privacy",
+};
+
+test("labels in the content file replace the page's English headings and link texts", () => {
+  const withLive = { ...sample, projects: [{ ...sample.projects[1] }] };
+  const sections = renderSections({ ...withLive, language: "it", labels: italianLabels });
+  const page = Object.values(sections).join("");
+  for (const label of ["Progetti", "Dove trovarmi", "Curriculum", "Esperienza", "Formazione", "Competenze", "Codice su GitHub", "Online"]) {
+    assert.ok(page.includes(label), label);
+  }
+  for (const english of ["Projects", "Find me", ">CV<", "Experience", "Education", "Skills", "Code on GitHub", ">Live<"]) {
+    assert.ok(!page.includes(english), english);
+  }
+});
+
+test("a label left out stays in English", () => {
+  const { projects } = renderSections({ ...sample, labels: { links: "Contatti" } });
+  assert.ok(projects.includes("<h2>Projects</h2>"));
+});
+
+test("labels are escaped like every other value", () => {
+  const { links } = renderSections({ ...sample, labels: { links: "<b>Find</b>" } });
+  assert.ok(links.includes("&lt;b&gt;Find"));
+});

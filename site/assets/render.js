@@ -9,6 +9,22 @@ const escapeHtml = (value) =>
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
 
+// The page's own words, in English unless the content file's "labels" give
+// them in the site's language.
+const ENGLISH_LABELS = {
+  projects: "Projects",
+  links: "Find me",
+  cv: "CV",
+  experience: "Experience",
+  education: "Education",
+  skills: "Skills",
+  code: "Code on GitHub",
+  live: "Live",
+  privacy: "Privacy",
+};
+
+export const pageLabels = (content) => ({ ...ENGLISH_LABELS, ...content.labels });
+
 const renderEach = (items, renderItem) =>
   items?.length ? items.map(renderItem).join("") : "";
 
@@ -23,7 +39,7 @@ function renderBio(content) {
     ${renderEach(content.bio, (paragraph) => `<p>${escapeHtml(paragraph)}</p>`)}`;
 }
 
-function renderProjects(content) {
+function renderProjects(content, labels) {
   const items = renderEach(
     content.projects,
     (project) => `
@@ -31,24 +47,24 @@ function renderProjects(content) {
         <h3>${escapeHtml(project.title)}</h3>
         <p>${escapeHtml(project.description)}</p>
         <p class="project-links">
-          <a href="${escapeHtml(project.github)}">Code on GitHub</a>
-          ${project.url ? `<a href="${escapeHtml(project.url)}">Live</a>` : ""}
+          <a href="${escapeHtml(project.github)}">${escapeHtml(labels.code)}</a>
+          ${project.url ? `<a href="${escapeHtml(project.url)}">${escapeHtml(labels.live)}</a>` : ""}
         </p>
       </li>`,
   );
-  return listWithHeading("<h2>Projects</h2>", "projects", items);
+  return listWithHeading(`<h2>${escapeHtml(labels.projects)}</h2>`, "projects", items);
 }
 
-function renderLinks(content) {
+function renderLinks(content, labels) {
   const items = renderEach(
     content.links,
     (link) =>
       `<li><a href="${escapeHtml(link.url)}">${escapeHtml(link.label)}</a></li>`,
   );
-  return listWithHeading("<h2>Find me</h2>", "links", items);
+  return listWithHeading(`<h2>${escapeHtml(labels.links)}</h2>`, "links", items);
 }
 
-function renderCv(content) {
+function renderCv(content, labels) {
   const cv = content.cv;
   if (!cv) return "";
   const experience = renderEach(
@@ -70,18 +86,19 @@ function renderCv(content) {
   );
   const skills = renderEach(cv.skills, (skill) => `<li>${escapeHtml(skill)}</li>`);
   const parts = [
-    listWithHeading("<h3>Experience</h3>", "cv-list", experience),
-    listWithHeading("<h3>Education</h3>", "cv-list", education),
-    listWithHeading("<h3>Skills</h3>", "skills", skills),
+    listWithHeading(`<h3>${escapeHtml(labels.experience)}</h3>`, "cv-list", experience),
+    listWithHeading(`<h3>${escapeHtml(labels.education)}</h3>`, "cv-list", education),
+    listWithHeading(`<h3>${escapeHtml(labels.skills)}</h3>`, "skills", skills),
   ].join("");
-  return parts && `<h2>CV</h2>${parts}`;
+  return parts && `<h2>${escapeHtml(labels.cv)}</h2>${parts}`;
 }
 
 export function renderSections(content) {
+  const labels = pageLabels(content);
   return {
     bio: renderBio(content),
-    projects: renderProjects(content),
-    links: renderLinks(content),
-    cv: renderCv(content),
+    projects: renderProjects(content, labels),
+    links: renderLinks(content, labels),
+    cv: renderCv(content, labels),
   };
 }

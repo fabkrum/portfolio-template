@@ -1,0 +1,12 @@
+{
+  "name": "Sam Fixture",
+  "headline": "Test person",
+  "bio": [
+    "Fictional test data."
+  ],
+  "language": "it",
+  "labels": {
+    "projects": "Progetti",
+    "contact": "Contatti"
+  }
+}

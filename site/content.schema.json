@@ -14,6 +14,22 @@
       "pattern": "^[a-z]{2}(-[A-Z]{2})?$",
       "default": "en"
     },
+    "labels": {
+      "description": "The page's own words in the site's language: section headings, link texts and the footer link. Leave a label out to keep it in English.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "projects": { "$ref": "#/$defs/label" },
+        "links": { "$ref": "#/$defs/label" },
+        "cv": { "$ref": "#/$defs/label" },
+        "experience": { "$ref": "#/$defs/label" },
+        "education": { "$ref": "#/$defs/label" },
+        "skills": { "$ref": "#/$defs/label" },
+        "code": { "$ref": "#/$defs/label" },
+        "live": { "$ref": "#/$defs/label" },
+        "privacy": { "$ref": "#/$defs/label" }
+      }
+    },
     "name": { "type": "string", "minLength": 1 },
     "headline": {
       "description": "One line under your name: what you do.",
@@ -100,6 +116,7 @@
     }
   },
   "$defs": {
-    "webUrl": { "type": "string", "pattern": "^https://" }
+    "webUrl": { "type": "string", "pattern": "^https://" },
+    "label": { "type": "string", "minLength": 1 }
   }
 }

@@ -1,5 +1,5 @@
 // Loads the content file and fills every section of the page from it.
-import { renderSections } from "./render.js";
+import { pageLabels, renderSections } from "./render.js";
 
 async function loadContent() {
   const response = await fetch("content.json");
@@ -11,6 +11,8 @@ try {
   const content = await loadContent();
   document.documentElement.lang = content.language ?? "en";
   document.title = `${content.name} · Portfolio`;
+  const privacyLink = document.querySelector('footer a[href="privacy.html"]');
+  if (privacyLink) privacyLink.textContent = pageLabels(content).privacy;
 
   for (const [id, html] of Object.entries(renderSections(content))) {
     const section = document.getElementById(id);

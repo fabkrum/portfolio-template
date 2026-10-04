@@ -9,7 +9,7 @@ Your own portfolio site, built with AI agents and published on GitHub Pages. The
 3. In your new repo, open **Settings → Pages** and set **Source** to **GitHub Actions**.
 4. Open the **Actions** tab and re-run the "Deploy to GitHub Pages" workflow (the first run fails until step 3 is done).
 
-A few minutes later your site is live at `https://YOUR-USERNAME.github.io/portfolio/`. Until you add your own content it shows Ada Example, a fictional person.
+A few minutes later your site is live at `https://YOUR-USERNAME.github.io/portfolio/`. Until the Analyst role adds your own content it shows Ada Example, a fictional person.
 
 ## Set up your laptop
 
@@ -69,12 +69,14 @@ It saves screenshots of every page at phone and wide width, in light and dark mo
 
 - `site/content.json` – all your content. Edit this file, not the HTML.
 - `site/content.schema.json` – what the content file may contain.
+- `docs/spec.md` – a short spec of your site: who it is for and what a visitor should do. The Analyst role writes it, with your content file.
 - `design/brief.md` – your design brief: colours, fonts, shapes and layout. It starts as a plain default design; the Designer role replaces it with yours from Stitch.
 - `design/default-brief.md` – that default design, kept so you can always go back to it.
 - `site/` – the site itself: plain HTML, CSS and JavaScript, no build step.
 - `tools/preview.mjs` – the preview.
 - `tools/look.mjs` – screenshots and load speed, for QA.
 - `tools/check.mjs` – the Check.
+- `tools/check-content.mjs` – checks the content file: does it match the schema, and is there no phone number or postal address in it.
 - `tools/check-brief.mjs` – checks the design brief: every section there, every colour readable on its background.
 - `.agents/skills/` – one skill per role. Antigravity IDE finds them when you open the repo.
 - `.agents/skills/modern-web-guidance/` – Modern Web Guidance by the Chrome team: current best practices the Developer reads before building. Stored in the repo, so nothing is downloaded.

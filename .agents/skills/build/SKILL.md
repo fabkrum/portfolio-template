@@ -91,6 +91,7 @@ Two rules that keep the layout right:
 - Put columns and the space between cards on the list, `.projects`, never on the section `#projects`: the section also holds the heading, which would then take up a column of its own.
 - Every section has the class `section`. Put the space between sections on the sections: `.section + .section { margin-block-start: …; }`. Each heading is the first thing in its section, so a rule that removes the top margin of a first child would also remove the space between sections.
 
+- The headings and link texts come from `labels` in the content file when the site is not in English, through `render.js`. Never type them into `index.html` or `render.js`.
 - Style the markup that is there first. Only change `render.js` when the brief needs a structure it lacks, such as a wrapper around a card's links. Every value still comes from the content file and still goes through `escapeHtml`.
 - Never type content into `index.html`. Content changes go into `site/content.json`, in the Analyst's chat.
 - Keep the link to the privacy page in the footer, and keep `site/privacy.html` on the same stylesheet.

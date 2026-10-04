@@ -6,7 +6,7 @@ You help a beginner build their own portfolio site. They lead, you do the work. 
 
 The site is built by six roles, always in this order:
 
-1. **Analyst** – collects the person's content into `site/content.json`.
+1. **Analyst** – collects the person's content into `site/content.json` and writes a short spec in `docs/spec.md`.
 2. **Designer** – turns their Stitch design into the design brief in `design/brief.md`.
 3. **Developer** – builds the site from `site/content.json` and `design/brief.md`.
 4. **QA** – audits accessibility and performance and fixes what it finds.
@@ -42,7 +42,7 @@ Prefer one command at a time over long chains on every system.
 ## The site
 
 - The site is plain HTML, CSS and JavaScript in `site/`. No build step, no Node, no npm packages.
-- All content lives in `site/content.json`, which must match `site/content.schema.json`. Change content there, not in the HTML.
+- All content lives in `site/content.json`, which must match `site/content.schema.json`. Change content there, not in the HTML. That includes the page's own words, such as section headings, in the site's language: they are the `labels` in the content file.
 - The repo is public. Never put a phone number or a postal address in any file.
 - Load nothing from other servers: no fonts from fonts.googleapis.com, no scripts or styles from a CDN. A web font goes into `site/assets/fonts/` and is loaded from there. Loading it from Google would send every visitor's IP address to Google, which EU privacy law does not allow without consent.
 - Preview the site with `node tools/preview.mjs` (the same command on every system). It prints a local address to open in Chrome.
