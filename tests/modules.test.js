@@ -6,10 +6,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderSections } from "../site/assets/render.js";
+import { findPrivateDataInContent } from "../tools/check/private-data.mjs";
+import { runCheck } from "../tools/check/run-check.mjs";
 import { validateContent } from "../tools/check/schema.mjs";
 import { findChrome, launchChrome, navigate, openTab } from "../tools/check/chrome.mjs";
 import { serveSite } from "../tools/check/serve-site.mjs";
-import { sampleSite } from "./fixture-site.js";
+import { buildFixtureSite, sampleSite } from "./fixture-site.js";
 
 const repoDir = fileURLToPath(new URL("..", import.meta.url));
 const allModules = "tests/fixtures/clean-sites/all-optional-modules/content.json";
@@ -143,4 +145,96 @@ test("the skill writes only the content file, checks it, and runs the Check", as
   for (const needed of ["You change only `site/content.json`", "node tools/check-content.mjs", "node tools/check.mjs", "Never embed"]) {
     assert.ok(skill.includes(needed), needed);
   }
+});
+
+// Proxy runs: a fresh agent on Claude Haiku 4.5 added one Optional module per
+// run, with the person's side played turn by turn from answers.md. Each run
+// folder holds what the agent told the person (report.md) and, in site/, the
+// content file it wrote, laid over the site it started from. See
+// fixtures/README.md.
+const fixturesDir = fileURLToPath(new URL("./fixtures", import.meta.url));
+const runContent = async (run) => JSON.parse(await read(`./fixtures/module-runs/${run}/site/content.json`));
+const schema = JSON.parse(await read("../site/content.schema.json"));
+
+// Each run, the content file it started from, and the module it added.
+const RUNS = {
+  youtube: { started: "../site/content.json", module: "videos" },
+  podcasts: { started: "../site/content.json", module: "podcasts" },
+  blog: { started: "../site/content.json", module: "posts" },
+  resources: { started: "../site/content.json", module: "resources" },
+  ideas: { started: "./fixtures/analyst-runs/cv/site/content.json", module: "ideas" },
+};
+
+// The messages of the person in report.md's Questions section that answer a
+// question: every one after the agent's first message.
+async function answersIn(run) {
+  const report = await read(`./fixtures/module-runs/${run}/report.md`);
+  const questions = report.split(/^## /m).find((section) => section.startsWith("Questions"));
+  assert.ok(questions, "report.md has no Questions section");
+  const turns = [...questions.matchAll(/^\*\*(Agent|Person):\*\*/gm)].map((match) => match[1]);
+  return turns.slice(turns.indexOf("Agent")).filter((who) => who === "Person").length;
+}
+
+for (const [run, { started, module }] of Object.entries(RUNS)) {
+  test(`${run} run: the content file matches the schema and has no phone number or postal address`, async () => {
+    const content = await runContent(run);
+    assert.deepEqual(validateContent(schema, content), []);
+    assert.deepEqual(findPrivateDataInContent(content), []);
+  });
+
+  test(`${run} run: only the module's entries were added; everything else in the content file is unchanged`, async () => {
+    const { [module]: added, labels: newLabels, ...rest } = await runContent(run);
+    const { labels: oldLabels, ...before } = JSON.parse(await read(started));
+    assert.ok(added?.length > 0, `no ${module}`);
+    assert.deepEqual(rest, before);
+    const { [module]: moduleLabel, ...keptLabels } = newLabels ?? {};
+    assert.deepEqual(keptLabels, oldLabels ?? {});
+  });
+
+  test(`${run} run: at most two questions, one for the module and one for its entries`, async () => {
+    const answers = await answersIn(run);
+    assert.ok(answers >= 1 && answers <= 2, `${answers} answers`);
+  });
+
+  test(`${run} run: laid over the site it started from, every item of the Check passes but the Lawyer's privacy page`, async () => {
+    const { siteDir, remove } = await buildFixtureSite(fixturesDir, `module-runs/${run}/site`);
+    try {
+      for (const item of await runCheck(siteDir)) assert.equal(item.pass, item.id !== "privacy", `${item.id}: ${item.details}`);
+    } finally {
+      await remove();
+    }
+  });
+}
+
+test("YouTube run: all three videos, as links on YouTube, the http one as https, none embedded", async () => {
+  const { videos } = await runContent("youtube");
+  assert.deepEqual(videos.map((video) => video.url), [
+    "https://www.youtube.com/watch?v=EXAMPLE0001",
+    "https://www.youtube.com/watch?v=EXAMPLE0002",
+    "https://youtu.be/EXAMPLE0003",
+  ]);
+});
+
+test("podcasts run: both episodes with their shows, the call-in phone number left out", async () => {
+  const { podcasts } = await runContent("podcasts");
+  assert.deepEqual(podcasts.map((episode) => episode.show), ["The Example Podcast", "Placeholder Radio"]);
+  assert.ok(!JSON.stringify(podcasts).includes("000 000 0000"));
+});
+
+test("blog run: three posts, dates as year-month-day, the one without a date left without", async () => {
+  const { posts } = await runContent("blog");
+  assert.deepEqual(posts.map((post) => post.date), ["2026-03-14", "2026-05-02", undefined]);
+});
+
+test("resources run: three links, the http one as https", async () => {
+  const { resources } = await runContent("resources");
+  assert.deepEqual(resources.map((resource) => resource.url), ["https://developer.mozilla.org/", "https://web.dev/", "https://www.a11yproject.com/"]);
+});
+
+test("project ideas run: on the Italian site, the ideas and their heading are in Italian", async () => {
+  const { ideas, labels } = await runContent("ideas");
+  assert.equal(ideas.length, 2);
+  assert.ok(labels.ideas && labels.ideas !== "Project ideas", labels.ideas);
+  assert.ok(!ideas.some((idea) => /timetable|translator/i.test(idea.title)), ideas.map((idea) => idea.title).join(", "));
+  assert.equal(ideas[1].url, "https://github.com/octocat/Hello-World/issues");
 });

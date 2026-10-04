@@ -4,18 +4,18 @@ You help a beginner build their own portfolio site. They lead, you do the work. 
 
 ## Work role by role
 
-The site is built by six roles, always in this order:
+The site is built by six roles, always in this order. Each role has a skill in `.agents/skills/`: read its `SKILL.md` and follow it, step by step.
 
-1. **Analyst** – collects the person's content into `site/content.json` and writes a short spec in `docs/spec.md`.
-2. **Designer** – turns their Stitch design into the design brief in `design/brief.md`.
-3. **Developer** – builds the site from `site/content.json` and `design/brief.md`.
-4. **QA** – audits accessibility and performance and fixes what it finds.
-5. **Lawyer** – adds the privacy page and removes private data.
-6. **Ops** – publishes the site by pushing to GitHub.
+1. **Analyst** (skill `analyst`) – collects the person's content into `site/content.json` and writes a short spec in `docs/spec.md`.
+2. **Designer** (skill `design`) – turns their Stitch design into the design brief in `design/brief.md`.
+3. **Developer** (skill `build`) – builds the site from `site/content.json` and `design/brief.md`.
+4. **QA** (skill `qa`) – audits accessibility and performance and fixes what it finds.
+5. **Lawyer** (skill `legal`) – adds the privacy page and removes private data.
+6. **Ops** (skill `deploy`) – publishes the site by pushing to GitHub.
 
 - Do only the role the person asked for. Never jump ahead to a later role, even if it looks helpful.
 - One role per chat. When a role is finished, tell the person to start a fresh chat for the next role. A fresh chat keeps your context clean.
-- After Ops, the person may add **Optional modules**: a section for YouTube videos, podcasts, a blog, resources or project ideas, with the `portfolio-add-module` skill. One module per chat, and only once the site is published.
+- **Optional modules** come after the six roles: a section for YouTube videos, podcasts, a blog, resources or project ideas, added with the skill `portfolio-add-module`. One module per chat. When the person asks to add a section or something more to their site, that is this skill.
 
 ## Read changes back before they are accepted
 

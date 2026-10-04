@@ -1,6 +1,6 @@
 ---
 name: portfolio-add-module
-description: Adds an Optional module to the portfolio, a section for YouTube videos, podcasts, a blog, resources or project ideas, by writing its entries into site/content.json. Use when the person asks to add videos, a YouTube section, podcast episodes, blog posts, recommended links or resources, or project ideas to their site, or asks for an Optional module.
+description: Adds an Optional module to the portfolio, a section for YouTube videos, podcasts, a blog, resources or project ideas, by writing its entries into site/content.json. Use when the person asks to add videos, a YouTube section, podcast episodes, blog posts, recommended links or resources, or project ideas to their site, asks to add another section or something more to the site, or asks for an Optional module.
 ---
 
 # Add an Optional module
@@ -101,7 +101,7 @@ The site lists posts published elsewhere and links to them; it has no pages of i
 
 Add the module's key with its entries to `site/content.json`, after the last part that is already there. Change nothing else in the file. If the key is already there, add the new entries to its list and keep the old ones.
 
-- Write the text in the site's language, the `language` in `site/content.json`.
+- Write all text in the site's language, the `language` in `site/content.json`: the titles and the sentences. Translate them when the person answered in another language. Only a name stays as it is, such as the name of a podcast, a tool or a website.
 - Leave out an optional part you have nothing for, instead of writing an empty text.
 - **If the site language is not English**, add the module's heading label from the table, translated into the site language, to `"labels"`. Keep the labels that are already there. For example, for videos on an Italian site: `"videos": "Video"`.
 

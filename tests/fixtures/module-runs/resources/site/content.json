@@ -1,0 +1,64 @@
+{
+  "$schema": "./content.schema.json",
+  "language": "en",
+  "name": "Ada Example",
+  "headline": "Frontend developer who likes fast, accessible web pages",
+  "bio": [
+    "I build small, fast websites and the tools around them. Before I wrote code, I taught maths, so I still enjoy explaining things simply.",
+    "This is a sample portfolio of a fictional person. Replace it with your own story."
+  ],
+  "projects": [
+    {
+      "title": "Tide Tables",
+      "description": "A tiny web app that shows today's tides for a chosen harbour, built with plain HTML, CSS and JavaScript.",
+      "github": "https://github.com/octocat/Hello-World"
+    },
+    {
+      "title": "Reading Log",
+      "description": "A static site that lists the books I read, generated from one JSON file.",
+      "github": "https://github.com/octocat/Spoon-Knife",
+      "url": "https://octocat.github.io/Spoon-Knife/"
+    }
+  ],
+  "links": [
+    { "label": "GitHub", "url": "https://github.com/octocat" },
+    { "label": "LinkedIn", "url": "https://www.linkedin.com/in/ada-example" },
+    { "label": "Email", "url": "mailto:ada@example.com" }
+  ],
+  "cv": {
+    "experience": [
+      {
+        "role": "Junior Frontend Developer",
+        "organization": "Example Studio",
+        "start": "2024",
+        "end": "present",
+        "summary": "Build and maintain marketing sites; brought every page to a Lighthouse accessibility score of 100."
+      },
+      {
+        "role": "Maths Teacher",
+        "organization": "Example Secondary School",
+        "start": "2019",
+        "end": "2024",
+        "summary": "Taught maths to students aged 11 to 16 and ran the after-school coding club."
+      }
+    ],
+    "education": [
+      {
+        "title": "Web Development Bootcamp",
+        "organization": "Example Academy",
+        "year": "2023"
+      },
+      {
+        "title": "BSc Mathematics",
+        "organization": "Example University",
+        "year": "2018"
+      }
+    ],
+    "skills": ["HTML", "CSS", "JavaScript", "Accessibility", "Git"]
+  },
+  "resources": [
+    { "title": "MDN Web Docs", "url": "https://developer.mozilla.org/", "description": "where I look up every HTML element and CSS property." },
+    { "title": "web.dev", "url": "https://web.dev/", "description": "for performance and accessibility guides." },
+    { "title": "The A11Y Project", "url": "https://www.a11yproject.com/", "description": "because its checklist got me started with accessibility." }
+  ]
+}
