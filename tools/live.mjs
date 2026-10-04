@@ -149,7 +149,7 @@ async function main() {
 
   const files = gitPaths("ls-tree", "-r", "-z", "--name-only", "HEAD", "--", "site");
   const baseUrl = process.env.PORTFOLIO_LIVE_URL || address;
-  const wait = Number(process.env.PORTFOLIO_LIVE_WAIT || 180);
+  const wait = Number(process.env.PORTFOLIO_LIVE_WAIT || 120);
   const started = Date.now();
   for (;;) {
     const state = await onlineState(baseUrl, files);

@@ -4,55 +4,52 @@ Claude Haiku 4.5 as the agent in Antigravity, with only the template, AGENTS.md 
 
 ## Earlier rounds
 
-This is the second round. In the first, AGENTS.md said modules come only once the site is published, so the blog run asked whether it was, together with which section, in one message; that line is gone. The project ideas run kept the titles in English on the Italian site; the skill now says to translate titles too.
+This is the third round. In the first, AGENTS.md said modules come only once the site is published, so the blog run asked whether it was, together with which section, in one message; that line is gone. The project ideas run kept the titles in English on the Italian site; the skill now says to translate titles too. In the second, the podcasts run read back the titles without their links and ended the role in the same message, before the person had answered; the skill now asks for every entry with its full link, and ends the role only once the person says it is right. It also said where the new section appears more precisely: below the CV, in a fixed order of modules.
 
 ## Questions
 
 **Person:** Hi, can I add something more to my site?
 
-**Agent:** Hi! Absolutely, you can add more to your site. Let me read the guidance for adding modules to understand what's available.
+**Agent:** Absolutely! You can add more sections to your portfolio. We have modules ready for:
 
-**Agent:** Great! You can add a new section to your portfolio. Here are your options:
+- **YouTube videos** — showcase your video work or favorites
+- **Podcasts** — episodes you've appeared on or recommend
+- **Blog** — articles or writing samples
+- **Resources** — links, tools, or learning materials you recommend
+- **Project ideas** — things you want to build or explore
 
-**Which section would you like to add?**
-
-- **YouTube**: videos you made or talks you gave
-- **Podcasts**: your own show, or episodes you were a guest on
-- **Blog**: posts you published, for example on dev.to or Medium
-- **Resources**: links you recommend, such as docs, courses or tools
-- **Project ideas**: projects you would like to build
+What would you like to add to your site?
 
 **Person:** Resources
 
-**Agent:** Perfect! Let's add a Resources section.
+**Agent:** Perfect! Let me add a Resources section to your portfolio.
 
-**Which links would you recommend to visitors, such as docs, courses or tools? For each one: its name, its link, and one sentence on why you recommend it.**
+Which links would you recommend to visitors, such as docs, courses or tools? For each one: its name, its link, and one sentence on why you recommend it.
 
 **Person:** MDN Web Docs, https://developer.mozilla.org/, where I look up every HTML element and CSS property. web.dev, https://web.dev/, for performance and accessibility guides. The A11Y Project, http://www.a11yproject.com/, because its checklist got me started with accessibility.
 
-**Agent:** Got it! Let me add those resources to your site. First, I'll read the current content file to see what's already there.
+**Agent:** Now let me check the content file for any issues.
 
-**Agent:** Now I'll add your three resources to the content file. I'm converting the A11Y Project link from `http://` to `https://` as required.
-
-**Agent:** Now I'll check that the content file is valid:
-
-**Agent:** Perfect! Now let me run the full check:
+**Agent:** Perfect. Now let me run the full check.
 
 ## Read-back
 
-**Agent:** Excellent! Your Resources section is ready. Here's what I added to `site/content.json`:
+**Agent:** Excellent! I've added your Resources section to the site. Here's what went in:
 
-- **MDN Web Docs** (https://developer.mozilla.org/) — where you look up every HTML element and CSS property
-- **web.dev** (https://web.dev/) — for performance and accessibility guides
-- **The A11Y Project** (https://www.a11yproject.com/) — because its checklist got you started with accessibility
+**site/content.json — Resources section:**
+- **MDN Web Docs** — https://developer.mozilla.org/ — "where I look up every HTML element and CSS property"
+- **web.dev** — https://web.dev/ — "for performance and accessibility guides"
+- **The A11Y Project** — https://www.a11yproject.com/ — "because its checklist got me started with accessibility"
 
-The Check passed all items except the privacy page (which is a template placeholder — that's the Lawyer's job later).
+I changed one link from `http://` to `https://` (The A11Y Project). All three links are valid and start with `https://`.
 
-Now let me show you the new section. I'll start the preview if it's not already running:
+**The checks:**
+- `node tools/check-content.mjs` says the file is ready with no issues.
+- `node tools/check.mjs` passes everything except the privacy page (that's still a placeholder, which is fine for now).
 
-**Agent:** The preview is running at **http://localhost:8000**. Open that address in Chrome and scroll to the end of the page to see your new Resources section.
+The new Resources section now appears on your site below the CV. Open http://localhost:8000 in Chrome and scroll down to see it.
 
-If you'd like to change any of these entries, just let me know—I can update them and run the check again.
+Does everything look right?
 
 **Person:** Great, that's all.
 

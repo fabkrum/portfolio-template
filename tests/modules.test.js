@@ -9,9 +9,9 @@ import { renderSections } from "../site/assets/render.js";
 import { findPrivateDataInContent } from "../tools/check/private-data.mjs";
 import { runCheck } from "../tools/check/run-check.mjs";
 import { validateContent } from "../tools/check/schema.mjs";
-import { findChrome, launchChrome, navigate, openTab } from "../tools/check/chrome.mjs";
-import { serveSite } from "../tools/check/serve-site.mjs";
 import { buildFixtureSite, sampleSite } from "./fixture-site.js";
+import { inChrome } from "./in-chrome.js";
+import { agentText, answerCount, turnsIn } from "./proxy-report.js";
 
 const repoDir = fileURLToPath(new URL("..", import.meta.url));
 const allModules = "tests/fixtures/clean-sites/all-optional-modules/content.json";
@@ -82,22 +82,6 @@ test("a phone number in a module entry is named like anywhere else", async () =>
     await rm(dir, { recursive: true, force: true });
   }
 });
-
-// Evaluates an expression in the page Chrome shows for this site folder.
-async function inChrome(siteDir, expression) {
-  const server = await serveSite(siteDir);
-  let chrome;
-  try {
-    chrome = await launchChrome(findChrome());
-    const { sessionId } = await openTab(chrome.cdp);
-    await navigate(chrome.cdp, sessionId, `${server.origin}/`);
-    const { result } = await chrome.cdp.send("Runtime.evaluate", { expression, returnByValue: true }, sessionId);
-    return result.value;
-  } finally {
-    await chrome?.close();
-    server.close();
-  }
-}
 
 const VISIBLE_HEADINGS = `[...document.querySelectorAll("main > .section:not([hidden]) > h2")].map((h) => h.textContent.trim())`;
 
@@ -174,15 +158,19 @@ const RUNS = {
   ideas: { started: "./fixtures/analyst-runs/cv/site/content.json", module: "ideas" },
 };
 
-// The messages of the person in report.md's Questions section that answer a
-// question: every one after the agent's first message.
-async function answersIn(run) {
-  const report = await read(`./fixtures/module-runs/${run}/report.md`);
-  const questions = report.split(/^## /m).find((section) => section.startsWith("Questions"));
-  assert.ok(questions, "report.md has no Questions section");
-  const turns = [...questions.matchAll(/^\*\*(Agent|Person):\*\*/gm)].map((match) => match[1]);
-  return turns.slice(turns.indexOf("Agent")).filter((who) => who === "Person").length;
-}
+// report.md has a section for the questions, up to the turn in which the
+// agent first names the content file, and one for reading it back.
+const reportTurns = async (run, heading) => {
+  const turns = turnsIn(await read(`./fixtures/module-runs/${run}/report.md`), heading);
+  assert.ok(turns, `report.md has no ${heading} section`);
+  return turns;
+};
+
+// What the agent wrote before the person's first answer to the read-back.
+const readBack = (turns) => agentText(turns.slice(0, turns.findIndex((turn) => turn.who === "Person")));
+
+// The skill ends the role with this sentence.
+const END_OF_ROLE = "The new section is ready.";
 
 for (const [run, { started, module }] of Object.entries(RUNS)) {
   test(`${run} run: the content file matches the schema and has no phone number or postal address`, async () => {
@@ -201,8 +189,23 @@ for (const [run, { started, module }] of Object.entries(RUNS)) {
   });
 
   test(`${run} run: at most two questions, one for the module and one for its entries`, async () => {
-    const answers = await answersIn(run);
+    const answers = answerCount(await reportTurns(run, "Questions"));
     assert.ok(answers >= 1 && answers <= 2, `${answers} answers`);
+  });
+
+  test(`${run} run: the read-back names every entry with its link`, async () => {
+    const said = readBack(await reportTurns(run, "Read-back"));
+    for (const entry of (await runContent(run))[module]) {
+      assert.ok(said.includes(entry.title), entry.title);
+      // With or without https:// in front and / at the end.
+      if (entry.url) assert.ok(said.includes(entry.url.replace(/^https:\/\//, "").replace(/\/$/, "")), entry.url);
+    }
+  });
+
+  test(`${run} run: the role ends only after the person answered the read-back`, async () => {
+    const turns = await reportTurns(run, "Read-back");
+    assert.ok(!readBack(turns).includes(END_OF_ROLE), "ended in the read-back itself");
+    assert.ok(agentText(turns).includes(END_OF_ROLE), "never ended the role");
   });
 
   test(`${run} run: in Chrome, the new section comes last and shows every entry's title and link`, async () => {

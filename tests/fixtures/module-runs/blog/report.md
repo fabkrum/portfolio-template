@@ -4,13 +4,15 @@ Claude Haiku 4.5 as the agent in Antigravity, with only the template, AGENTS.md 
 
 ## Earlier rounds
 
-This is the second round. In the first, AGENTS.md said modules come only once the site is published, so the blog run asked whether it was, together with which section, in one message; that line is gone. The project ideas run kept the titles in English on the Italian site; the skill now says to translate titles too.
+This is the third round. In the first, AGENTS.md said modules come only once the site is published, so the blog run asked whether it was, together with which section, in one message; that line is gone. The project ideas run kept the titles in English on the Italian site; the skill now says to translate titles too. In the second, the podcasts run read back the titles without their links and ended the role in the same message, before the person had answered; the skill now asks for every entry with its full link, and ends the role only once the person says it is right. It also said where the new section appears more precisely: below the CV, in a fixed order of modules.
 
 ## Questions
 
 **Person:** Hello, I want to add another section to my portfolio.
 
-**Agent:** Great! You're adding an Optional module to your portfolio. These are extra sections that appear at the end of your site.
+**Agent:** I'd be happy to help you add another section to your portfolio! Let me first read the skill that handles this.
+
+**Agent:** Great! I'll help you add a new section to your portfolio. Let me start by asking which type of section you'd like.
 
 Which section would you like to add?
 
@@ -22,24 +24,30 @@ Which section would you like to add?
 
 **Person:** Blog
 
-**Agent:** Perfect! You're adding a Blog section.
+**Agent:** Perfect! You want to add a **Blog** section.
 
 Which blog posts should your site list? For each one: its title, the link where it is published, the date, and one sentence about it if you like.
 
 **Person:** "What teaching taught me about writing docs", published on 14 March 2026 at https://blog.example.com/teaching-and-docs, about why explaining simply works for code too. "My first Lighthouse score of 100", https://blog.example.com/lighthouse-100, from 2 May 2026. "Notes on light-dark()", https://blog.example.com/light-dark, I don't remember the date.
 
+**Agent:** Got it! You have three blog posts to add. Let me read your current content file and add them.
+
 ## Read-back
 
-**Agent:** Perfect! I've added your blog section to the portfolio. Here's what I changed:
+**Agent:** Perfect! Both checks passed. Here's what I added to your site:
 
-**site/content.json:** Added a Blog section with three posts:
-- "What teaching taught me about writing docs" (published 14 March 2026 at blog.example.com/teaching-and-docs, about how explaining simply works for code too)
-- "My first Lighthouse score of 100" (published 2 May 2026 at blog.example.com/lighthouse-100)
-- "Notes on light-dark()" (at blog.example.com/light-dark, no date)
+**site/content.json**: Added a Blog section with three posts:
+1. "What teaching taught me about writing docs" — https://blog.example.com/teaching-and-docs (14 March 2026)
+2. "My first Lighthouse score of 100" — https://blog.example.com/lighthouse-100 (2 May 2026)
+3. "Notes on light-dark()" — https://blog.example.com/light-dark (no date)
 
-**Validation:** The content file passed the check, and the site still passes accessibility, console errors, and private data checks. The privacy page is still a placeholder — that's the Lawyer's job later.
+The checks showed:
+- Content file is valid and has no private data
+- Accessibility passes
+- No errors in the browser console
+- Privacy page is still a placeholder (the Lawyer will write that if needed)
 
-Now let me show you the new blog section. Open Chrome and go to **http://localhost:8000** to see it.
+The preview is already running at http://localhost:8000. Open it in Chrome and scroll down below the CV to see your new Blog section. Does everything look right?
 
 **Person:** Perfect, thank you.
 

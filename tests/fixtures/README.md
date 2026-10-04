@@ -72,14 +72,14 @@ ones in: this repo is public.
   handle: an `http://` link, a request to embed the YouTube player, a phone
   number in a podcast answer, dates written out in words, and an Italian site
   whose new heading and entries must be in Italian. In each run the content
-  file was the only file the agent changed. All five are the second round, on
-  the final wording.
+  file was the only file the agent changed. All five are the third round, on
+  the final wording; `report.md` notes what the earlier rounds changed.
 - `deploy-run/` – the Ops skill in a proxy run on 2026-10-04. The repo was the
   template, committed and pushed once, with the Developer's and the Lawyer's
-  work not committed yet and a stray `My CV.pdf` in the folder. Its GitHub
+  work not committed yet and a stray `My CV.pdf` in `docs/`, next to the spec. Its GitHub
   address led to a bare repo on disk, and `tools/live.mjs` looked at a local
   stand-in for GitHub Pages that answered 404 until the person had switched
   Pages on. `pushed.txt` lists the commits that reached the stand-in GitHub
   after the template's own, newest first, with the files of each; `report.md`
-  is what the agent told the person. It is the fourth round; `report.md` notes
+  is what the agent told the person. It is the fifth round; `report.md` notes
   what the earlier ones changed.

@@ -73,11 +73,11 @@ Every push to `main` publishes the site through GitHub Actions. The Ops role doe
 node tools/live.mjs
 ```
 
-It prints your site's address and waits up to three minutes until the site online matches your last commit. If the site does not show up at all, it walks you through the one-time GitHub Pages setting.
+It prints your site's address and waits up to two minutes until the site online matches your last commit. If the site does not show up at all, it walks you through the one-time GitHub Pages setting.
 
 ## Add more sections
 
-Once your site is live, you can add Optional modules: a section for YouTube videos, podcasts, a blog, resources or project ideas. Start a fresh chat and ask to add one; the `portfolio-add-module` skill asks you for the entries and writes them into `site/content.json`. The section shows up at the end of your page.
+Once your site is live, you can add Optional modules: a section for YouTube videos, podcasts, a blog, resources or project ideas. Start a fresh chat and ask to add one; the `portfolio-add-module` skill asks you for the entries and writes them into `site/content.json`. The section shows up below your CV.
 
 ## What is where
 

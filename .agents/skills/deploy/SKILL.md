@@ -25,7 +25,7 @@ git status
 
 It lists the files that changed since the last commit. Read the list back to the person in plain words: which files changed and what each one is, for example "`site/content.json`: your content" or "`site/privacy.html`: the privacy page".
 
-Look at every file outside `site/`, `design/`, `docs/` and `qa/`. A file the person did not make on purpose, such as a CV, a photo or a document, must not go into the public repo: it may hold their phone number or address. Name each one and ask the person to move it out of the repo folder. Then run `git status` again. If they want it published, leave it.
+Look at every file in the list that is not part of the site, the design brief or the spec: anything other than the files in `site/`, `design/brief.md` and `docs/spec.md`. A file the person did not make on purpose, such as a CV, a photo or a document, must not go into the public repo: it may hold their phone number or address. Name each one and ask the person to move it out of the repo folder. Then run `git status` again. If they want it published, leave it.
 
 If `git status` says "nothing to commit", the commit is already made: go to step 3.
 
@@ -75,7 +75,7 @@ What it can say, and what to do:
 - **"has no upstream branch"**: run `git push -u origin main` instead.
 - **A sign-in window opens**, in the browser or in Antigravity: tell the person to sign in to GitHub with the account that owns the repo, then run `git push` again.
 - **It asks for a password in the terminal**: GitHub no longer accepts passwords there. Stop and tell the person to ask the instructor for help with signing in.
-- **"rejected" and "fetch first"**: the repo on GitHub has a change this computer does not have yet, for example an edit made on github.com. Run `git pull --no-rebase --no-edit`, then `git push` again.
+- **"rejected" and "fetch first"**: the repo on GitHub has a change this computer does not have yet, for example an edit made on github.com. Run `git pull --no-rebase --no-edit`, then `git push` again. If the pull says **CONFLICT**, the same lines were changed in both places: run `git merge --abort`, which puts everything back as it was, and tell the person to ask the instructor.
 - **"Permission denied" or "403"**: the account signed in is not the one that owns the repo. Tell the person to ask the instructor.
 
 ## 4. Wait until it is live
@@ -86,7 +86,7 @@ Run:
 node tools/live.mjs
 ```
 
-It works out the site's address from the repo, then waits up to three minutes until the site online shows what was just pushed. It finishes by itself; wait for it. Tell the person what it said.
+It works out the site's address from the repo, then waits up to two minutes until the site online shows what was just pushed. It finishes by itself; wait for it. Tell the person what it said.
 
 - **"Your site is live"**: go to step 5.
 - **"Most likely GitHub Pages is not switched on"**: this is needed once per repo. Give the person the steps it printed, in plain words: open the settings page it names in Chrome, and under "Build and deployment" set **Source** to **GitHub Actions**. Ask them to tell you **done**. Then publish again with these two commands, and run `node tools/live.mjs` again:

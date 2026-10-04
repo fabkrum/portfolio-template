@@ -61,13 +61,13 @@
       "title": "From the classroom to code",
       "show": "The Example Podcast",
       "url": "https://podcasts.example.com/episodes/42",
-      "description": "I talk about switching from teaching maths to frontend work"
+      "description": "I talk about switching from teaching maths to frontend work."
     },
     {
       "title": "Ask a frontend dev",
       "show": "Placeholder Radio",
       "url": "https://radio.example.com/ask-a-dev-7",
-      "description": "A live call-in show"
+      "description": "A live call-in show."
     }
   ]
 }

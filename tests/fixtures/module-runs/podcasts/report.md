@@ -4,15 +4,17 @@ Claude Haiku 4.5 as the agent in Antigravity, with only the template, AGENTS.md 
 
 ## Earlier rounds
 
-This is the second round. In the first, AGENTS.md said modules come only once the site is published, so the blog run asked whether it was, together with which section, in one message; that line is gone. The project ideas run kept the titles in English on the Italian site; the skill now says to translate titles too.
+This is the third round. In the first, AGENTS.md said modules come only once the site is published, so the blog run asked whether it was, together with which section, in one message; that line is gone. The project ideas run kept the titles in English on the Italian site; the skill now says to translate titles too. In the second, the podcasts run read back the titles without their links and ended the role in the same message, before the person had answered; the skill now asks for every entry with its full link, and ends the role only once the person says it is right. It also said where the new section appears more precisely: below the CV, in a fixed order of modules.
 
 ## Questions
 
 **Person:** Hi! I'd like to add an Optional module to my site.
 
-**Agent:** Great! I'll help you add an Optional module to your portfolio site. Let me first read the skill to understand how to do this properly.
+**Agent:** I'll help you add an Optional module to your portfolio site. Let me first read the guidelines for this task.
 
-**Agent:** Which section would you like to add?
+**Agent:** Great! I'll help you add an Optional module to your site. Let me start by asking which section you'd like to add.
+
+Which section would you like to add?
 
 - **YouTube**: videos you made or talks you gave
 - **Podcasts**: your own show, or episodes you were a guest on
@@ -22,44 +24,38 @@ This is the second round. In the first, AGENTS.md said modules come only once th
 
 **Person:** Podcasts
 
-**Agent:** Perfect! Let's add podcasts to your site.
+**Agent:** Got it — you want to add podcasts. Now I need to know which episodes to include.
 
 Which podcast episodes should your site show? For each one: the episode's title, the name of the podcast, its link, and one sentence about it if you like.
 
 **Person:** "From the classroom to code" on The Example Podcast, https://podcasts.example.com/episodes/42, I talk about switching from teaching maths to frontend work. And "Ask a frontend dev" on Placeholder Radio, https://radio.example.com/ask-a-dev-7, a live call-in show; listeners called me on 000 000 0000 with their questions.
 
-**Agent:** Got it! I'll remove the phone number from the second entry since it's private data that shouldn't be in a public repo.
+**Agent:** I'll add these two episodes. I'm leaving out the phone number — the repo is public, so phone numbers don't go in any file.
 
-Let me read your content file to add these podcast entries:
+Let me read the current content file and add the podcasts section.
 
-**Agent:** Now I'll add the podcast entries to your content file:
+**Agent:** Now I'll add the podcasts section to the content file.
 
-**Agent:** Now I'll run the content check to make sure everything is valid:
+**Agent:** Now I'll check that the content file is valid.
 
-**Agent:** Perfect! Now let me run the full site check:
+**Agent:** Now I'll run the Check to see how the site looks with the new section.
 
 ## Read-back
 
-**Agent:** Great! Everything is ready. Here's what I added to your site:
+**Agent:** Perfect! The content file is valid and the site passes all checks (except the privacy page, which the Lawyer will handle later).
 
-**site/content.json:**
-- A new Podcasts section with two episodes:
-  1. "From the classroom to code" on The Example Podcast (with your description about switching from teaching maths to frontend work)
-  2. "Ask a frontend dev" on Placeholder Radio (a live call-in show)
+Here's what I added to your site:
 
-I left out the phone number from the second episode since the repo is public.
+**site/content.json:** A new "Podcasts" section with two episodes:
+- "From the classroom to code" on The Example Podcast at https://podcasts.example.com/episodes/42
+- "Ask a frontend dev" on Placeholder Radio at https://radio.example.com/ask-a-dev-7
 
-**Checks:**
-- Content file is valid and has no private data
-- Site accessibility and console errors both pass
-- The privacy page is still the template (the Lawyer role writes the real one later)
+I removed the phone number from the second episode's description, since the repo is public.
 
-You can see the new Podcasts section now. Open http://localhost:8000 in Chrome and scroll to the end of the page.
+The preview is already running. Open http://localhost:8000 in Chrome and scroll down below your CV to see the new Podcasts section.
 
-Once you've reviewed it, change anything you'd like in `site/content.json`, and I'll run the check again. If you want the section somewhere else on the page, that's the Developer's job in a fresh chat.
-
-The new section is ready. To publish it, start a fresh chat and ask Ops. To add another module, start a fresh chat and ask for it.
+Does everything look right?
 
 **Person:** Looks good, thanks!
 
-**Agent:** Perfect! Your Podcasts section is all set. When you're ready to go live, start a fresh chat and ask Ops to publish your site.
+**Agent:** The new section is ready. To publish it, start a fresh chat and ask Ops. To add another module, start a fresh chat and ask for it.

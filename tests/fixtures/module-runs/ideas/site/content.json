@@ -64,11 +64,11 @@
   "ideas": [
     {
       "title": "Orario ferroviario accessibile",
-      "description": "Una pagina di orario per la mia stazione locale che funziona bene con uno screen reader."
+      "description": "Una pagina di orario per la mia stazione locale che funziona bene con un lettore di schermo."
     },
     {
-      "title": "Traduttore di ricette",
-      "description": "Un piccolo strumento che converte le unità di ricette tra tazze e grammi.",
+      "title": "Convertitore di ricette",
+      "description": "Un piccolo strumento che converte le unità di ricetta tra tazze e grammi.",
       "url": "https://github.com/octocat/Hello-World/issues"
     }
   ],
@@ -82,6 +82,6 @@
     "code": "Codice su GitHub",
     "live": "Live",
     "privacy": "Privacy",
-    "ideas": "Idee di progetti"
+    "ideas": "Idee di progetto"
   }
 }

@@ -56,12 +56,15 @@
     ],
     "skills": ["HTML", "CSS", "JavaScript", "Accessibility", "Git"]
   },
+  "labels": {
+    "posts": "Blog"
+  },
   "posts": [
     {
       "title": "What teaching taught me about writing docs",
       "url": "https://blog.example.com/teaching-and-docs",
       "date": "2026-03-14",
-      "description": "Explaining simply works for code too."
+      "description": "Why explaining simply works for code too."
     },
     {
       "title": "My first Lighthouse score of 100",

@@ -10,3 +10,4 @@ the videos as players on the page, which would load from YouTube's servers.
 - Videos: "Accessible forms in ten minutes", https://www.youtube.com/watch?v=EXAMPLE0001, a short talk on labels, errors and focus from a meetup. "Dark mode with light-dark()", http://www.youtube.com/watch?v=EXAMPLE0002. "Maths tricks for CSS", https://youtu.be/EXAMPLE0003, how I use clamp() and calc().
 - Read-back, first reply: Could you show the videos as players right on the page, so people can watch them there?
 - Read-back, second reply: OK, links are fine then. Thanks!
+- If asked again whether everything is right: Yes, everything looks right.

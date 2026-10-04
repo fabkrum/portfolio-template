@@ -57,8 +57,19 @@
     "skills": ["HTML", "CSS", "JavaScript", "Accessibility", "Git"]
   },
   "videos": [
-    { "title": "Accessible forms in ten minutes", "url": "https://www.youtube.com/watch?v=EXAMPLE0001", "description": "A short talk on labels, errors and focus from a meetup." },
-    { "title": "Dark mode with light-dark()", "url": "https://www.youtube.com/watch?v=EXAMPLE0002" },
-    { "title": "Maths tricks for CSS", "url": "https://youtu.be/EXAMPLE0003", "description": "How I use clamp() and calc()." }
+    {
+      "title": "Accessible forms in ten minutes",
+      "url": "https://www.youtube.com/watch?v=EXAMPLE0001",
+      "description": "A short talk on labels, errors and focus from a meetup."
+    },
+    {
+      "title": "Dark mode with light-dark()",
+      "url": "https://www.youtube.com/watch?v=EXAMPLE0002"
+    },
+    {
+      "title": "Maths tricks for CSS",
+      "url": "https://youtu.be/EXAMPLE0003",
+      "description": "How I use clamp() and calc()."
+    }
   ]
 }

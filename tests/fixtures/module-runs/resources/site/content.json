@@ -57,8 +57,23 @@
     "skills": ["HTML", "CSS", "JavaScript", "Accessibility", "Git"]
   },
   "resources": [
-    { "title": "MDN Web Docs", "url": "https://developer.mozilla.org/", "description": "where I look up every HTML element and CSS property." },
-    { "title": "web.dev", "url": "https://web.dev/", "description": "for performance and accessibility guides." },
-    { "title": "The A11Y Project", "url": "https://www.a11yproject.com/", "description": "because its checklist got me started with accessibility." }
-  ]
+    {
+      "title": "MDN Web Docs",
+      "url": "https://developer.mozilla.org/",
+      "description": "where I look up every HTML element and CSS property"
+    },
+    {
+      "title": "web.dev",
+      "url": "https://web.dev/",
+      "description": "for performance and accessibility guides"
+    },
+    {
+      "title": "The A11Y Project",
+      "url": "https://www.a11yproject.com/",
+      "description": "because its checklist got me started with accessibility"
+    }
+  ],
+  "labels": {
+    "resources": "Resources"
+  }
 }
