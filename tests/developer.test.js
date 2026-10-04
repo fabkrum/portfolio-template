@@ -3,13 +3,13 @@ import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { extname, join } from "node:path";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { briefColours, TOKENS } from "../tools/brief/check-brief.mjs";
-import { findChrome, launchChrome } from "../tools/check/chrome.mjs";
 import { runCheck } from "../tools/check/run-check.mjs";
-import { serveSite } from "../tools/check/serve-site.mjs";
 import { buildFixtureSite, fixtureNames, sampleSite } from "./fixture-site.js";
+import { assertWideLayout } from "./page-layout.js";
+import { lightDarkTokens, loadsFromElsewhere } from "./site-files.js";
 
 // Git on Windows may check files out with CRLF line endings.
 const read = async (path) => (await readFile(new URL(path, import.meta.url), "utf8")).replaceAll("\r\n", "\n");
@@ -62,72 +62,6 @@ test("the Developer skill builds from the content file and the brief, guided by 
   // Guidance comes before building: the first guide is named before the stylesheet is written.
   assert.ok(skill.indexOf(named[0]) < skill.indexOf("site/assets/styles.css"));
 });
-
-// Where the project cards and the sections sit on the page in Chrome at the given window width.
-async function pageLayout(siteDir, width) {
-  const server = await serveSite(siteDir);
-  let chrome;
-  try {
-    chrome = await launchChrome(findChrome());
-    const { cdp } = chrome;
-    const { targetId } = await cdp.send("Target.createTarget", { url: "about:blank" });
-    const { sessionId } = await cdp.send("Target.attachToTarget", { targetId, flatten: true });
-    await cdp.send("Emulation.setDeviceMetricsOverride", { width, height: 900, deviceScaleFactor: 1, mobile: false }, sessionId);
-    await cdp.send("Page.navigate", { url: `${server.origin}/` }, sessionId);
-    // main.js fills the page from the content file after load; wait until the cards are there and the fonts are in.
-    const expression = `(async () => {
-      for (let tries = 0; tries < 100 && !document.querySelector(".project"); tries++) await new Promise((done) => setTimeout(done, 50));
-      await document.fonts.ready;
-      const box = (element) => {
-        const { left, top, bottom } = element.getBoundingClientRect();
-        return { id: element.id, left: Math.round(left), top: Math.round(top), bottom: Math.round(bottom) };
-      };
-      return {
-        cards: [...document.querySelectorAll(".project")].map(box),
-        sections: [...document.querySelectorAll(".section:not([hidden])")].map(box),
-      };
-    })()`;
-    const { result } = await cdp.send("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true }, sessionId);
-    return result.value;
-  } finally {
-    await chrome?.close();
-    server.close();
-  }
-}
-
-// The colour tokens a stylesheet defines with light-dark(), e.g. { accent: { Light: "#1a56db", Dark: "#8fb2ff" } }.
-function lightDarkTokens(css) {
-  const tokens = {};
-  const definition = /--([\w-]+)\s*:\s*light-dark\(\s*(#[0-9a-f]{3,6})\s*,\s*(#[0-9a-f]{3,6})\s*\)/gi;
-  for (const [, name, light, dark] of css.matchAll(definition)) {
-    tokens[name] = { Light: light.toLowerCase(), Dark: dark.toLowerCase() };
-  }
-  return tokens;
-}
-
-// Every place a site's HTML, CSS or JavaScript would load something from another server.
-const LOADS_FROM_ELSEWHERE = [
-  /<(?:link|script|img|source|iframe|video|audio)\b[^>]*\b(?:href|src)\s*=\s*["']?(?:https?:)?\/\//i,
-  /\bsrcset\s*=\s*["'][^"']*(?:https?:)?\/\//i,
-  /url\(\s*["']?(?:https?:)?\/\//i,
-  /@import\s+(?:url\()?\s*["']?(?:https?:)?\/\//i,
-  /\b(?:import|fetch)\s*\(\s*["'`](?:https?:)?\/\//i,
-  /\bfrom\s+["'](?:https?:)?\/\//i,
-];
-
-async function loadsFromElsewhere(siteDir) {
-  const found = [];
-  for (const entry of await readdir(siteDir, { recursive: true, withFileTypes: true })) {
-    if (!entry.isFile() || ![".html", ".css", ".js", ".mjs"].includes(extname(entry.name))) continue;
-    const path = join(entry.parentPath, entry.name);
-    const text = await readFile(path, "utf8");
-    for (const pattern of LOADS_FROM_ELSEWHERE) {
-      const match = text.match(pattern);
-      if (match) found.push(`${path}: ${match[0]}`);
-    }
-  }
-  return found;
-}
 
 test("the finder of outside loads catches a Google font and a CDN script", async () => {
   const dir = await mkdtemp(join(tmpdir(), "outside-"));
@@ -205,22 +139,7 @@ for (const name of builtSiteNames) {
     }
   });
 
-  // Both briefs ask for the project cards side by side in two columns from
-  // 40rem, and for 3rem or more between sections; 2rem (32px) is the floor here.
   test(`built site "${name}" shows the project cards side by side and its sections apart on a wide screen`, async () => {
-    const { siteDir, remove } = await buildFixtureSite(builtSites, name);
-    try {
-      const { cards, sections } = await pageLayout(siteDir, 1280);
-      const [first, second] = cards;
-      assert.ok(first && second, "fewer than two project cards on the page");
-      assert.equal(second.top, first.top, `cards at ${JSON.stringify(cards)}`);
-      assert.ok(second.left > first.left, `cards at ${JSON.stringify(cards)}`);
-      assert.equal(sections.length, 4, JSON.stringify(sections));
-      for (const [above, below] of sections.slice(1).map((section, index) => [sections[index], section])) {
-        assert.ok(below.top - above.bottom >= 32, `${below.top - above.bottom}px between #${above.id} and #${below.id}`);
-      }
-    } finally {
-      await remove();
-    }
+    await assertWideLayout(builtSites, name);
   });
 }

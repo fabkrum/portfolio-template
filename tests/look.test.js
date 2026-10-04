@@ -76,6 +76,32 @@ test("look catches a page wider than a phone screen", async () => {
   });
 });
 
+test("look catches a section heading that sits beside the section's content", async () => {
+  await withSite("look-sites/heading-beside-cards", async (siteDir, outDir) => {
+    const { layout } = await lookAtSite(siteDir, outDir, findChrome());
+    assert.equal(layout.length, 1, JSON.stringify(layout));
+    assert.match(layout[0], /index\.html at wide width.*"Projects".*beside/);
+  });
+});
+
+// A proxy run's half fix: the heading spans the section's grid, but the cards
+// still sit in its first column, one below the other, the right half empty.
+test("look catches a section whose content fills only part of its width", async () => {
+  await withSite("look-sites/cards-in-half-width", async (siteDir, outDir) => {
+    const { layout } = await lookAtSite(siteDir, outDir, findChrome());
+    assert.equal(layout.length, 1, JSON.stringify(layout));
+    assert.match(layout[0], /index\.html at wide width.*"Projects".*only \d+% of/);
+  });
+});
+
+test("look catches sections with no space between them", async () => {
+  await withSite("look-sites/sections-touching", async (siteDir, outDir) => {
+    const { layout } = await lookAtSite(siteDir, outDir, findChrome());
+    assert.ok(layout.length > 0, "no finding");
+    for (const finding of layout) assert.match(finding, /index\.html at (phone|wide) width.*"(Projects|Find me|CV)".*\d+px below/);
+  });
+});
+
 test("the one command reports in plain language, saves the screenshots and never fails", async () => {
   await withSite("look-sites/layout-shift", async (siteDir, outDir) => {
     const run = spawnSync(process.execPath, [lookCommand, siteDir, outDir], { encoding: "utf8" });

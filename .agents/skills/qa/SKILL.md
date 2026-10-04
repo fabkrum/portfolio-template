@@ -23,31 +23,32 @@ The Check cannot see the layout: a page can pass every item of the Check and sti
 node tools/look.mjs
 ```
 
-It saves eight screenshots into the folder `qa/`: the home page and the privacy page, at phone width and wide, in light and dark mode. Open every screenshot and look at it. Then read `design/brief.md` and compare:
+It saves eight screenshots into the folder `qa/`: the home page and the privacy page, at phone width and wide, in light and dark mode. It also prints:
 
-- **Colours**: the page uses the brief's colours, in light and in dark mode. Text is easy to read on its background.
-- **Type**: headings and body text in the brief's fonts and sizes.
-- **Layout**: the project cards sit side by side on the wide screenshot when the brief asks for columns, and one below the other on the phone. There is clear space between the sections. Nothing is cut off, overlaps or runs off the edge.
-- **Components**: links, cards, skill tags and section headings look the way the brief describes them.
-
-Write down everything that differs, with the screenshot where you saw it.
-
-The command also prints how fast the home page shows up on a phone with a slow connection:
-
-- **Largest Contentful Paint (LCP)**: how long until the biggest text or image shows. Good is 2.5 seconds or less.
+- **Layout**: a page wider than the screen, a section heading that sits beside its content instead of above it, content that fills only part of its section, and sections that run into each other. Each of these is a finding.
+- **Largest Contentful Paint (LCP)**: how long until the biggest text or image shows on a phone with a slow connection. Good is 2.5 seconds or less.
 - **Cumulative Layout Shift (CLS)**: how much the page jumps while it loads. Good is 0.1 or less.
 
-And it names any page that is wider than the screen, so that visitors have to scroll sideways.
+Now open every one of the eight screenshots, one after the other. Do not run the Check yet: it comes in step 2, after the screenshots. Read `design/brief.md` first, so you know what the page should look like. For each screenshot, answer these questions, one line each, and write the answers down:
+
+1. Is every section heading ("Projects", "Find me", "CV") alone on its own line, above its content, with nothing to its left or right?
+2. On a wide screenshot: are the project cards side by side in the number of columns the brief asks for? On a phone screenshot: is each card below the one before, using the full width?
+3. Is there clear, even space between the sections, as much as the brief asks for?
+4. Are the colours the brief's colours for this mode, light or dark? Is every piece of text easy to read on its background, also small grey text such as dates?
+5. Is anything cut off, overlapping, too close to the edge of the screen, or running off it?
+6. Do links, cards, skill tags and headings look the way the brief describes them?
+
+Every "no" is a finding, with the name of the screenshot where you saw it. Do not skip a screenshot because an earlier one looked fine: a layout often breaks only at one width.
 
 ## 2. Audit accessibility
 
-Run the Check:
+Only after you have answered the questions for all eight screenshots, run the Check:
 
 ```
 node tools/check.mjs
 ```
 
-Its accessibility item runs the same rules Lighthouse uses for its accessibility score; when the item passes, Lighthouse scores 100. Write down every finding under accessibility and under the browser console.
+The Check cannot see any of the layout findings above: it may pass while the page looks wrong. Its accessibility item runs the same rules Lighthouse uses for its accessibility score; when the item passes, Lighthouse scores 100. Write down every finding under accessibility and under the browser console.
 
 ## 3. If you have Chrome DevTools tools
 
@@ -80,12 +81,13 @@ Before you fix a finding, read the matching guide in Modern Web Guidance, `.agen
 - LCP and CLS: `guides/performance/performance.md`
 - anything else: find the guide in the skill's `index.md`
 
-Then make the smallest change that fixes it. Keep the six colour tokens from the brief: every colour still comes from one of them through `var(--name)`. If text is too light on its background, use another of the six tokens that the brief pairs with that background; never write a new colour value.
+Then make the smallest change that fixes it. Keep the six colour tokens from the brief: every colour still comes from one of them through `var(--name)`. If text is too light on its background, use another of the six tokens that the brief pairs with that background; never write a new colour value. If text is faint because of `opacity`, remove the `opacity` instead of changing its number: the brief's `--muted` colour is already checked to be readable, and see-through text is not.
 
-Two layout rules the Developer follows, which you keep:
+For a layout finding, fix its cause, not what it looks like. The usual causes:
 
-- Columns and the space between cards go on the list, `.projects`, never on the section `#projects`.
-- The space between sections goes on the sections: `.section + .section { margin-block-start: …; }`.
+- **A heading beside its content, or content that fills only part of its section**: the columns are on the section, such as `#projects`, instead of on the list inside it, `.projects`. Move `display: grid`, `grid-template-columns` and `gap` from `#projects` to `.projects`, in every rule and media query, and leave `#projects` without a grid. Do not make the heading span the columns: then the cards still sit in one half of the page.
+- **Sections that run into each other**: the space between sections must come from `.section + .section { margin-block-start: …; }`. Look for a rule that removes it, such as one that sets the top margin of a first child or of `.section` to 0.
+- **A page wider than the screen**: an element with a fixed width, such as `width: 50rem`. Use `max-width` or let it wrap.
 
 ## 6. Check again
 
@@ -101,7 +103,7 @@ Then run the Check again:
 node tools/check.mjs
 ```
 
-Open the new screenshots and compare them with your list. A finding is fixed only when the new screenshots, the new numbers or the Check show it. If something is still wrong, go back to step 5. Never say a finding is fixed before you have seen it fixed.
+Open the new screenshots and answer the six questions from step 1 again, for every screenshot. A finding is fixed only when the new screenshots, the new numbers or the Check show it. A layout finding is fixed only when `node tools/look.mjs` no longer prints it under Layout. If something is still wrong, go back to step 5. Never say a finding is fixed before you have seen it fixed.
 
 ## 7. Read it back, then hand over
 

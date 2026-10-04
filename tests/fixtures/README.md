@@ -9,6 +9,10 @@ placeholders; never put real ones in, this repo is public.
   `expect` names the one Check item that must need attention, `finding` is
   text its report must contain, `remove` lists sample files to delete. The
   tests lay the folder over a copy of `site/`.
+- `base` in any `fixture.json` names another fixture folder, relative to this
+  one, that is laid over `site/` first. The Check's fixtures stand on
+  `finished-privacy/`: the privacy page the Lawyer's template gives for Ada
+  Example, so that only the planted problem needs attention.
 - `clean-sites/` – the same, for sites with tricky but harmless content (dates,
   ISBNs, "Corso di Laurea") that must pass every item.
 - `design/` – a made-up Stitch export of a fictional person and a screenshot of
@@ -27,3 +31,18 @@ placeholders; never put real ones in, this repo is public.
   participant downloads from Google Fonts already in `assets/fonts/` (SIL Open
   Font License, `OFL.txt` beside them). Each must pass the Check, define the
   brief's six colours with `light-dark()` and load nothing from other servers.
+- `look-sites/` – sites for `tools/look.mjs`, each laid over the
+  `default-brief` built site: one that jumps while it loads, one wider than a
+  phone screen, and three layout mistakes the Check cannot see. The grid on
+  `#projects` puts the heading beside the cards; `cards-in-half-width` is a
+  QA proxy run's half fix of that (the heading spans the grid, the cards stay
+  in its first column); `sections-touching` removes the space between sections.
+- `qa-runs/` and `lawyer-runs/` – the QA and Lawyer skills in proxy runs on
+  2026-10-04, the same way as above. `before/` is the site the agent was
+  given: the `default-brief` built site with planted problems. For QA, faint
+  dates (`.period` at half opacity, an accessibility finding) and the grid on
+  `#projects` instead of `.projects`, so the heading takes a column of its own,
+  which the Check cannot see. For the Lawyer, a phone number (the Check finds
+  it) and a birth date (it does not) in the content file, and the template's
+  placeholder privacy page. `after/` holds the files the run changed, laid over
+  `before/`.

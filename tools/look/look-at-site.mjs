@@ -87,6 +87,55 @@ async function measure(cdp, url) {
   }
 }
 
+// Content narrower than this share of its section leaves the rest empty,
+// as when a list sits in one column of a grid meant for its cards.
+const NARROW_SHARE = 0.7;
+// Sections closer together than this run into each other.
+const MIN_SECTION_GAP = 32;
+
+// The layout mistakes small models make and the Check cannot see, found in the
+// page itself: a section heading beside its content instead of above it,
+// content that fills only part of its section, and sections with (almost) no
+// space between them.
+const LAYOUT_PROBE = `(() => {
+  const name = (section) => (section.querySelector("h1, h2")?.textContent ?? section.id).trim();
+  const sections = [...document.querySelectorAll(".section")].filter((section) => section.getClientRects().length > 0);
+  const found = [];
+  for (const section of sections) {
+    const heading = section.firstElementChild;
+    if (!heading || !/^H[12]$/.test(heading.tagName)) continue;
+    const box = heading.getBoundingClientRect();
+    const beside = [...section.children].slice(1).some((child) => {
+      const other = child.getBoundingClientRect();
+      return other.height > 0 && other.top < box.bottom - 1 && (other.left >= box.right - 1 || other.right <= box.left + 1);
+    });
+    if (beside) {
+      found.push({ kind: "beside", heading: name(section) });
+      continue;
+    }
+    const style = getComputedStyle(section);
+    const room = section.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    const narrowest = Math.min(...[...section.children].slice(1).map((child) => child.getBoundingClientRect().width));
+    if (narrowest < room * ${NARROW_SHARE}) {
+      found.push({ kind: "narrow", heading: name(section), share: Math.round((narrowest / room) * 100) });
+    }
+  }
+  for (const [index, section] of sections.slice(1).entries()) {
+    const gap = Math.round(section.getBoundingClientRect().top - sections[index].getBoundingClientRect().bottom);
+    if (gap < ${MIN_SECTION_GAP}) found.push({ kind: "gap", heading: name(section), above: name(sections[index]), gap });
+  }
+  return found;
+})()`;
+
+function describeLayout(page, size, width, { kind, heading, above, gap, share }) {
+  const where = `${page} at ${size} width (${width}px)`;
+  if (kind === "beside") return `${where}: the heading "${heading}" sits beside its section's content instead of above it.`;
+  if (kind === "narrow") {
+    return `${where}: the content of the section "${heading}" fills only ${share}% of the section's width; the rest stays empty.`;
+  }
+  return `${where}: the section "${heading}" starts only ${gap}px below "${above}", so the sections run into each other.`;
+}
+
 // Saves the screenshots of one page and returns its layout problems.
 async function lookAtPage(cdp, url, page, outDir) {
   const screenshots = [];
@@ -107,6 +156,9 @@ async function lookAtPage(cdp, url, page, outDir) {
             layout.push(
               `${page} at ${size} width (${width}px): the page is wider than the screen (${pageWidth}px), so visitors have to scroll sideways.`,
             );
+          }
+          for (const problem of await evaluate(cdp, sessionId, LAYOUT_PROBE)) {
+            layout.push(describeLayout(page, size, width, problem));
           }
         }
       } finally {
