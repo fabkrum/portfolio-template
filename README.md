@@ -77,13 +77,13 @@ It prints your site's address and waits up to two minutes until the site online 
 
 ## Fell behind?
 
-The room works through the roles together. If you fell behind, jump to the checkpoint of the block the room has just finished, and you are back in step. From your repo folder, run this with that block's role, `analyst`, `designer`, `developer`, `qa`, `lawyer` or `ops`:
+The room works through the roles together, one block per role. When time is up for a block and you are not done, jump to that block's checkpoint, and you start the next block with the room. From your repo folder, run this with the role of the block that has just ended, `analyst`, `designer`, `developer`, `qa`, `lawyer` or `ops`. When the Developer's time is up, that is:
 
 ```
 node tools/checkpoint.mjs developer
 ```
 
-It brings your site to the end of that block and keeps your own content file, design brief and spec. If you have none, it puts in the sample person, the default design brief and the sample spec. From the Developer's checkpoint on, your site takes the colours and fonts of your design brief. It tells you what it kept and what it changed, and which role to ask for next, in a fresh chat. It is the same command on every system and needs no Git. You can also ask your agent to do it for you.
+Use the block that has just ended, not the one that starts now. It brings your site to the end of that block and keeps your own content file, design brief and spec. If you have none, it puts in the sample person, the default design brief and the sample spec. From the Developer's checkpoint on, your site takes the colours and fonts of your design brief. It tells you what it kept and what it changed, and which role to ask for next, in a fresh chat. It is the same command on every system and needs no Git. You can also ask your agent to do it for you.
 
 ## Add more sections
 

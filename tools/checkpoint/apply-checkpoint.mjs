@@ -5,11 +5,15 @@ import { existsSync } from "node:fs";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
 import { briefColours, briefFonts, checkBrief, TOKENS } from "../brief/check-brief.mjs";
+import { findPrivateDataInContent } from "../check/private-data.mjs";
 import { privacyPageProblems } from "../check/run-check.mjs";
 
-// One checkpoint per block, in the order of the blocks.
-export const ROLES = ["analyst", "designer", "developer", "qa", "lawyer", "ops"];
-const reached = (role, block) => ROLES.indexOf(role) >= ROLES.indexOf(block);
+// The blocks of the workshop, in order, each named after the role that fills
+// it. There is one checkpoint per block.
+export const BLOCKS = ["analyst", "designer", "developer", "qa", "lawyer", "ops"];
+
+// Whether the end of this block is the end of that one or later.
+const reached = (block, that) => BLOCKS.indexOf(block) >= BLOCKS.indexOf(that);
 
 // A checkpoint writes only into these folders of the repo.
 const PARTS = ["site", "design", "docs"];
@@ -33,11 +37,11 @@ async function filesOf(checkpointDir) {
 
 // Every file the checkpoint has, by repo path, from the folder of the latest
 // block that holds it.
-async function sourcesUpTo(repoDir, role) {
+async function sourcesUpTo(repoDir, block) {
   const sources = new Map();
-  for (const block of ROLES.slice(0, ROLES.indexOf(role) + 1)) {
-    const checkpointDir = join(repoDir, "checkpoints", block);
-    if (!existsSync(checkpointDir)) throw new Error(`the folder checkpoints/${block} is missing from your repo`);
+  for (const earlier of BLOCKS.slice(0, BLOCKS.indexOf(block) + 1)) {
+    const checkpointDir = join(repoDir, "checkpoints", earlier);
+    if (!existsSync(checkpointDir)) throw new Error(`the folder checkpoints/${earlier} is missing from your repo`);
     for (const file of await filesOf(checkpointDir)) sources.set(file, join(checkpointDir, file));
   }
   return sources;
@@ -62,19 +66,21 @@ const escapeHtml = (value) =>
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const writtenOut = (date) => `${date.getDate()} ${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
-const text = (value) => (typeof value === "string" && value.trim() ? value : undefined);
+
+// A value from the content file, if it is text with something in it.
+const nonEmpty = (value) => (typeof value === "string" && value.trim() ? value : undefined);
 
 // What the Lawyer fills into the blanks of the privacy page, from the content
 // file. The page is in English, so its language is English too. A value the
 // content file does not give stays a blank.
 function privacyBlanks(content) {
   const mailto = Array.isArray(content.links)
-    ? content.links.map((link) => text(link?.url)).find((url) => url?.startsWith("mailto:"))
+    ? content.links.map((link) => nonEmpty(link?.url)).find((url) => url?.startsWith("mailto:"))
     : undefined;
-  const language = text(content.language) ?? "en";
+  const language = nonEmpty(content.language) ?? "en";
   return {
-    NAME: text(content.name),
-    EMAIL: text(mailto?.slice("mailto:".length).split("?")[0]),
+    NAME: nonEmpty(content.name),
+    EMAIL: nonEmpty(mailto?.slice("mailto:".length).split("?")[0]),
     LANGUAGE: language.startsWith("en") ? language : "en",
     DATE: writtenOut(new Date()),
   };
@@ -83,16 +89,22 @@ function privacyBlanks(content) {
 const fillBlanks = (page, blanks) => page.replace(/\[\[([A-Z_]+)\]\]/g, (blank, key) => (blanks[key] ? escapeHtml(blanks[key]) : blank));
 
 // A privacy page the Lawyer has written for the person in the content file is
-// theirs as well: it may be translated or changed by hand.
-const writtenFor = (page, name) =>
-  Boolean(name) && privacyPageProblems(page).length === 0 && (page.includes(name) || page.includes(escapeHtml(name)));
+// theirs as well: it may be translated or changed by hand. While the content
+// file cannot be read, any written page counts as theirs.
+const writtenFor = (page, { name, unreadable }) =>
+  privacyPageProblems(page).length === 0 && (unreadable || (Boolean(name) && (page.includes(name) || page.includes(escapeHtml(name)))));
 
-// Only names, quotes, commas and spaces: a font stack can never break out of
-// its line in the stylesheet.
-const FONT_STACK = /^[\w "',.-]+$/;
+// A font stack from the brief's Type table, maybe written in backticks. It is
+// used only if it holds nothing but names, quotes, commas and spaces, so it can
+// never break out of its line in the stylesheet; otherwise null.
+function fontStack(cell) {
+  const stack = cell.trim().replace(/^`(.*)`$/, "$1").trim();
+  return /^[\p{L}\p{N} "',._-]+$/u.test(stack) ? stack : null;
+}
 
-// The Developer's stylesheet with the six colours and the two font stacks of
-// a brief that is ready for the Developer. The rest stays the default design.
+// The Developer's stylesheet in the six colours of a brief that is ready for
+// the Developer, and in its fonts where its font stacks can be used. The rest
+// stays the default design.
 function styledByBrief(css, brief) {
   const colours = briefColours(brief);
   let styled = css;
@@ -103,11 +115,13 @@ function styledByBrief(css, brief) {
     );
   }
   const fonts = briefFonts(brief);
-  for (const [property, stack] of [["--font-heading", fonts.headings], ["--font-body", fonts.body]]) {
-    if (!FONT_STACK.test(stack)) continue;
-    styled = styled.replace(new RegExp(`(${property}\\s*:\\s*)[^;]+`), (_, start) => `${start}${stack}`);
+  const unusableFonts = [];
+  for (const [property, role] of [["--font-heading", "headings"], ["--font-body", "body"]]) {
+    const stack = fontStack(fonts[role]);
+    if (stack) styled = styled.replace(new RegExp(`(${property}\\s*:\\s*)[^;]+`), (_, start) => `${start}${stack}`);
+    else unusableFonts.push(fonts[role]);
   }
-  return styled;
+  return { css: styled, unusableFonts: [...new Set(unusableFonts)] };
 }
 
 // Fonts every computer has, and the generic families. Any other font first in
@@ -121,15 +135,15 @@ const SYSTEM_FONTS = new Set([
 const firstFont = (stack) => stack.split(",")[0].trim().replace(/^["']|["']$/g, "");
 
 function webFontsIn(brief) {
-  const firsts = Object.values(briefFonts(brief)).filter((stack) => FONT_STACK.test(stack)).map(firstFont);
+  const firsts = Object.values(briefFonts(brief)).map(fontStack).filter(Boolean).map(firstFont);
   return [...new Set(firsts)].filter((font) => font && !SYSTEM_FONTS.has(font.toLowerCase()));
 }
 
-// Brings the repo in repoDir to the end of the block of this role, and says
-// what it kept, what it put in for a missing file of the person's own, what
-// it changed, and what it found about the person's own files.
-export async function applyCheckpoint(repoDir, role) {
-  const sources = await sourcesUpTo(repoDir, role);
+// Brings the repo in repoDir to the end of this block, and says what it kept,
+// what it put in for a file of the person's own they did not have, what it
+// changed, and what it found about the person's own files on the way.
+export async function applyCheckpoint(repoDir, block) {
+  const sources = await sourcesUpTo(repoDir, block);
   const kept = [];
   const putIn = [];
   for (const file of OWN_FILES) {
@@ -144,22 +158,27 @@ export async function applyCheckpoint(repoDir, role) {
 
   const { content, unreadable } = await readContent(sources.get("site/content.json") ?? join(repoDir, "site", "content.json"));
   const privacyPath = join(repoDir, "site", "privacy.html");
-  if (existsSync(privacyPath) && writtenFor(await readFile(privacyPath, "utf8"), text(content.name))) {
+  if (existsSync(privacyPath) && writtenFor(await readFile(privacyPath, "utf8"), { name: nonEmpty(content.name), unreadable })) {
     kept.push({ file: "site/privacy.html" });
     sources.delete("site/privacy.html");
   }
 
-  const briefFile = kept.find((own) => own.file === "design/brief.md");
+  const ownBrief = kept.find((own) => own.file === "design/brief.md");
   const brief = await readFile(sources.get("design/brief.md") ?? join(repoDir, "design", "brief.md"), "utf8");
   const briefProblems = checkBrief(brief);
-  const styled = reached(role, "developer") && briefProblems.length === 0;
-  const privacy = reached(role, "lawyer") ? privacyBlanks(content) : null;
+  const styledByOwnBrief = reached(block, "developer") && briefProblems.length === 0;
+  const privacy = reached(block, "lawyer") ? privacyBlanks(content) : null;
 
+  let unusableFonts = [];
   const changed = [];
   for (const [file, source] of sources) {
     let bytes = await readFile(source);
     if (file === "site/privacy.html" && privacy) bytes = Buffer.from(fillBlanks(bytes.toString("utf8"), privacy));
-    if (file === "site/assets/styles.css" && styled) bytes = Buffer.from(styledByBrief(bytes.toString("utf8"), brief));
+    if (file === "site/assets/styles.css" && styledByOwnBrief) {
+      const styled = styledByBrief(bytes.toString("utf8"), brief);
+      bytes = Buffer.from(styled.css);
+      unusableFonts = styled.unusableFonts;
+    }
     const target = join(repoDir, file);
     if (existsSync(target) && (await readFile(target)).equals(bytes)) continue;
     await mkdir(dirname(target), { recursive: true });
@@ -168,14 +187,20 @@ export async function applyCheckpoint(repoDir, role) {
   }
 
   return {
+    block,
     kept,
     putIn,
     changed,
-    name: text(content.name),
-    language: text(content.language) ?? "en",
+    name: nonEmpty(content.name),
+    language: nonEmpty(content.language) ?? "en",
     unreadable,
     briefProblems,
-    styled: styled && { ownBrief: Boolean(briefFile) && !briefFile.sample, webFonts: webFontsIn(brief) },
+    // How the Developer's stylesheet looks, from the Developer's block on: in
+    // the colours and fonts of the brief, unless it is not ready.
+    stylesheet: reached(block, "developer")
+      ? { fromBrief: styledByOwnBrief, ownBrief: Boolean(ownBrief) && !ownBrief.sample, unusableFonts, webFonts: styledByOwnBrief ? webFontsIn(brief) : [] }
+      : null,
     privacy,
+    privateData: reached(block, "lawyer") && !unreadable ? findPrivateDataInContent(content) : [],
   };
 }

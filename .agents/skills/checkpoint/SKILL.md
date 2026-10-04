@@ -1,6 +1,6 @@
 ---
 name: checkpoint
-description: Catches the person up when they fell behind the room, with one command, node tools/checkpoint.mjs, that brings their site to the end of the block the room has just finished and keeps their own content file, design brief and spec. Show the person its output word for word, then send them to a fresh chat for the role it names. Use when the person says they fell behind, are lost or behind the others, want to catch up, or asks for a checkpoint, for example "get me to the Developer checkpoint". Never do a role's work to catch up.
+description: Catches the person up when they fell behind the room, with one command, node tools/checkpoint.mjs, that brings their site to the end of the block the room has just finished and keeps their own content file, design brief and spec. If the person does not say which block the room has just finished, or which one it is starting, ask them once; never guess it from their files. Reply with the command's whole output, copied word for word into a text block, then send the person to a fresh chat for the role it names. Use when the person says they fell behind, are lost or behind the others, want to catch up, or asks for a checkpoint, for example "get me to the Developer checkpoint". Never do a role's work to catch up.
 ---
 
 # Checkpoint
@@ -13,7 +13,7 @@ The blocks, in order, are `analyst`, `designer`, `developer`, `qa`, `lawyer` and
 
 - If the person names it, for example "the Developer checkpoint" or "the others finished the Developer part", use it. Ask nothing, and go to step 2.
 - If they name only the role the room is starting now, use the one before it: a room that is starting QA has just finished `developer`, a room that is starting Ops has just finished `lawyer`.
-- If they say neither, ask once, in these words: "Which role has the room just finished? Or tell me which one it is starting now." Then end your turn and wait for the answer.
+- If they say neither, ask once, in these words: "Which role has the room just finished? Or tell me which one it is starting now." Then end your turn and wait for the answer. Never guess the block from their files: they may be more than one block behind.
 
 ## 2. Run the checkpoint
 
@@ -27,7 +27,7 @@ It works whatever the person has done so far, so do not look at their files firs
 
 ## 3. Show the output, then hand over
 
-The command's output is written for the person, in plain words: what it kept, what it changed and what needs their attention, file by file. Show it to them: copy all of it into your message, word for word, in a text block. Do not shorten it, and add nothing to it: no claims of your own, for example about the law.
+The command's output is written for the person, in plain words: what it kept, what it changed and what needs their attention, file by file. Reply with all of it, copied word for word into a text block. Do not shorten it, do not retell it in your own words, and add nothing to it: no claims of your own, for example about the law.
 
 End that message with this sentence, with the role from the output's line "Next: start a fresh chat and ask for …":
 

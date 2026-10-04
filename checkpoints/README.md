@@ -1,8 +1,8 @@
 # Checkpoints
 
-One checkpoint per block of the workshop: the repo as it is at the end of that block. If you fell behind, jump to the checkpoint of the block the room has just finished, and you are back in step.
+One checkpoint per block of the workshop: the repo as it is at the end of that block. When time is up for a block and you are not done, jump to that block's checkpoint, and you start the next block with the room.
 
-Run this from your repo folder, with the role of that block: `analyst`, `designer`, `developer`, `qa`, `lawyer` or `ops`. It is the same command on every system, and it needs no Git:
+Run this from your repo folder, with the role of the block that has just ended, not the one that starts now: `analyst`, `designer`, `developer`, `qa`, `lawyer` or `ops`. It is the same command on every system, and it needs no Git:
 
 ```
 node tools/checkpoint.mjs developer

@@ -8,11 +8,12 @@
 // have none, it puts in the sample person, the default design and the sample
 // spec. It needs no Git.
 import { fileURLToPath } from "node:url";
-import { applyCheckpoint, ROLES } from "./checkpoint/apply-checkpoint.mjs";
+import { applyCheckpoint, BLOCKS } from "./checkpoint/apply-checkpoint.mjs";
 
 const repoDir = fileURLToPath(new URL("..", import.meta.url));
 
-const BLOCKS = {
+// Each block: its name, the role that comes next, and what its checkpoint gives you.
+const ABOUT = {
   analyst: { name: "Analyst", next: "the Designer", gives: "your content file and spec, or the sample person" },
   designer: { name: "Designer", next: "the Developer", gives: "your design brief, or the default design" },
   developer: { name: "Developer", next: "QA", gives: "the site, built in the colours and fonts of your brief" },
@@ -23,7 +24,7 @@ const BLOCKS = {
 
 function listCheckpoints() {
   console.log("Run it with the role whose block the room has just finished:\n");
-  for (const role of ROLES) console.log(`  node tools/checkpoint.mjs ${role.padEnd(9)}  ${BLOCKS[role].gives}`);
+  for (const block of BLOCKS) console.log(`  node tools/checkpoint.mjs ${block.padEnd(9)}  ${ABOUT[block].gives}`);
   console.log("\nA checkpoint keeps your own content file, design brief and spec. Nothing was changed.");
 }
 
@@ -41,31 +42,46 @@ const PUT_IN = {
   "docs/spec.md": () => "the spec of the sample person. The Analyst replaces it with yours.",
 };
 
-function changedNote(file, result, role) {
-  if (file === "site/assets/styles.css" && ["developer", "qa", "lawyer", "ops"].includes(role)) {
-    if (!result.styled) return "the Developer's stylesheet, in the default colours and fonts";
-    return result.styled.ownBrief
-      ? "the Developer's stylesheet, in the colours and fonts of your design brief"
-      : "the Developer's stylesheet, in the default design";
+// What each file of a checkpoint is, in the list of files it changed.
+const FILE_NOTES = {
+  "site/index.html": "the page itself, with a place for each section",
+  "site/assets/main.js": "loads your content file into the page",
+  "site/assets/render.js": "turns your content file into the sections of the page",
+  "site/assets/styles.css": "the plain starting styles of the template",
+  "site/assets/favicon.svg": "the small icon in the browser tab",
+  "site/content.schema.json": "what your content file may contain",
+  "site/privacy.html": "the placeholder: the Lawyer writes the real page",
+  "design/default-brief.md": "the default design brief, kept so you can always go back to it",
+};
+
+function changedNote(file, result) {
+  const { stylesheet, privacy } = result;
+  if (file === "site/assets/styles.css" && stylesheet) {
+    if (!stylesheet.fromBrief) return "the Developer's stylesheet, in the default colours and fonts";
+    if (!stylesheet.ownBrief) return "the Developer's stylesheet, in the default design";
+    return stylesheet.unusableFonts.length > 0
+      ? "the Developer's stylesheet, in the colours of your design brief and the default fonts"
+      : "the Developer's stylesheet, in the colours and fonts of your design brief";
   }
-  if (file === "site/privacy.html") {
-    if (!result.privacy) return "the placeholder: the Lawyer writes the real page";
-    const { NAME, EMAIL } = result.privacy;
-    if (NAME && EMAIL) return `the privacy page for ${NAME}, with the email address ${EMAIL}, dated today`;
-    return "the privacy page, with blanks still to fill in";
+  if (file === "site/privacy.html" && privacy) {
+    return privacy.NAME && privacy.EMAIL
+      ? `the privacy page for ${privacy.NAME}, with the email address ${privacy.EMAIL}, dated today`
+      : "the privacy page, with blanks still to fill in";
   }
-  return "";
+  return FILE_NOTES[file] ?? `as it is at the end of the ${ABOUT[result.block].name} block`;
 }
 
-function attention(result, role) {
+const languageName = (code) => {
+  try {
+    return new Intl.DisplayNames(["en"], { type: "language" }).of(code) ?? code;
+  } catch {
+    return code;
+  }
+};
+
+function attention(result) {
   const notes = [];
-  const languageName = (code) => {
-    try {
-      return new Intl.DisplayNames(["en"], { type: "language" }).of(code) ?? code;
-    } catch {
-      return code;
-    }
-  };
+  const list = (lines) => lines.map((line) => `    - ${line}`);
   if (result.unreadable) {
     notes.push(
       `site/content.json is not valid JSON, so your site cannot show your content: ${result.unreadable}. ` +
@@ -73,27 +89,40 @@ function attention(result, role) {
     );
   }
   if (result.briefProblems.length > 0) {
-    const effect = result.styled === false && ["developer", "qa", "lawyer", "ops"].includes(role)
-      ? "so your site keeps the default colours and fonts"
-      : "so the Developer cannot build from it yet";
+    const effect = result.stylesheet ? "so your site keeps the default colours and fonts" : "so the Developer cannot build from it yet";
     notes.push(
       [
         `design/brief.md is not finished, ${effect}:`,
-        ...result.briefProblems.map((problem) => `    - ${problem}`),
+        ...list(result.briefProblems),
         "    The Designer finishes it in a fresh chat; say default there to use the default design. Then run this command again.",
       ].join("\n"),
     );
   }
-  for (const font of result.styled?.webFonts ?? []) {
+  for (const fonts of result.stylesheet?.unusableFonts ?? []) {
+    notes.push(
+      `The fonts in your design brief, "${fonts}", are not a list of font names, so your site keeps the default fonts. The Designer can correct them in a fresh chat; then run this command again.`,
+    );
+  }
+  for (const font of result.stylesheet?.webFonts ?? []) {
     notes.push(
       `Your design brief names the font "${font}". This checkpoint does not load it, so your site shows the next font in the list instead. The Developer can add it in a fresh chat.`,
+    );
+  }
+  if (result.privateData.length > 0) {
+    notes.push(
+      [
+        "site/content.json holds what looks like private data, and your repo is public:",
+        ...list(result.privateData),
+        "    The Lawyer takes it out, in a fresh chat, before you publish.",
+      ].join("\n"),
     );
   }
   if (result.privacy && result.changed.includes("site/privacy.html")) {
     notes.push(
       "The privacy page comes from a template for a personal portfolio in the EU that has no tracking. It is not legal advice: if you sell services through the site or run it as a business, ask someone who knows the law in your country.",
+      "The Lawyer also reads your content file for private data no search finds, such as a birth date or the names of family members. Read site/content.json once yourself before you publish, or ask the Lawyer in a fresh chat.",
     );
-    if (!result.privacy.EMAIL) {
+    if (!result.privacy.EMAIL && !result.unreadable) {
       notes.push(
         "Your content file has no email address, so the privacy page still has a blank for it: the law asks for a way to reach whoever runs the site. The Lawyer asks you for one in a fresh chat.",
       );
@@ -105,8 +134,8 @@ function attention(result, role) {
   return notes;
 }
 
-function report(result, role) {
-  const block = BLOCKS[role];
+function report(result) {
+  const block = ABOUT[result.block];
   const nothing = result.changed.length === 0 && result.putIn.length === 0;
   console.log(
     nothing
@@ -123,38 +152,35 @@ function report(result, role) {
   }
   if (result.changed.length > 0) {
     console.log("\nChanged:");
-    for (const file of result.changed) {
-      const note = changedNote(file, result, role);
-      console.log(`  ${file}${note ? ` – ${note}` : ""}`);
-    }
+    for (const file of result.changed) console.log(`  ${file} – ${changedNote(file, result)}`);
   }
-  const notes = attention(result, role);
+  const notes = attention(result);
   if (notes.length > 0) {
     console.log("\nNeeds your attention:");
     for (const note of notes) console.log(`  - ${note}`);
   }
-  if (role === "ops") console.log("\nOps changes no file, so this is the same as the Lawyer's checkpoint. Your site goes live once Ops publishes it.");
+  if (result.block === "ops") console.log("\nOps changes no file, so this is the same as the Lawyer's checkpoint. Your site goes live once Ops publishes it.");
   console.log(`\nNext: start a fresh chat and ask for ${block.next}.`);
   console.log("To see your site, run node tools/preview.mjs and open the address it prints in Chrome.");
 }
 
-const role = process.argv[2];
+const block = process.argv[2];
 const nodeMajor = Number(process.versions.node.split(".")[0]);
 
 if (nodeMajor < 22) {
   console.log(`This needs Node 22 or newer; this is Node ${process.versions.node}.`);
   console.log("Run the install script again, or install the current Node LTS from nodejs.org.");
   process.exitCode = 1;
-} else if (!role) {
+} else if (!block) {
   console.log("Which checkpoint?");
   listCheckpoints();
-} else if (!ROLES.includes(role)) {
-  console.log(`There is no checkpoint called "${role}".`);
+} else if (!BLOCKS.includes(block)) {
+  console.log(`There is no checkpoint called "${block}".`);
   listCheckpoints();
   process.exitCode = 1;
 } else {
   try {
-    report(await applyCheckpoint(repoDir, role), role);
+    report(await applyCheckpoint(repoDir, block));
   } catch (error) {
     console.log(`The checkpoint could not be applied: ${error.message}.`);
     console.log("Nothing you made is lost: your content file, design brief and spec are never overwritten. Ask the instructor for help.");

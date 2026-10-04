@@ -38,8 +38,12 @@ jobs:
       # repo folder, in the runner's default shell (PowerShell on Windows).
       - name: Jump to the Lawyer's checkpoint, as a participant does
         run: node tools/checkpoint.mjs lawyer
-      - name: The Check on the Lawyer's checkpoint, as a participant sees it
-        run: node tools/check.mjs
+      # The Check never fails by itself, so this step looks for its verdict.
+      - name: The Check on the Lawyer's checkpoint passes every item, as a participant sees it
+        shell: bash
+        run: |
+          node tools/check.mjs | tee checkpoint-check.log
+          grep -q "5 of 5 items pass" checkpoint-check.log
 
   lint-install:
     runs-on: ubuntu-latest

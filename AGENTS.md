@@ -27,7 +27,7 @@ node tools/checkpoint.mjs developer
 
 Never catch up by doing a role's work yourself, and never use Git to go back or forward: the checkpoint is the one way to catch up. Asking for "the Developer checkpoint" is not asking for the Developer.
 
-The command's output is the read-back: it says in plain words what it kept, what it changed and what needs attention. Show it to the person word for word, and add nothing to it.
+The command's output is the read-back: it says in plain words, file by file, what it kept, what it changed and what needs attention. Reply with all of it, copied word for word into a text block. Do not retell it in your own words, and add nothing to it.
 
 A checkpoint is a chat of its own. After it, the person starts a fresh chat for the next role. If they ask you for that role, or any other, in the same chat, do not start it: tell them again to start a fresh chat.
 
