@@ -58,4 +58,5 @@ ones in: this repo is public.
   `spec.md` the spec it wrote and `site/` the content file it wrote, laid over
   the `default-brief` built site. Each content file must match the schema, hold
   none of the planted data and pass every item of the Check but the Lawyer's
-  privacy page. All three runs used the final wording of the skill.
+  privacy page. All three runs used the final wording of the skill, in the
+  fifth round; `report.md` notes what the earlier rounds changed.

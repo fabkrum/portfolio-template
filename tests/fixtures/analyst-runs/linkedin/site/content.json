@@ -4,18 +4,18 @@
   "name": "Luca Esempio",
   "headline": "Frontend developer who turns designs into fast, accessible web pages",
   "bio": [
-    "I started out as a graphic designer and moved into code because I wanted my designs to work for everyone, including people who use a screen reader.",
+    "I turn designs into fast, accessible web pages. I started out as a graphic designer and moved into code because I wanted my designs to work for everyone, including people who use a screen reader.",
     "Today I look after the design system at Example Studio and teach colleagues how to write CSS that holds up."
   ],
   "projects": [
     {
       "title": "Colour Contrast Checker",
-      "description": "A small page that tells you whether two colours are readable together.",
+      "description": "a small page that tells you whether two colours are readable together",
       "github": "https://github.com/octocat/Hello-World"
     },
     {
       "title": "Focus Ring Gallery",
-      "description": "Examples of keyboard focus styles you can copy.",
+      "description": "examples of keyboard focus styles you can copy",
       "github": "https://github.com/octocat/Spoon-Knife",
       "url": "https://octocat.github.io/Spoon-Knife/"
     }

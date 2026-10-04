@@ -3,13 +3,13 @@
 Written by the Analyst from: interview.
 
 ## Who
-Sam Placeholder. A career changer learning web development who builds small websites for local shops.
+Sam Placeholder, career changer learning web development, and I build small websites for local shops.
 
 ## For whom
-Shop owners looking for web help, and recruiters interested in junior web developers.
+(a guess) Local shop owners looking for affordable web help, and people who want to see what a career-changer can build.
 
 ## What a visitor should do
-(Guess) View Sam's project and contact them about building a website.
+(a guess) Look at the Bakery Opening Hours project on GitHub, then write an email or check out the GitHub profile.
 
 ## Language
 English (en).
@@ -17,11 +17,11 @@ English (en).
 ## Sections
 - Bio: two paragraphs.
 - Projects: one.
-- Links: GitHub and email.
-- CV: experience (two jobs), education (two courses), skills.
+- Links: GitHub, email.
+- CV: experience (two jobs), education (two), skills.
 
 ## Left out on purpose
 Phone number and home address.
 
 ## Later
-Recipe scaler project, once it's on GitHub.
+Add the recipe scaler project once it's on GitHub.

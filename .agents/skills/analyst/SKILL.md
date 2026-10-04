@@ -40,8 +40,6 @@ Please do not type your phone number or home address: they will not go on your s
 - **interview**: go to step 3 and ask the questions in order.
 - If you cannot read a file, ask the person to open it, select all the text, copy it and paste it into the chat instead.
 
-If the CV file is inside the repo folder, that is, its path starts with the path of the folder that holds `AGENTS.md`, tell them to move it out of the folder when you are done: it holds their phone number and address, and everything in the folder can end up public.
-
 ## 2. Sort what you have
 
 Go through the text and note what it gives you for each part of the content file:
@@ -151,10 +149,10 @@ Written by the Analyst from: LinkedIn text | CV | interview.
 Name, and the headline.
 
 ## For whom
-Who should visit the site, for example recruiters for frontend jobs, or clients for freelance work.
+(a guess) Who should visit the site, for example recruiters for frontend jobs, or clients for freelance work.
 
 ## What a visitor should do
-The one thing a visitor should do, for example write an email or look at the projects on GitHub.
+(a guess) The one thing a visitor should do, for example write an email or look at the projects on GitHub.
 
 ## Language
 The site language and its code, for example English (en).
@@ -172,7 +170,7 @@ The kinds of private data you left out, for example a phone number. Never the da
 What the person wants to add later, or "nothing yet".
 ```
 
-You did not ask who the site is for or what a visitor should do. Take your best guess from what the person told you, and say it is a guess when you read the spec back.
+You did not ask who the site is for or what a visitor should do. Take your best guess from what the person told you. Start both lines with "(a guess)", and say it is a guess when you read the spec back. When the person corrects it, write their answer and take "(a guess)" away.
 
 ## 6. Read it back, then hand over
 
@@ -192,7 +190,7 @@ node tools/preview.mjs
 
 The person opens the address it prints in Chrome. The page still has the plain look of the template; the Designer and the Developer change that later. Ask whether the content is right, and change what they want changed in `site/content.json`. Run `node tools/check-content.mjs` again after every change.
 
-If their CV file is inside the repo folder (see step 1), remind them to move it out now. If it is somewhere else, say nothing about it. Then end the role:
+If the person gave you a CV file, add this sentence, in these words: "If you saved your CV inside your repo folder, move it out: it holds your phone number and address, and everything in that folder can end up public." Then end the role:
 
 "The Analyst is done. Start a fresh chat and ask for the Designer: it turns your Stitch design into the design brief."
 

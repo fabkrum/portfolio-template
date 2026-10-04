@@ -163,6 +163,13 @@ for (const run of Object.keys(planted)) {
     }
   });
 
+  test(`${run} run: the spec says that who the site is for and what a visitor should do are guesses`, async () => {
+    const sections = (await read(`./fixtures/analyst-runs/${run}/spec.md`)).split(/^## /m);
+    for (const heading of ["For whom", "What a visitor should do"]) {
+      assert.match(sections.find((section) => section.startsWith(heading)), /guess/i, heading);
+    }
+  });
+
   test(`${run} run: laid over the built sample site, every item of the Check passes but the Lawyer's privacy page`, async () => {
     const { siteDir, remove } = await buildFixtureSite(fixturesDir, `analyst-runs/${run}/site`);
     try {

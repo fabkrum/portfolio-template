@@ -6,19 +6,19 @@ Written by the Analyst from: LinkedIn text.
 Luca Esempio, frontend developer who turns designs into fast, accessible web pages.
 
 ## For whom
-Recruiters for frontend developer roles, or organizations interested in web accessibility and design systems. (Guess based on the projects and experience.)
+(a guess) Recruiters looking for frontend developers with accessibility and design system expertise, or teams seeking someone who bridges design and code.
 
 ## What a visitor should do
-Look at the projects and experience to understand their skills in accessibility and design systems, or contact them about frontend developer roles. (Guess.)
+(a guess) Look at the projects on GitHub to see work in accessibility and design systems, then write an email to get in touch.
 
 ## Language
 English (en).
 
 ## Sections
-- Bio: two paragraphs about their background in design and move to code.
-- Projects: two projects with live demos and GitHub links, focused on accessibility.
+- Bio: two paragraphs.
+- Projects: two (Colour Contrast Checker and Focus Ring Gallery).
 - Links: GitHub, LinkedIn, email.
-- CV: experience (2 jobs), education (1 degree), skills (5 skills).
+- CV: experience (two roles), education (one degree), skills (CSS, HTML, Accessibility, Design systems, Figma).
 
 ## Left out on purpose
 Phone number and home address.
