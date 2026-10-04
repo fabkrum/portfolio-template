@@ -1,16 +1,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { findChrome, launchChrome, navigate, openTab } from "../tools/check/chrome.mjs";
-import { serveSite } from "../tools/check/serve-site.mjs";
 import { runCheck } from "../tools/check/run-check.mjs";
 import { findPrivateDataInContent } from "../tools/check/private-data.mjs";
 import { validateContent } from "../tools/check/schema.mjs";
-import { buildFixtureSite, sampleSite } from "./fixture-site.js";
+import { buildFixtureSite } from "./fixture-site.js";
+import { italianLabels } from "./italian-labels.js";
 
 // Git on Windows may check files out with CRLF line endings.
 const read = async (path) => (await readFile(new URL(path, import.meta.url), "utf8")).replaceAll("\r\n", "\n");
@@ -33,8 +32,6 @@ async function runOn(content) {
 }
 
 const sample = JSON.parse(await read("../site/content.json"));
-// The page's own words for a site in Italian.
-const italianLabels = { projects: "Progetti", links: "Dove trovarmi", cv: "Curriculum", experience: "Esperienza", education: "Formazione", skills: "Competenze", code: "Codice su GitHub", live: "Online", privacy: "Informativa sulla privacy" };
 
 test("the command says the sample content file is ready", () => {
   const { stdout, status } = runCommand();
@@ -78,48 +75,6 @@ test("a content file with the page's words in Italian is ready", async () => {
 test("a label the page does not have is named", async () => {
   const { stdout } = await runOn({ ...sample, labels: { contact: "Contatti" } });
   assert.match(stdout, /"contact" is not allowed in labels/);
-});
-
-// What the page shows in Chrome when it is built from this content file: its
-// language, headings, project links and the footer link.
-async function pageWords(content) {
-  const siteDir = await mkdtemp(join(tmpdir(), "page-words-"));
-  await cp(sampleSite, siteDir, { recursive: true });
-  await writeFile(join(siteDir, "content.json"), JSON.stringify(content));
-  const server = await serveSite(siteDir);
-  let chrome;
-  try {
-    chrome = await launchChrome(findChrome());
-    const { sessionId } = await openTab(chrome.cdp);
-    await navigate(chrome.cdp, sessionId, `${server.origin}/`);
-    const expression = `({
-      lang: document.documentElement.lang,
-      headings: [...document.querySelectorAll("h2, h3")].map((h) => h.textContent.trim()),
-      projectLinks: [...document.querySelectorAll(".project-links a")].map((a) => a.textContent.trim()),
-      footer: document.querySelector("footer a[href='privacy.html']").textContent.trim(),
-    })`;
-    const { result } = await chrome.cdp.send("Runtime.evaluate", { expression, returnByValue: true }, sessionId);
-    return result.value;
-  } finally {
-    await chrome?.close();
-    server.close();
-    await rm(siteDir, { recursive: true, force: true });
-  }
-}
-
-test("in Chrome, a content file in Italian turns the page's own words Italian, the footer link too", async () => {
-  const words = await pageWords({ ...sample, language: "it", labels: italianLabels });
-  assert.equal(words.lang, "it");
-  assert.deepEqual(words.headings, ["Progetti", "Tide Tables", "Reading Log", "Dove trovarmi", "Curriculum", "Esperienza", "Formazione", "Competenze"]);
-  assert.deepEqual(words.projectLinks, ["Codice su GitHub", "Codice su GitHub", "Online"]);
-  assert.equal(words.footer, "Informativa sulla privacy");
-});
-
-test("in Chrome, the sample content file keeps the page in English", async () => {
-  const words = await pageWords(sample);
-  assert.equal(words.lang, "en");
-  assert.equal(words.footer, "Privacy");
-  assert.deepEqual(words.projectLinks, ["Code on GitHub", "Code on GitHub", "Live"]);
 });
 
 const analystSkill = () => read("../.agents/skills/analyst/SKILL.md");
@@ -218,6 +173,17 @@ for (const run of Object.keys(planted)) {
   });
 }
 
+// A run that started from a text asked only what the text did not say, so
+// fewer questions than the interview, and never for the name, the bio, the
+// work or the education.
+async function assertAskedOnlyGaps(run) {
+  const { answers, agentSaid } = await questionsOf(run);
+  assert.ok(answers < (await questionsOf("interview")).answers, `${answers} questions`);
+  for (const known of [/what is your name/i, /tell me a little about yourself/i, /what work have you done/i, /which schools/i]) {
+    assert.doesNotMatch(agentSaid, known);
+  }
+}
+
 test("interview run: at most 8 questions, and the content comes from the answers alone", async () => {
   const { answers } = await questionsOf("interview");
   assert.ok(answers > 0 && answers <= 8, `${answers} questions`);
@@ -231,12 +197,7 @@ test("interview run: at most 8 questions, and the content comes from the answers
 });
 
 test("LinkedIn run: it asked only about the gaps, in fewer questions than the interview", async () => {
-  const { answers, agentSaid } = await questionsOf("linkedin");
-  assert.ok(answers < (await questionsOf("interview")).answers, `${answers} questions`);
-  // Name, about, work and education are all in the LinkedIn text.
-  for (const known of [/what is your name/i, /tell me a little about yourself/i, /what work have you done/i, /which schools/i]) {
-    assert.doesNotMatch(agentSaid, known);
-  }
+  await assertAskedOnlyGaps("linkedin");
   const content = await runContent("linkedin");
   assert.equal(content.name, "Luca Esempio");
   assert.equal(content.language ?? "en", "en");
@@ -245,11 +206,7 @@ test("LinkedIn run: it asked only about the gaps, in fewer questions than the in
 });
 
 test("CV run: it asked only about the gaps, and the site is in Italian, its headings too", async () => {
-  const { answers, agentSaid } = await questionsOf("cv");
-  assert.ok(answers < (await questionsOf("interview")).answers, `${answers} questions`);
-  for (const known of [/what is your name/i, /tell me a little about yourself/i, /what work have you done/i, /which schools/i]) {
-    assert.doesNotMatch(agentSaid, known);
-  }
+  await assertAskedOnlyGaps("cv");
   const content = await runContent("cv");
   assert.equal(content.name, "Giulia Placeholder");
   assert.equal(content.language, "it");

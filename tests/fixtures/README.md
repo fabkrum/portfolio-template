@@ -1,7 +1,8 @@
 # Test fixtures
 
-All data here is fake. Phone numbers are zeros, addresses are invented
-placeholders; never put real ones in, this repo is public.
+All data here is fake. Phone numbers are zeros, at most after a country
+code; addresses and dates of birth are invented placeholders. Never put real
+ones in: this repo is public.
 
 - `invalid-content/` – content files the schema must reject.
 - `broken-sites/` – one folder per broken site for the Check. Each holds only
