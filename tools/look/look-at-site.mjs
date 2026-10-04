@@ -19,6 +19,9 @@ const MAX_SCREENSHOT_HEIGHT = 8000;
 const SLOW_4G = { offline: false, latency: 150, downloadThroughput: (1.6 * 1024 * 1024) / 8, uploadThroughput: (750 * 1024) / 8 };
 const PHONE_CPU_SLOWDOWN = 4;
 
+// How long after the page has settled shifts still count.
+const LATE_SHIFT_MS = 1500;
+
 // Good values according to web.dev/articles/vitals.
 export const GOOD = { lcp: 2500, cls: 0.1 };
 
@@ -57,6 +60,7 @@ async function screenshot(cdp, sessionId, width) {
 }
 
 // LCP and CLS of one load of the page, measured by the browser itself.
+// LCP is null when the browser reported none, for example for an empty page.
 async function measure(cdp, url) {
   const { sessionId, close } = await openTab(cdp);
   try {
@@ -70,7 +74,7 @@ async function measure(cdp, url) {
       sessionId,
       `${SETTLED}.then(() => {
         // Buffered observers hand over everything since the page started; their
-        // callbacks run a moment later, so read the totals after a pause.
+        // callbacks run later. The pause also catches shifts that come late.
         let lcp = 0;
         let cls = 0;
         new PerformanceObserver((list) => (lcp = list.getEntries().at(-1).startTime))
@@ -78,8 +82,8 @@ async function measure(cdp, url) {
         new PerformanceObserver((list) => {
           for (const shift of list.getEntries()) if (!shift.hadRecentInput) cls += shift.value;
         }).observe({ type: "layout-shift", buffered: true });
-        return new Promise((done) => setTimeout(done, 200))
-          .then(() => ({ lcp: Math.round(lcp), cls: Math.round(cls * 1000) / 1000 }));
+        return new Promise((done) => setTimeout(done, ${LATE_SHIFT_MS}))
+          .then(() => ({ lcp: lcp > 0 ? Math.round(lcp) : null, cls: Math.round(cls * 1000) / 1000 }));
       })`,
     );
   } finally {
@@ -115,8 +119,13 @@ const LAYOUT_PROBE = `(() => {
     }
     const style = getComputedStyle(section);
     const room = section.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-    const narrowest = Math.min(...[...section.children].slice(1).map((child) => child.getBoundingClientRect().width));
-    if (narrowest < room * ${NARROW_SHARE}) {
+    // Only blocks that are shown: a link or a hidden paragraph is narrow by nature.
+    const blocks = [...section.children].slice(1).filter((child) => {
+      const { display } = getComputedStyle(child);
+      return display !== "none" && !display.startsWith("inline") && child.getBoundingClientRect().height > 0;
+    });
+    const narrowest = Math.min(...blocks.map((child) => child.getBoundingClientRect().width));
+    if (blocks.length > 0 && narrowest < room * ${NARROW_SHARE}) {
       found.push({ kind: "narrow", heading: name(section), share: Math.round((narrowest / room) * 100) });
     }
   }

@@ -33,22 +33,31 @@ function report({ screenshots, performance, layout }) {
   for (const file of screenshots) console.log(`  ${shown(file)}`);
 
   console.log("\nThe home page on a mid-range phone with a slow 4G connection:");
-  const seconds = (performance.lcp / 1000).toFixed(1);
+  const good = `(good: ${GOOD.lcp / 1000} s or less)`;
   console.log(
-    `  ${status(performance.lcp <= GOOD.lcp)}  Largest Contentful Paint: ${seconds} s until the biggest text or image shows (good: ${GOOD.lcp / 1000} s or less)`,
+    performance.lcp === null
+      ? `  ${ATTENTION}  Largest Contentful Paint: could not be measured; the page may show nothing ${good}`
+      : `  ${status(performance.lcp <= GOOD.lcp)}  Largest Contentful Paint: ${(performance.lcp / 1000).toFixed(1)} s until the biggest text or image shows ${good}`,
   );
   console.log(
     `  ${status(performance.cls <= GOOD.cls)}  Cumulative Layout Shift: ${performance.cls} (good: ${GOOD.cls} or less; above that, the page jumps while it loads)`,
   );
 
   console.log("\nLayout:");
-  if (layout.length === 0) console.log(`  ${PASS}  No page is wider than the screen`);
+  if (layout.length === 0) {
+    console.log(`  ${PASS}  No page wider than the screen, every heading above its content, no section half empty, space between all sections`);
+  }
   for (const problem of layout) console.log(`  ${ATTENTION}  ${problem}`);
 }
 
+const nodeMajor = Number(process.versions.node.split(".")[0]);
+
 try {
   const chromePath = findChrome();
-  if (!existsSync(siteDir)) {
+  if (nodeMajor < 22) {
+    console.log(`This needs Node 22 or newer; this is Node ${process.versions.node}.`);
+    console.log("Run the install script again, or install the current Node LTS from nodejs.org.");
+  } else if (!existsSync(siteDir)) {
     console.log(`Could not find the folder ${siteDir}.`);
     console.log("Run this from your repo folder, or give it the path to your site folder.");
   } else if (!chromePath) {

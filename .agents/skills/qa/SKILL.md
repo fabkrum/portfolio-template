@@ -48,7 +48,7 @@ Only after you have answered the questions for all eight screenshots, run the Ch
 node tools/check.mjs
 ```
 
-The Check cannot see any of the layout findings above: it may pass while the page looks wrong. Its accessibility item runs the same rules Lighthouse uses for its accessibility score; when the item passes, Lighthouse scores 100. Write down every finding under accessibility and under the browser console.
+The Check cannot see any of the layout findings above: it may pass while the page looks wrong. Its accessibility item runs axe, the engine behind Lighthouse's accessibility score, with the rules Lighthouse scores. When the item passes, none of those rules finds a problem. Write down every finding under accessibility and under the browser console.
 
 ## 3. If you have Chrome DevTools tools
 
@@ -58,7 +58,7 @@ If you have tools from Chrome DevTools for agents, such as `lighthouse_audit`, `
 node tools/preview.mjs
 ```
 
-Open the address it prints. Run `lighthouse_audit` for accessibility and best practices, then `performance_start_trace` with a reload for LCP and CLS. Lighthouse leaves performance out, which is why you need the trace. Add what they find to your list. If you do not have these tools, steps 1 and 2 cover the same ground.
+Open the address it prints. Run `lighthouse_audit` for accessibility and best practices, then `performance_start_trace` with a reload for LCP and CLS. Lighthouse leaves performance out, which is why you need the trace. Add what they find to your list. If you do not have these tools, steps 1 and 2 cover accessibility, LCP and CLS; only Lighthouse's best-practices audit is left out, and you say so in your report.
 
 ## 4. Report in plain words
 

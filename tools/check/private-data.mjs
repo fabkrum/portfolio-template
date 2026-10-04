@@ -28,8 +28,12 @@ const digitCount = (text) => text.replace(/\D/g, "").length;
 // Date ranges such as 2019-2024 or 01/2020 - 12/2023.
 const DATE_RANGE = /^(?:\d{1,2}[./-])?(?:19|20)\d{2}\s*[-–]\s*(?:\d{1,2}[./-])?(?:19|20)\d{2}$/;
 
+// A date written as 2026-10-04, maybe with a time after it.
+const ISO_DATE = /^(?:19|20)\d{2}-\d{2}-\d{2}\b/;
+
 function looksLikePhone(candidate, textBefore) {
   if (/ISBN[\s:-]*$/i.test(textBefore)) return false;
+  if (ISO_DATE.test(candidate.trim())) return false;
   const international = /^(\+|00)/.test(candidate);
   if (!international && DATE_RANGE.test(candidate.trim())) return false;
   return digitCount(candidate) >= (international ? 8 : 9);
@@ -63,7 +67,7 @@ function findInText(text) {
   return found;
 }
 
-export function findPrivateData(content) {
+export function findPrivateDataInContent(content) {
   const findings = [];
   for (const { path, text } of textValues(content)) {
     if (isPlainWebLink(text)) continue;
@@ -73,15 +77,21 @@ export function findPrivateData(content) {
   return findings;
 }
 
-// Files a person or an agent writes text into. Fonts, images and SVG drawings
-// (whose path data is long runs of digits) are left out.
-const TEXT_FILES = new Set([".html", ".htm", ".js", ".mjs", ".css", ".json", ".md", ".txt", ".xml", ".webmanifest"]);
+// Files a person or an agent writes text into. Code (CSS, JavaScript), fonts,
+// images and SVG drawings are left out: their long runs of digits are
+// numbers, not phone numbers, and the content lives in content.json and HTML.
+const TEXT_FILES = new Set([".html", ".htm", ".json", ".md", ".txt", ".xml", ".webmanifest"]);
+
+// Inline drawings, scripts and styles in an HTML page, blanked out so the line
+// numbers of everything else stay the same.
+const CODE_IN_HTML = /<(svg|script|style)\b[\s\S]*?<\/\1>/gi;
+const blankOut = (text) => text.replace(CODE_IN_HTML, (code) => code.replace(/[^\n]/g, " "));
 
 // Web links, except the ones that carry a phone number by design.
 const WEB_LINK = /https?:\/\/(?!wa\.me\/|api\.whatsapp\.com\/)[^\s"'<>)]+/g;
 
 // The same search in every text file of the site but content.json, line by line.
-export async function findPrivateDataInFiles(siteDir) {
+export async function findPrivateDataInSiteFiles(siteDir) {
   const findings = [];
   const entries = await readdir(siteDir, { recursive: true, withFileTypes: true });
   for (const entry of entries) {
@@ -89,7 +99,8 @@ export async function findPrivateDataInFiles(siteDir) {
     const path = join(entry.parentPath, entry.name);
     const where = relative(siteDir, path).replaceAll("\\", "/");
     if (where === "content.json") continue;
-    const lines = (await readFile(path, "utf8")).split("\n");
+    const text = await readFile(path, "utf8");
+    const lines = (/\.html?$/i.test(path) ? blankOut(text) : text).split("\n");
     for (const [index, line] of lines.entries()) {
       for (const finding of findInText(line.replace(WEB_LINK, " "))) {
         findings.push(`${where}, line ${index + 1}: ${finding}`);

@@ -61,6 +61,13 @@ test("look measures LCP and CLS of the home page, and a well-built page does wel
   });
 });
 
+test("look raises no layout finding for a hidden paragraph or a link inside a section", async () => {
+  await withSite("look-sites/hidden-and-inline-children", async (siteDir, outDir) => {
+    const { layout } = await lookAtSite(siteDir, outDir, findChrome());
+    assert.deepEqual(layout, []);
+  });
+});
+
 test("look catches a page that jumps while it loads", async () => {
   await withSite("look-sites/layout-shift", async (siteDir, outDir) => {
     const { performance } = await lookAtSite(siteDir, outDir, findChrome());

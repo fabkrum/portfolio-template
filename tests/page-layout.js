@@ -1,6 +1,6 @@
 // Where the project cards and the sections of a fixture site sit in Chrome.
 import assert from "node:assert/strict";
-import { findChrome, launchChrome } from "../tools/check/chrome.mjs";
+import { findChrome, launchChrome, openTab } from "../tools/check/chrome.mjs";
 import { serveSite } from "../tools/check/serve-site.mjs";
 import { buildFixtureSite } from "./fixture-site.js";
 
@@ -11,8 +11,7 @@ export async function pageLayout(siteDir, width) {
   try {
     chrome = await launchChrome(findChrome());
     const { cdp } = chrome;
-    const { targetId } = await cdp.send("Target.createTarget", { url: "about:blank" });
-    const { sessionId } = await cdp.send("Target.attachToTarget", { targetId, flatten: true });
+    const { sessionId } = await openTab(cdp);
     await cdp.send("Emulation.setDeviceMetricsOverride", { width, height: 900, deviceScaleFactor: 1, mobile: false }, sessionId);
     await cdp.send("Page.navigate", { url: `${server.origin}/` }, sessionId);
     // main.js fills the page from the content file after load; wait until the cards are there and the fonts are in.
