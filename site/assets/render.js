@@ -21,6 +21,11 @@ const ENGLISH_LABELS = {
   code: "Code on GitHub",
   live: "Live",
   privacy: "Privacy",
+  videos: "Videos",
+  podcasts: "Podcasts",
+  posts: "Blog",
+  resources: "Resources",
+  ideas: "Project ideas",
 };
 
 export const pageLabels = (content) => ({ ...ENGLISH_LABELS, ...content.labels });
@@ -93,6 +98,36 @@ function renderCv(content, labels) {
   return parts && `<h2>${escapeHtml(labels.cv)}</h2>${parts}`;
 }
 
+// The Optional modules. Each entry is a card in the same markup as a project,
+// so a module's section takes on the look the Developer gave the projects.
+// The title links to the entry; "detail" is the line under it, if any.
+const OPTIONAL_MODULES = {
+  videos: () => "",
+  podcasts: (episode) => episode.show,
+  posts: (post) => post.date,
+  resources: () => "",
+  ideas: () => "",
+};
+
+function renderModule(entries, heading, detailOf) {
+  const items = renderEach(
+    entries,
+    (entry) => {
+      const title = entry.url
+        ? `<a href="${escapeHtml(entry.url)}">${escapeHtml(entry.title)}</a>`
+        : escapeHtml(entry.title);
+      const detail = detailOf(entry);
+      return `
+      <li class="project">
+        <h3>${title}</h3>
+        ${detail ? `<p class="period">${escapeHtml(detail)}</p>` : ""}
+        ${entry.description ? `<p>${escapeHtml(entry.description)}</p>` : ""}
+      </li>`;
+    },
+  );
+  return listWithHeading(`<h2>${escapeHtml(heading)}</h2>`, "projects", items);
+}
+
 export function renderSections(content) {
   const labels = pageLabels(content);
   return {
@@ -100,5 +135,11 @@ export function renderSections(content) {
     projects: renderProjects(content, labels),
     links: renderLinks(content, labels),
     cv: renderCv(content, labels),
+    ...Object.fromEntries(
+      Object.entries(OPTIONAL_MODULES).map(([module, detailOf]) => [
+        module,
+        renderModule(content[module], labels[module], detailOf),
+      ]),
+    ),
   };
 }

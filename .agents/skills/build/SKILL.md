@@ -85,6 +85,7 @@ The page is already built from the content file: `site/index.html` holds an empt
 - `<section id="projects">`: an `h2`, then `ul.projects` with one card per project, `li.project`, holding an `h3`, a `p` and `p.project-links`.
 - `<section id="links">`: an `h2`, then `ul.links` with one link per `li`.
 - `<section id="cv">`: an `h2`, then for experience and education an `h3` and `ul.cv-list` (each `li` holds an `h4`, `p.period` and maybe a `p`), and for skills an `h3` and `ul.skills` with one tag per `li`.
+- Optional modules (`videos`, `podcasts`, `posts`, `resources`, `ideas`), once the person adds them later: a `<section>` with that id, an `h2`, then the same `ul.projects` with one `li.project` per entry, holding an `h3` (with a link), maybe a `p.period` and maybe a `p`. So style the project cards without relying on `#projects`, and the modules look right too. `main.js` adds a module's section at the end of `<main>`; an empty `<section id="videos" class="section"></section>` in `index.html` puts it there instead.
 
 Two rules that keep the layout right:
 

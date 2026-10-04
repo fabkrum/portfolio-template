@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# The sample content file and the content files the Analyst skill wrote in
-# its proxy runs must validate against the schema, and every fixture in
-# tests/fixtures/invalid-content must be rejected.
+# The sample content file, the clean fixture sites' content files and the
+# content files the skills wrote in their proxy runs must validate against
+# the schema, and every fixture in tests/fixtures/invalid-content must be
+# rejected.
 # Needs check-jsonschema on PATH (pip install check-jsonschema).
 set -u
 cd "$(dirname "$0")/.."
@@ -15,7 +16,7 @@ else
   failed=1
 fi
 
-for written in tests/fixtures/analyst-runs/*/site/content.json; do
+for written in tests/fixtures/clean-sites/*/content.json tests/fixtures/*-runs/*/site/content.json; do
   if check-jsonschema --schemafile site/content.schema.json "$written" > /dev/null 2>&1; then
     echo "ok: $written is valid"
   else

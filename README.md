@@ -65,6 +65,20 @@ node tools/look.mjs
 
 It saves screenshots of every page at phone and wide width, in light and dark mode, into the folder `qa/`, and tells you how fast the home page shows up on a phone with a slow connection (LCP) and whether it jumps while it loads (CLS). The QA role uses it; you can open the screenshots too.
 
+## Publish your site
+
+Every push to `main` publishes the site through GitHub Actions. The Ops role does it for you. To see whether the newest version is online, run from your repo folder:
+
+```
+node tools/live.mjs
+```
+
+It prints your site's address and waits up to three minutes until the site online matches your last commit. If the site does not show up at all, it walks you through the one-time GitHub Pages setting.
+
+## Add more sections
+
+Once your site is live, you can add Optional modules: a section for YouTube videos, podcasts, a blog, resources or project ideas. Start a fresh chat and ask to add one; the `portfolio-add-module` skill asks you for the entries and writes them into `site/content.json`. The section shows up at the end of your page.
+
 ## What is where
 
 - `site/content.json` – all your content. Edit this file, not the HTML.
@@ -75,10 +89,11 @@ It saves screenshots of every page at phone and wide width, in light and dark mo
 - `site/` – the site itself: plain HTML, CSS and JavaScript, no build step.
 - `tools/preview.mjs` – the preview.
 - `tools/look.mjs` – screenshots and load speed, for QA.
+- `tools/live.mjs` – your site's address, and whether the newest version is online.
 - `tools/check.mjs` – the Check.
 - `tools/check-content.mjs` – checks the content file: does it match the schema, and is there no phone number or postal address in it.
 - `tools/check-brief.mjs` – checks the design brief: every section there, every colour readable on its background.
-- `.agents/skills/` – one skill per role. Antigravity IDE finds them when you open the repo.
+- `.agents/skills/` – one skill per role, plus `portfolio-add-module` for Optional modules. Antigravity IDE finds them when you open the repo.
 - `.agents/skills/modern-web-guidance/` – Modern Web Guidance by the Chrome team: current best practices the Developer reads before building. Stored in the repo, so nothing is downloaded.
 - `install.sh`, `install.ps1` – the Install script for macOS/Linux and for Windows.
 - `AGENTS.md` – the rules your agent follows.

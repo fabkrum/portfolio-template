@@ -15,6 +15,7 @@ The site is built by six roles, always in this order:
 
 - Do only the role the person asked for. Never jump ahead to a later role, even if it looks helpful.
 - One role per chat. When a role is finished, tell the person to start a fresh chat for the next role. A fresh chat keeps your context clean.
+- After Ops, the person may add **Optional modules**: a section for YouTube videos, podcasts, a blog, resources or project ideas, with the `portfolio-add-module` skill. One module per chat, and only once the site is published.
 
 ## Read changes back before they are accepted
 
@@ -45,6 +46,7 @@ Prefer one command at a time over long chains on every system.
 - All content lives in `site/content.json`, which must match `site/content.schema.json`. Change content there, not in the HTML. That includes the page's own words, such as section headings, in the site's language: they are the `labels` in the content file.
 - The repo is public. Never put a phone number or a postal address in any file.
 - Load nothing from other servers: no fonts from fonts.googleapis.com, no scripts or styles from a CDN. A web font goes into `site/assets/fonts/` and is loaded from there. Loading it from Google would send every visitor's IP address to Google, which EU privacy law does not allow without consent.
+- See whether the published site is live with `node tools/live.mjs` (the same command on every system). It prints the site's address on GitHub Pages and waits until the site online matches the last commit.
 - Preview the site with `node tools/preview.mjs` (the same command on every system). It prints a local address to open in Chrome.
 - Before choosing how to build any part of the page, read the matching guide in Modern Web Guidance, `.agents/skills/modern-web-guidance/`. Your training data is older than today's web.
 - Look at the site with `node tools/look.mjs` (the same command on every system). It saves screenshots of every page at phone and wide width, in light and dark mode, into `qa/`, and measures how fast the home page loads on a phone. Open the screenshots and look at them: the Check cannot see the layout.

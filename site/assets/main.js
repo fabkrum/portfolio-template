@@ -15,7 +15,16 @@ try {
   if (privacyLink) privacyLink.textContent = pageLabels(content).privacy;
 
   for (const [id, html] of Object.entries(renderSections(content))) {
-    const section = document.getElementById(id);
+    let section = document.getElementById(id);
+    if (!section) {
+      // An Optional module index.html has no place for yet: it goes at the
+      // end of the page. Put an empty section into index.html to move it.
+      if (html === "") continue;
+      section = document.createElement("section");
+      section.id = id;
+      section.className = "section";
+      document.querySelector("main").append(section);
+    }
     section.innerHTML = html;
     section.hidden = html === "";
   }
