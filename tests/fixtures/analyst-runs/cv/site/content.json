@@ -1,0 +1,43 @@
+{
+  "$schema": "./content.schema.json",
+  "language": "it",
+  "name": "Giulia Placeholder",
+  "headline": "Data analyst che costruisce web dashboard",
+  "bio": [
+    "Ho passato quattro anni a trasformare fogli di calcolo in report che nessuno leggeva. Poi ho costruito il mio primo web dashboard, e le persone hanno iniziato a utilizzare i numeri.",
+    "Da allora costruisco dashboard piccoli e chiari con JavaScript e grafici SVG semplici, e mi importa di rendere i grafici leggibili per tutti."
+  ],
+  "projects": [
+    {
+      "title": "Delivery Dashboard",
+      "description": "Un dashboard che mostra le consegne in ritardo per regione, con grafici SVG accessibili.",
+      "github": "https://github.com/octocat/Hello-World"
+    }
+  ],
+  "links": [
+    { "label": "GitHub", "url": "https://github.com/octocat" },
+    { "label": "Email", "url": "mailto:giulia@example.com" }
+  ],
+  "cv": {
+    "experience": [
+      { "role": "Data Analyst", "organization": "Example Logistics", "start": "2022", "end": "oggi", "summary": "Costruire dashboard web per il team operativo; sostituire dodici fogli di calcolo settimanali con una pagina." },
+      { "role": "Junior Analyst", "organization": "Placeholder Bank", "start": "2020", "end": "2022", "summary": "Preparare report mensili e pulire i dati." }
+    ],
+    "education": [
+      { "title": "MSc Statistics", "organization": "Example University", "year": "2020" },
+      { "title": "Frontend Course", "organization": "Example Academy", "year": "2023" }
+    ],
+    "skills": ["JavaScript", "SVG", "SQL", "Python", "Data visualisation"]
+  },
+  "labels": {
+    "projects": "Progetti",
+    "links": "Trovami online",
+    "cv": "CV",
+    "experience": "Esperienza",
+    "education": "Formazione",
+    "skills": "Competenze",
+    "code": "Codice su GitHub",
+    "live": "Live",
+    "privacy": "Privacy"
+  }
+}

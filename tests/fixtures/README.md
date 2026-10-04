@@ -47,3 +47,14 @@ placeholders; never put real ones in, this repo is public.
   placeholder privacy page. `after/` holds the files the run changed, laid over
   `before/`; `report.md` holds what the agent told the person. Both runs used
   the final wording of the skills.
+- `analyst-runs/` – the Analyst skill in proxy runs on 2026-10-04, the same
+  way, with the person's side played turn by turn from a fixed answer sheet.
+  One folder per way in: `linkedin/` (fake LinkedIn text, `input.txt`), `cv/`
+  (a fake CV, `cv.pdf`, printed from `cv.html` with headless Chrome) and
+  `interview/` (nothing to start from). Each input or answer sheet carries a
+  planted phone number and address of zeros and placeholders. `answers.md` is
+  what the person answered, `report.md` everything the agent wrote in the chat,
+  `spec.md` the spec it wrote and `site/` the content file it wrote, laid over
+  the `default-brief` built site. Each content file must match the schema, hold
+  none of the planted data and pass every item of the Check but the Lawyer's
+  privacy page. All three runs used the final wording of the skill.

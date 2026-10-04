@@ -1,0 +1,52 @@
+{
+  "$schema": "./content.schema.json",
+  "language": "en",
+  "name": "Sam Placeholder",
+  "headline": "I'm a career changer learning web development, and I build small websites for local shops.",
+  "bio": [
+    "I was a baker for eight years. I got into coding when I built a website for the bakery during a quiet winter, and I loved that I could make something people use every day.",
+    "Now I'm learning JavaScript in the evenings and working as a freelance web helper for shops in my town."
+  ],
+  "projects": [
+    {
+      "title": "Bakery Opening Hours",
+      "description": "A page that shows whether the bakery is open right now.",
+      "github": "https://github.com/octocat/Hello-World"
+    }
+  ],
+  "links": [
+    { "label": "GitHub", "url": "https://github.com/octocat" },
+    { "label": "Email", "url": "mailto:sam@example.com" }
+  ],
+  "cv": {
+    "experience": [
+      {
+        "role": "Freelance web helper for shops",
+        "organization": "Self-employed",
+        "start": "2024",
+        "end": "present",
+        "summary": "Building small websites for local shops."
+      },
+      {
+        "role": "Baker",
+        "organization": "Example Bakery",
+        "start": "2016",
+        "end": "2024",
+        "summary": "Professional baker for eight years."
+      }
+    ],
+    "education": [
+      {
+        "title": "Web Development Course",
+        "organization": "Example Academy",
+        "year": "2024"
+      },
+      {
+        "title": "Baking apprenticeship",
+        "organization": "Example Trade School",
+        "year": "2016"
+      }
+    ],
+    "skills": ["JavaScript", "Web Development", "HTML", "CSS"]
+  }
+}

@@ -1,0 +1,30 @@
+Luca Esempio
+Frontend Developer at Example Studio | CSS, accessibility, design systems
+Placeholder Town · Contact info
+
+Contact info
+Phone: +00 000 000 0000 (Mobile)
+Address: 12 Example Street, Placeholder Town
+Email: luca@example.com
+
+About
+I turn designs into fast, accessible web pages. I started out as a graphic designer and moved into code because I wanted my designs to work for everyone, including people who use a screen reader. Today I look after the design system at Example Studio and teach colleagues how to write CSS that holds up.
+
+Experience
+Frontend Developer
+Example Studio · Full-time
+Mar 2023 - Present · 3 yrs 8 mos
+Built and maintain the studio's design system; brought the main product's pages to a Lighthouse accessibility score of 100.
+
+Junior Web Designer
+Placeholder Agency · Full-time
+Sep 2020 - Feb 2023 · 2 yrs 6 mos
+Designed and built landing pages for small businesses.
+
+Education
+Example University
+BA, Graphic Design
+2017 - 2020
+
+Skills
+CSS · HTML · Accessibility · Design systems · Figma

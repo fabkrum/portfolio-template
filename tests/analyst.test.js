@@ -7,7 +7,10 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { findChrome, launchChrome, navigate, openTab } from "../tools/check/chrome.mjs";
 import { serveSite } from "../tools/check/serve-site.mjs";
-import { sampleSite } from "./fixture-site.js";
+import { runCheck } from "../tools/check/run-check.mjs";
+import { findPrivateDataInContent } from "../tools/check/private-data.mjs";
+import { validateContent } from "../tools/check/schema.mjs";
+import { buildFixtureSite, sampleSite } from "./fixture-site.js";
 
 // Git on Windows may check files out with CRLF line endings.
 const read = async (path) => (await readFile(new URL(path, import.meta.url), "utf8")).replaceAll("\r\n", "\n");
@@ -150,4 +153,108 @@ test("the Analyst keeps phone numbers and postal addresses out", async () => {
   const skill = await analystSkill();
   assert.match(skill, /phone number/);
   assert.match(skill, /postal address/);
+});
+
+// Proxy runs: a fresh agent on Claude Haiku 4.5 played the Analyst on fake
+// LinkedIn text, a fake CV as a PDF, and an interview with nothing to start
+// from, while the person's answers came from answers.md. Each run folder holds
+// the input, what the agent told the person (report.md), the spec it wrote
+// and, in site/, the content file it wrote. See fixtures/README.md.
+const fixturesDir = fileURLToPath(new URL("./fixtures", import.meta.url));
+const schema = JSON.parse(await read("../site/content.schema.json"));
+const runContent = async (run) => JSON.parse(await read(`./fixtures/analyst-runs/${run}/site/content.json`));
+
+// report.md has a section for the questions, up to the turn in which the
+// content file was written, and one for reading it back. Every message of the
+// person in the first section after the agent's first one answers a question.
+async function questionsOf(run) {
+  const report = await read(`./fixtures/analyst-runs/${run}/report.md`);
+  const questions = report.split(/^## /m).find((section) => section.startsWith("Questions"));
+  assert.ok(questions, "report.md has no Questions section");
+  const turns = questions.split(/^\*\*(Agent|Person):\*\*/m).slice(1);
+  const agentSaid = [];
+  let answers = 0;
+  for (let index = 0; index < turns.length; index += 2) {
+    if (turns[index] === "Agent") agentSaid.push(turns[index + 1]);
+    // The person's first message opens the chat; it answers nothing.
+    else if (agentSaid.length > 0) answers += 1;
+  }
+  return { answers, agentSaid: agentSaid.join("\n") };
+}
+
+// What the person put in that must never reach the content file or the spec.
+const planted = {
+  linkedin: ["000 000 0000", "12 Example Street"],
+  cv: ["000 000 0000", "Via Esempio", "00000", "1 January 2000"],
+  interview: ["000 000 0000", "Placeholder Road"],
+};
+
+for (const run of Object.keys(planted)) {
+  test(`${run} run: the content file matches the schema and has no phone number or postal address`, async () => {
+    const content = await runContent(run);
+    assert.deepEqual(validateContent(schema, content), []);
+    assert.deepEqual(findPrivateDataInContent(content), []);
+  });
+
+  test(`${run} run: nothing private the person put in reached the content file or the spec`, async () => {
+    const written = JSON.stringify(await runContent(run)) + (await read(`./fixtures/analyst-runs/${run}/spec.md`));
+    for (const secret of planted[run]) assert.ok(!written.includes(secret), secret);
+  });
+
+  test(`${run} run: the short spec has every section`, async () => {
+    const spec = await read(`./fixtures/analyst-runs/${run}/spec.md`);
+    for (const heading of ["Who", "For whom", "What a visitor should do", "Language", "Sections", "Left out on purpose", "Later"]) {
+      assert.ok(spec.includes(`## ${heading}`), heading);
+    }
+  });
+
+  test(`${run} run: laid over the built sample site, every item of the Check passes but the Lawyer's privacy page`, async () => {
+    const { siteDir, remove } = await buildFixtureSite(fixturesDir, `analyst-runs/${run}/site`);
+    try {
+      for (const item of await runCheck(siteDir)) assert.equal(item.pass, item.id !== "privacy", `${item.id}: ${item.details}`);
+    } finally {
+      await remove();
+    }
+  });
+}
+
+test("interview run: at most 8 questions, and the content comes from the answers alone", async () => {
+  const { answers } = await questionsOf("interview");
+  assert.ok(answers > 0 && answers <= 8, `${answers} questions`);
+  const content = await runContent("interview");
+  assert.equal(content.name, "Sam Placeholder");
+  assert.equal(content.language ?? "en", "en");
+  assert.deepEqual(content.projects.map((project) => project.github), ["https://github.com/octocat/Hello-World"]);
+  assert.ok(content.links.some((link) => link.url === "mailto:sam@example.com"));
+  // The recipe scaler has no GitHub link, so it cannot be a project.
+  assert.ok(!content.projects.some((project) => /recipe/i.test(project.title)));
+});
+
+test("LinkedIn run: it asked only about the gaps, in fewer questions than the interview", async () => {
+  const { answers, agentSaid } = await questionsOf("linkedin");
+  assert.ok(answers < (await questionsOf("interview")).answers, `${answers} questions`);
+  // Name, about, work and education are all in the LinkedIn text.
+  for (const known of [/what is your name/i, /tell me a little about yourself/i, /what work have you done/i, /which schools/i]) {
+    assert.doesNotMatch(agentSaid, known);
+  }
+  const content = await runContent("linkedin");
+  assert.equal(content.name, "Luca Esempio");
+  assert.equal(content.language ?? "en", "en");
+  assert.deepEqual(content.projects.map((project) => project.github).sort(), ["https://github.com/octocat/Hello-World", "https://github.com/octocat/Spoon-Knife"]);
+  assert.equal(content.cv.experience.length, 2);
+});
+
+test("CV run: it asked only about the gaps, and the site is in Italian, its headings too", async () => {
+  const { answers, agentSaid } = await questionsOf("cv");
+  assert.ok(answers < (await questionsOf("interview")).answers, `${answers} questions`);
+  for (const known of [/what is your name/i, /tell me a little about yourself/i, /what work have you done/i, /which schools/i]) {
+    assert.doesNotMatch(agentSaid, known);
+  }
+  const content = await runContent("cv");
+  assert.equal(content.name, "Giulia Placeholder");
+  assert.equal(content.language, "it");
+  assert.deepEqual(Object.keys(content.labels).sort(), ["code", "cv", "education", "experience", "links", "live", "privacy", "projects", "skills"]);
+  assert.notEqual(content.labels.projects, "Projects");
+  assert.ok(content.links.some((link) => link.url === "mailto:giulia@example.com"));
+  assert.deepEqual(content.projects.map((project) => project.github), ["https://github.com/octocat/Hello-World"]);
 });
