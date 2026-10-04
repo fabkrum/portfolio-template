@@ -57,7 +57,7 @@ function runLive(repo, { online, wait = 2 } = {}) {
 // files on disk may have CRLF line endings where the commit has LF.
 async function onlineSite(repo, change = async () => {}) {
   const dir = await mkdtemp(join(tmpdir(), "online-"));
-  for (const path of git(repo, "ls-tree", "-r", "--name-only", "HEAD", "--", "site").split("\n")) {
+  for (const path of git(repo, "ls-tree", "-r", "-z", "--name-only", "HEAD", "--", "site").split("\0").filter(Boolean)) {
     const target = join(dir, path.slice("site/".length));
     await mkdir(dirname(target), { recursive: true });
     await writeFile(target, spawnSync("git", ["show", `HEAD:${path}`], { cwd: repo }).stdout);
@@ -186,5 +186,41 @@ test("without a connection to the site, it says so instead of crashing", async (
     assert.match(stdout, /could not reach/i);
   } finally {
     await remove();
+  }
+});
+
+test("a file name with an accent, such as città.svg, does not keep a live site from being reported live", async () => {
+  const { repo, remove } = await participantRepo();
+  await cp(join(repo, "site", "assets", "favicon.svg"), join(repo, "site", "assets", "città.svg"));
+  git(repo, "add", "-A");
+  git(repo, "commit", "-q", "-m", "A picture of my city");
+  git(repo, "push", "-q");
+  const online = await onlineSite(repo);
+  try {
+    const { stdout } = await runLive(repo, { online: online.url });
+    assert.match(stdout, /is live/);
+  } finally {
+    await online.close();
+    await remove();
+  }
+});
+
+test("a clone of an empty repo, with no commit yet, is told so in plain words", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "live-empty-"));
+  try {
+    const bare = join(dir, "github.git");
+    git(dir, "init", "-q", "--bare", bare);
+    git(dir, "clone", "-q", bare, "portfolio");
+    const repo = join(dir, "portfolio");
+    const origin = "https://github.com/Ada-Example/portfolio.git";
+    git(repo, "remote", "set-url", "origin", origin);
+    git(repo, "config", `url.${pathToFileURL(bare).href}.insteadOf`, origin);
+    await mkdir(join(repo, "tools"));
+    await cp(liveTool, join(repo, "tools", "live.mjs"));
+    const { stdout, status } = await runLive(repo);
+    assert.equal(status, 0);
+    assert.match(stdout, /no commit yet/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
   }
 });

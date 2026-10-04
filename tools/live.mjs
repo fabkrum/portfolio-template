@@ -16,6 +16,12 @@ const gitText = (...args) => {
   const result = git(...args);
   return result.status === 0 ? result.stdout.toString("utf8").trim() : null;
 };
+// File paths, given -z: separated by NUL and never quoted, so a name such as
+// città.jpg stays as it is.
+const gitPaths = (...args) => {
+  const result = git(...args);
+  return result.status === 0 ? result.stdout.toString("utf8").split("\0").filter(Boolean) : [];
+};
 
 // https://github.com/Owner/repo.git or git@github.com:Owner/repo.git
 function githubRepo(remote) {
@@ -31,8 +37,11 @@ function pagesAddress({ owner, name }) {
 }
 
 // Why the last commit cannot be online yet, or null when it is on GitHub.
-function notPushedYet() {
+function whyNotOnGitHub() {
   const status = gitText("status", "--porcelain=v2", "--branch") ?? "";
+  if (/^# branch\.oid \(initial\)$/m.test(status)) {
+    return "This repo has no commit yet, so there is nothing to publish. Ask Ops in a fresh chat: it commits your site first.";
+  }
   const branch = status.match(/^# branch\.head (.+)$/m)?.[1];
   if (branch !== "main") {
     return `You are on the branch "${branch}". Only the branch main is published. Ask your agent to switch back to main.`;
@@ -48,16 +57,15 @@ function notPushedYet() {
 }
 
 // Files in site/ changed since the last commit: the site online will not have them.
-function uncommitted() {
-  // Each line is two status letters, a space and the path, so no trimming.
-  const lines = git("status", "--porcelain", "--", "site").stdout.toString("utf8").split("\n").filter(Boolean);
-  return lines.map((line) => line.slice(3));
-}
+const uncommitted = () => [
+  ...gitPaths("diff", "--name-only", "-z", "HEAD", "--", "site"),
+  ...gitPaths("ls-files", "--others", "--exclude-standard", "-z", "--", "site"),
+];
 
 // What the online site serves for one path, or null when it is not there.
 async function fetchOnline(baseUrl, path) {
   // A new query on every request, so no cache on the way answers instead.
-  const response = await fetch(`${baseUrl}${path}?live-check=${Date.now()}`);
+  const response = await fetch(`${baseUrl}${path}?live-check=${Date.now()}`, { signal: AbortSignal.timeout(10_000) });
   return response.ok ? Buffer.from(await response.arrayBuffer()) : null;
 }
 
@@ -80,34 +88,36 @@ async function onlineState(baseUrl, files) {
 
 const sleep = (seconds) => new Promise((done) => setTimeout(done, seconds * 1000));
 
-const WHILE_WAITING = {
-  missing: "Not online yet.",
-  older: "An older version is online; the new one is on its way.",
-  unreachable: "Could not reach your site.",
+// What is online, what to say while waiting, and what to do when the site
+// did not show up in time.
+const STATES = {
+  missing: {
+    waiting: "Not online yet.",
+    giveUp: ({ repoPage }) =>
+      [
+        "Your site is not online yet. Most likely GitHub Pages is not switched on for this repo. That is needed once:",
+        `  1. Open ${repoPage}/settings/pages in Chrome.`,
+        '  2. Under "Build and deployment", set Source to "GitHub Actions".',
+        "  3. Publish again: push a new commit (your agent can do that), or re-run the latest",
+        `     "Deploy to GitHub Pages" run on ${repoPage}/actions.`,
+        "Then run node tools/live.mjs again. If Pages is already set to GitHub Actions, wait a minute and run it again.",
+      ].join("\n"),
+  },
+  older: {
+    waiting: "An older version is online; the new one is on its way.",
+    giveUp: ({ repoPage }) =>
+      [
+        "An older version of your site is still online. Publishing usually takes about a minute.",
+        `Open ${repoPage}/actions to watch it: the newest "Deploy to GitHub Pages" run should get a green tick.`,
+        "If it shows a red cross, click it to see what went wrong. Then run node tools/live.mjs again.",
+      ].join("\n"),
+  },
+  unreachable: {
+    waiting: "Could not reach your site.",
+    giveUp: ({ address }) =>
+      `Could not reach ${address}. Check that your computer is online, then run node tools/live.mjs again.`,
+  },
 };
-
-// What to do when the site did not show up in time, by what is online.
-function giveUp(state, { owner, name }, address) {
-  const repoPage = `https://github.com/${owner}/${name}`;
-  if (state === "unreachable") {
-    return `Could not reach ${address}. Check that your computer is online, then run node tools/live.mjs again.`;
-  }
-  if (state === "missing") {
-    return [
-      "Your site is not online yet. Most likely GitHub Pages is not switched on for this repo. That is needed once:",
-      `  1. Open ${repoPage}/settings/pages in Chrome.`,
-      '  2. Under "Build and deployment", set Source to "GitHub Actions".',
-      "  3. Publish again: push a new commit (your agent can do that), or re-run the latest",
-      `     "Deploy to GitHub Pages" run on ${repoPage}/actions.`,
-      "Then run node tools/live.mjs again. If Pages is already set to GitHub Actions, wait a minute and run it again.",
-    ].join("\n");
-  }
-  return [
-    "An older version of your site is still online. Publishing usually takes about a minute.",
-    `Open ${repoPage}/actions to watch it: the newest "Deploy to GitHub Pages" run should get a green tick.`,
-    "If it shows a red cross, click it to see what went wrong. Then run node tools/live.mjs again.",
-  ].join("\n");
-}
 
 async function main() {
   if (git("--version").error) {
@@ -127,7 +137,7 @@ async function main() {
   const address = pagesAddress(repo);
   console.log(`Your site's address: ${address}`);
 
-  const blocker = notPushedYet();
+  const blocker = whyNotOnGitHub();
   if (blocker) {
     console.log(blocker);
     return;
@@ -137,7 +147,7 @@ async function main() {
     console.log(`These changes are not committed yet, so they will not be online: ${changed.join(", ")}`);
   }
 
-  const files = gitText("ls-tree", "-r", "--name-only", "HEAD", "--", "site").split("\n").filter(Boolean);
+  const files = gitPaths("ls-tree", "-r", "-z", "--name-only", "HEAD", "--", "site");
   const baseUrl = process.env.PORTFOLIO_LIVE_URL || address;
   const wait = Number(process.env.PORTFOLIO_LIVE_WAIT || 180);
   const started = Date.now();
@@ -148,11 +158,11 @@ async function main() {
       return;
     }
     if ((Date.now() - started) / 1000 >= wait) {
-      console.log(giveUp(state, repo, address));
+      console.log(STATES[state].giveUp({ repoPage: `https://github.com/${repo.owner}/${repo.name}`, address }));
       return;
     }
     const pause = Math.min(10, wait / 5);
-    console.log(`${WHILE_WAITING[state]} Looking again in ${Math.round(pause)} seconds…`);
+    console.log(`${STATES[state].waiting} Looking again in ${Math.round(pause)} seconds…`);
     await sleep(pause);
   }
 }
