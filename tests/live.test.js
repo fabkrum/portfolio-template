@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { cp, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { serveSite } from "../tools/check/serve-site.mjs";
 import { sampleSite } from "./fixture-site.js";
@@ -52,10 +52,16 @@ function runLive(repo, { online, wait = 2 } = {}) {
   });
 }
 
-// Serves a copy of the sample site, changed by "change", as the site online.
-async function onlineSite(change = async () => {}) {
+// Serves site/ of the repo's last commit, changed by "change", as the site
+// online. Like GitHub Pages, it serves what was committed: on Windows the
+// files on disk may have CRLF line endings where the commit has LF.
+async function onlineSite(repo, change = async () => {}) {
   const dir = await mkdtemp(join(tmpdir(), "online-"));
-  await cp(sampleSite, dir, { recursive: true });
+  for (const path of git(repo, "ls-tree", "-r", "--name-only", "HEAD", "--", "site").split("\n")) {
+    const target = join(dir, path.slice("site/".length));
+    await mkdir(dirname(target), { recursive: true });
+    await writeFile(target, spawnSync("git", ["show", `HEAD:${path}`], { cwd: repo }).stdout);
+  }
   await change(dir);
   const server = await serveSite(dir);
   return { url: `${server.origin}/`, close: async () => (server.close(), rm(dir, { recursive: true, force: true })) };
@@ -63,7 +69,7 @@ async function onlineSite(change = async () => {}) {
 
 test("after a push, it names the site's address and says it is live once the online site matches", async () => {
   const { repo, remove } = await participantRepo();
-  const online = await onlineSite();
+  const online = await onlineSite(repo);
   try {
     const { stdout, status } = await runLive(repo, { online: online.url });
     assert.equal(status, 0);
@@ -78,7 +84,7 @@ test("after a push, it names the site's address and says it is live once the onl
 test("a site that never shows up gets the one-time Pages setting explained, step by step", async () => {
   const { repo, remove } = await participantRepo();
   // GitHub Pages switched off: every address answers 404.
-  const online = await onlineSite(async (dir) => {
+  const online = await onlineSite(repo, async (dir) => {
     await rm(dir, { recursive: true });
     await mkdir(dir);
   });
@@ -97,7 +103,7 @@ test("a site that never shows up gets the one-time Pages setting explained, step
 
 test("while an older version is online, it says the new one is on its way and where to watch it", async () => {
   const { repo, remove } = await participantRepo();
-  const online = await onlineSite(async (dir) => writeFile(join(dir, "content.json"), "{}"));
+  const online = await onlineSite(repo, async (dir) => writeFile(join(dir, "content.json"), "{}"));
   try {
     const { stdout } = await runLive(repo, { online: online.url });
     assert.doesNotMatch(stdout, /is live/);
@@ -111,7 +117,7 @@ test("while an older version is online, it says the new one is on its way and wh
 
 test("a repo named username.github.io over SSH is the site at the root address", async () => {
   const { repo, remove } = await participantRepo({ origin: "git@github.com:Ada-Example/Ada-Example.github.io.git" });
-  const online = await onlineSite();
+  const online = await onlineSite(repo);
   try {
     const { stdout } = await runLive(repo, { online: online.url });
     assert.match(stdout, /Your site's address: https:\/\/ada-example\.github\.io\/\n/);
@@ -159,7 +165,7 @@ test("commits that are not pushed yet are named before any waiting", async () =>
 
 test("changes in site/ that are not committed yet are named: they will not be online", async () => {
   const { repo, remove } = await participantRepo();
-  const online = await onlineSite();
+  const online = await onlineSite(repo);
   try {
     await writeFile(join(repo, "site", "content.json"), "{}\n");
     const { stdout } = await runLive(repo, { online: online.url });

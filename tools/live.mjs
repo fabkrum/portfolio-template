@@ -56,7 +56,8 @@ function uncommitted() {
 
 // What the online site serves for one path, or null when it is not there.
 async function fetchOnline(baseUrl, path) {
-  const response = await fetch(`${baseUrl}${path}?live-check=${Date.now()}`, { cache: "no-store" });
+  // A new query on every request, so no cache on the way answers instead.
+  const response = await fetch(`${baseUrl}${path}?live-check=${Date.now()}`);
   return response.ok ? Buffer.from(await response.arrayBuffer()) : null;
 }
 
@@ -156,6 +157,10 @@ async function main() {
   }
 }
 
-await main();
+try {
+  await main();
+} catch (error) {
+  console.log(`Could not find out whether your site is live: ${error.message}`);
+}
 // Always 0: this reports, it never gates.
 process.exitCode = 0;
