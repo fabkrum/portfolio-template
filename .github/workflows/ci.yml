@@ -7,8 +7,12 @@ on:
 permissions:
   contents: read
 
+# "Use this template" copies this workflow into every participant's repo, where
+# these tests fail once their site differs from the sample and GitHub emails
+# them "Run failed". So every job runs in the template only.
 jobs:
   test:
+    if: github.repository == 'fabkrum/portfolio-template'
     strategy:
       fail-fast: false
       matrix:
@@ -46,6 +50,7 @@ jobs:
           grep -q "5 of 5 items pass" checkpoint-check.log
 
   lint-install:
+    if: github.repository == 'fabkrum/portfolio-template'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -62,6 +67,7 @@ jobs:
   # fresh laptop would not have, then runs the one line exactly as the guide
   # shows it, fetched from this commit, and runs it again afterwards.
   install-linux:
+    if: github.repository == 'fabkrum/portfolio-template'
     runs-on: ubuntu-latest
     env:
       INSTALL_URL: https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/install.sh
@@ -109,6 +115,7 @@ jobs:
         run: bash under-test/tests/install/assert-ready.sh "$HOME/$PORTFOLIO_REPO" "$ORIGIN"
 
   install-macos:
+    if: github.repository == 'fabkrum/portfolio-template'
     runs-on: macos-latest
     env:
       INSTALL_URL: https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/install.sh
@@ -154,6 +161,7 @@ jobs:
   # Two Windows laptops: one with winget (most Windows 10 and 11), one without
   # it, where the script falls back to downloads and connects Git later.
   install-windows:
+    if: github.repository == 'fabkrum/portfolio-template'
     strategy:
       fail-fast: false
       matrix:
