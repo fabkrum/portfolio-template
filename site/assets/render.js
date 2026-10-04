@@ -37,6 +37,14 @@ const renderEach = (items, renderItem) =>
 const listWithHeading = (heading, className, items) =>
   items && `${heading}<ul class="${className}">${items}</ul>`;
 
+// One card: a project, or an entry of an Optional module. Both use this, so
+// they always look the same. "heading" and "body" are HTML, already escaped.
+const card = (heading, body) => `
+      <li class="project">
+        <h3>${heading}</h3>
+        ${body}
+      </li>`;
+
 function renderBio(content) {
   return `
     <h1>${escapeHtml(content.name)}</h1>
@@ -45,17 +53,15 @@ function renderBio(content) {
 }
 
 function renderProjects(content, labels) {
-  const items = renderEach(
-    content.projects,
-    (project) => `
-      <li class="project">
-        <h3>${escapeHtml(project.title)}</h3>
-        <p>${escapeHtml(project.description)}</p>
+  const items = renderEach(content.projects, (project) =>
+    card(
+      escapeHtml(project.title),
+      `<p>${escapeHtml(project.description)}</p>
         <p class="project-links">
           <a href="${escapeHtml(project.github)}">${escapeHtml(labels.code)}</a>
           ${project.url ? `<a href="${escapeHtml(project.url)}">${escapeHtml(labels.live)}</a>` : ""}
-        </p>
-      </li>`,
+        </p>`,
+    ),
   );
   return listWithHeading(`<h2>${escapeHtml(labels.projects)}</h2>`, "projects", items);
 }
@@ -98,33 +104,29 @@ function renderCv(content, labels) {
   return parts && `<h2>${escapeHtml(labels.cv)}</h2>${parts}`;
 }
 
-// The Optional modules. Each entry is a card in the same markup as a project,
-// so a module's section takes on the look the Developer gave the projects.
-// The title links to the entry; "detail" is the line under it, if any.
+// The Optional modules, each with the field shown under an entry's title, if
+// any. Each entry is a card like a project, so a module's section takes on
+// the look the Developer gave the projects. The title links to the entry.
 const OPTIONAL_MODULES = {
-  videos: () => "",
-  podcasts: (episode) => episode.show,
-  posts: (post) => post.date,
-  resources: () => "",
-  ideas: () => "",
+  videos: null,
+  podcasts: "show",
+  posts: "date",
+  resources: null,
+  ideas: null,
 };
 
-function renderModule(entries, heading, detailOf) {
-  const items = renderEach(
-    entries,
-    (entry) => {
-      const title = entry.url
-        ? `<a href="${escapeHtml(entry.url)}">${escapeHtml(entry.title)}</a>`
-        : escapeHtml(entry.title);
-      const detail = detailOf(entry);
-      return `
-      <li class="project">
-        <h3>${title}</h3>
-        ${detail ? `<p class="period">${escapeHtml(detail)}</p>` : ""}
-        ${entry.description ? `<p>${escapeHtml(entry.description)}</p>` : ""}
-      </li>`;
-    },
-  );
+function renderModule(entries, heading, detailField) {
+  const items = renderEach(entries, (entry) => {
+    const title = entry.url
+      ? `<a href="${escapeHtml(entry.url)}">${escapeHtml(entry.title)}</a>`
+      : escapeHtml(entry.title);
+    const detail = detailField && entry[detailField];
+    return card(
+      title,
+      `${detail ? `<p class="period">${escapeHtml(detail)}</p>` : ""}
+        ${entry.description ? `<p>${escapeHtml(entry.description)}</p>` : ""}`,
+    );
+  });
   return listWithHeading(`<h2>${escapeHtml(heading)}</h2>`, "projects", items);
 }
 
@@ -136,9 +138,9 @@ export function renderSections(content) {
     links: renderLinks(content, labels),
     cv: renderCv(content, labels),
     ...Object.fromEntries(
-      Object.entries(OPTIONAL_MODULES).map(([module, detailOf]) => [
+      Object.entries(OPTIONAL_MODULES).map(([module, detailField]) => [
         module,
-        renderModule(content[module], labels[module], detailOf),
+        renderModule(content[module], labels[module], detailField),
       ]),
     ),
   };
