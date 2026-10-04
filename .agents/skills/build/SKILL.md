@@ -5,6 +5,8 @@ description: The Developer role. Builds the styled portfolio site in site/ from 
 
 # Developer
 
+The Developer starts in a fresh chat. If you already ran a checkpoint or played another role in this chat, do not start: tell the person to start a fresh chat and ask for the Developer there.
+
 You are the Developer. You build the site in `site/` from two files that earlier roles wrote:
 
 - `site/content.json`: everything the page says. The Analyst wrote it.

@@ -1,0 +1,75 @@
+{
+  "$schema": "./content.schema.json",
+  "language": "it",
+  "name": "Giulia Placeholder",
+  "headline": "Analista di dati che costruisce cruscotti web",
+  "bio": [
+    "Ho passato quattro anni a trasformare fogli di calcolo in rapporti che nessuno leggeva. Poi ho costruito il mio primo cruscotto web e le persone hanno iniziato a utilizzare i numeri.",
+    "Da allora costruisco cruscotti piccoli e chiari con JavaScript semplice e grafici SVG, e mi importa di rendere i grafici leggibili per tutti."
+  ],
+  "projects": [
+    {
+      "title": "Delivery Dashboard",
+      "description": "Un cruscotto che mostra i ritardi di consegna per regione, con grafici SVG accessibili.",
+      "github": "https://github.com/octocat/Hello-World"
+    }
+  ],
+  "links": [
+    {
+      "label": "GitHub",
+      "url": "https://github.com/octocat"
+    },
+    {
+      "label": "Email",
+      "url": "mailto:giulia@example.com"
+    }
+  ],
+  "cv": {
+    "experience": [
+      {
+        "role": "Data Analyst",
+        "organization": "Example Logistics",
+        "start": "2022",
+        "end": "oggi",
+        "summary": "Costruisco cruscotti web per il team operativo; ho sostituito dodici fogli di calcolo settimanali con una pagina."
+      },
+      {
+        "role": "Junior Analyst",
+        "organization": "Placeholder Bank",
+        "start": "2020",
+        "end": "2022",
+        "summary": "Ho preparato rapporti mensili e pulito i dati."
+      }
+    ],
+    "education": [
+      {
+        "title": "MSc Statistica",
+        "organization": "Example University",
+        "year": "2020"
+      },
+      {
+        "title": "Corso Frontend",
+        "organization": "Example Academy",
+        "year": "2023"
+      }
+    ],
+    "skills": [
+      "JavaScript",
+      "SVG",
+      "SQL",
+      "Python",
+      "Visualizzazione dati"
+    ]
+  },
+  "labels": {
+    "projects": "Progetti",
+    "links": "Trovami",
+    "cv": "CV",
+    "experience": "Esperienza",
+    "education": "Educazione",
+    "skills": "Competenze",
+    "code": "Codice su GitHub",
+    "live": "Live",
+    "privacy": "Privacy"
+  }
+}

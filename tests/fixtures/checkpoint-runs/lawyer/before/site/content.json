@@ -1,0 +1,54 @@
+{
+  "$schema": "./content.schema.json",
+  "language": "en",
+  "name": "Luca Esempio",
+  "headline": "Frontend developer who turns designs into fast, accessible web pages",
+  "bio": [
+    "I turn designs into fast, accessible web pages. I started out as a graphic designer and moved into code because I wanted my designs to work for everyone, including people who use a screen reader.",
+    "Today I look after the design system at Example Studio and teach colleagues how to write CSS that holds up."
+  ],
+  "projects": [
+    {
+      "title": "Colour Contrast Checker",
+      "description": "a small page that tells you whether two colours are readable together",
+      "github": "https://github.com/octocat/Hello-World"
+    },
+    {
+      "title": "Focus Ring Gallery",
+      "description": "examples of keyboard focus styles you can copy",
+      "github": "https://github.com/octocat/Spoon-Knife",
+      "url": "https://octocat.github.io/Spoon-Knife/"
+    }
+  ],
+  "links": [
+    { "label": "GitHub", "url": "https://github.com/octocat" },
+    { "label": "LinkedIn", "url": "https://www.linkedin.com/in/luca-esempio" },
+    { "label": "Email", "url": "mailto:luca@example.com" }
+  ],
+  "cv": {
+    "experience": [
+      {
+        "role": "Frontend Developer",
+        "organization": "Example Studio",
+        "start": "2023",
+        "end": "present",
+        "summary": "Built and maintain the studio's design system; brought the main product's pages to a Lighthouse accessibility score of 100."
+      },
+      {
+        "role": "Junior Web Designer",
+        "organization": "Placeholder Agency",
+        "start": "2020",
+        "end": "2023",
+        "summary": "Designed and built landing pages for small businesses."
+      }
+    ],
+    "education": [
+      {
+        "title": "BA, Graphic Design",
+        "organization": "Example University",
+        "year": "2020"
+      }
+    ],
+    "skills": ["CSS", "HTML", "Accessibility", "Design systems", "Figma"]
+  }
+}

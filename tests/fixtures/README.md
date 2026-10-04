@@ -74,6 +74,19 @@ ones in: this repo is public.
   whose new heading and entries must be in Italian. In each run the content
   file was the only file the agent changed. All five are the third round, on
   the final wording; `report.md` notes what the earlier rounds changed.
+- `checkpoint-runs/` – the checkpoint skill in proxy runs on 2026-10-04, the
+  same way as the Analyst runs: a person who fell behind asks the agent to
+  catch them up. `developer/` is Giulia Placeholder with the Italian content
+  of `analyst-runs/cv`, the brief `design/briefs/from-stitch-html.md` and a
+  stylesheet her agent left half written; she names the checkpoint. `lawyer/`
+  is Luca Esempio with the content of `analyst-runs/linkedin`, the default
+  brief, the Developer's checkpoint and a privacy page with blanks left; he
+  does not say where the room is. In both, the person then asks for the next
+  role in the same chat. `before/` holds what their repo held on top of the
+  template, `after/` every file that differed once the run was over, and
+  `report.md` the chat and every tool call the agent made. Both runs are the
+  seventh round, on the final wording; `report.md` notes what the earlier
+  rounds changed.
 - `deploy-run/` – the Ops skill in a proxy run on 2026-10-04. The repo was the
   template, committed and pushed once, with the Developer's and the Lawyer's
   work not committed yet and a stray `My CV.pdf` in `docs/`, next to the spec. Its GitHub

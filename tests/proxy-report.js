@@ -23,3 +23,13 @@ export const agentText = (turns) =>
     .filter((turn) => turn.who === "Agent")
     .map((turn) => turn.text)
     .join("\n");
+
+// The tool calls in the report's "Tool calls" section, as { after, call },
+// such as { after: 2, call: "Bash `node tools/check.mjs`" }: "after" is the
+// number of the person's message the agent was answering. Null when the
+// report has no such section.
+export function toolCallsIn(report) {
+  const section = report.split(/^## /m).find((part) => part.startsWith("Tool calls"));
+  if (section === undefined) return null;
+  return [...section.matchAll(/^- after message (\d+): (.+)$/gm)].map(([, after, call]) => ({ after: Number(after), call }));
+}

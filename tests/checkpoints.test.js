@@ -1,12 +1,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runCheck } from "../tools/check/run-check.mjs";
 import { inChrome } from "./in-chrome.js";
+import { toolCallsIn, turnsIn } from "./proxy-report.js";
 import { lightDarkTokens } from "./site-files.js";
 
 const templateDir = fileURLToPath(new URL("..", import.meta.url));
@@ -468,12 +470,150 @@ test("the README documents the one action, what it keeps, and where the checkpoi
   assert.match(readme, /`checkpoints\/`/);
 });
 
-test("AGENTS.md has the agent catch the person up with the one command, never with a role's work or with Git", async () => {
+test("AGENTS.md sends a person who fell behind to the checkpoint skill, never to a role's work or to Git", async () => {
   const rules = await readText(join(templateDir, "AGENTS.md"));
   const section = rules.split(/^## /m).find((part) => /checkpoint/i.test(part.split("\n")[0]));
   assert.ok(section, "AGENTS.md has no section about checkpoints");
+  assert.match(section, /skill `checkpoint`/);
   assert.ok(commandsIn(section).includes("node tools/checkpoint.mjs developer"));
-  for (const needed of [/one question/, /read .*back/i, /fresh chat/, /Never catch up by doing a role's work/, /never use Git/]) {
-    assert.match(section, needed);
+  for (const needed of [/Never catch up by doing a role's work/, /never use Git/, /word for word/, /a chat of its own/, /do not start it/]) assert.match(section, needed);
+});
+
+const checkpointSkill = () => readText(join(templateDir, ".agents", "skills", "checkpoint", "SKILL.md"));
+
+test("Antigravity finds the checkpoint skill, and its description matches a person who fell behind", async () => {
+  const frontmatter = (await checkpointSkill()).match(/^---\n([\s\S]*?)\n---\n/)?.[1] ?? "";
+  assert.match(frontmatter, /^name: checkpoint$/m);
+  const description = frontmatter.match(/^description: (.*)$/m)?.[1] ?? "";
+  for (const needed of [/fell behind/, /catch up/, /checkpoint/, /node tools\/checkpoint\.mjs/, /word for word/, /fresh chat/]) assert.match(description, needed);
+});
+
+test("the checkpoint skill runs the one command after at most one question, reads it back and hands over to a fresh chat", async () => {
+  const skill = await checkpointSkill();
+  assert.deepEqual(commandsIn(skill), ["node tools/checkpoint.mjs developer"]);
+  for (const needed of [/Ask nothing/, /ask once/i, /use the one before it/, /word for word/, /add nothing to it/, /"You are back in step with the room\. Start a fresh chat and ask for QA\."/, /do not start it/]) {
+    assert.match(skill, needed);
   }
+  for (const needed of [/Never catch up by doing a role's work/, /never use Git/]) assert.match(skill, needed);
+});
+
+// Asked for a role in the chat that ran a checkpoint, the agent reads that
+// role's skill, not AGENTS.md: so every role skill opens with the guard.
+const ROLE_SKILLS = { analyst: "the Analyst", design: "the Designer", build: "the Developer", qa: "QA", legal: "the Lawyer", deploy: "Ops" };
+
+for (const [skill, role] of Object.entries(ROLE_SKILLS)) {
+  test(`the ${skill} skill starts only in a fresh chat, never after a checkpoint or another role`, async () => {
+    const opening = (await readText(join(templateDir, ".agents", "skills", skill, "SKILL.md"))).split(/^## /m)[0];
+    const guard = opening.split("\n").find((line) => line.includes("starts in a fresh chat")) ?? "";
+    assert.match(guard, /checkpoint/);
+    assert.match(guard, new RegExp(`ask for ${role} there`));
+    assert.ok(opening.indexOf(guard) < opening.indexOf("You are"), "the guard comes first");
+  });
+}
+
+test("when it writes the privacy page, the command says, as the Lawyer does, that it is not legal advice", async () => {
+  const { dir, remove } = await participantRepo();
+  try {
+    const { stdout } = jumpTo(dir, "lawyer");
+    assert.match(stdout, /not legal advice/);
+    assert.match(stdout, /ask someone who knows the law in your country/);
+    // Once the page is there, the second jump keeps it and says nothing more about it.
+    assert.doesNotMatch(jumpTo(dir, "lawyer").stdout, /legal advice/);
+  } finally {
+    await remove();
+  }
+});
+
+// Proxy runs: a fresh agent on Claude Haiku 4.5 caught up a person who had
+// fallen behind, while the person's side came turn by turn from answers.md.
+// before/ is what their repo held on top of the template, after/ every file
+// that differed once the run was over, and report.md the chat and every tool
+// call the agent made. See fixtures/README.md.
+const runsDir = join(templateDir, "tests", "fixtures", "checkpoint-runs");
+// askedAfter: the person's message the checkpoint answered; change: how the
+// read-back names what changed.
+const RUNS = {
+  developer: { next: "QA", askedAfter: 1, change: /Plus Jakarta Sans/ },
+  lawyer: { next: "Ops", askedAfter: 2, change: /privacy page/i },
+};
+const runReport = (run) => readText(join(runsDir, run, "report.md"));
+
+// The agent's messages in answer to each of the person's messages, in order.
+function answersTo(turns) {
+  const answers = [];
+  for (const turn of turns) {
+    if (turn.who === "Person") answers.push([]);
+    else answers.at(-1)?.push(turn.text);
+  }
+  return answers.map((texts) => texts.join("\n"));
+}
+
+// The repo at the end of a run, the template with before/ and after/ laid over it;
+// or, with replay, the template with before/ and the one command run on it.
+async function runRepo(run, { replay } = {}) {
+  const repo = await participantRepo();
+  await cp(join(runsDir, run, "before"), repo.dir, { recursive: true });
+  if (replay) assert.equal(jumpTo(repo.dir, run).status, 0);
+  else if (existsSync(join(runsDir, run, "after"))) await cp(join(runsDir, run, "after"), repo.dir, { recursive: true });
+  return repo;
+}
+
+// The privacy page carries the day it was written.
+const undated = (files) =>
+  Object.fromEntries(
+    Object.entries(files).map(([file, bytes]) => [file, file === "site/privacy.html" ? bytes.toString("utf8").replace(/Last updated: [^<]+/, "Last updated: DATE") : bytes]),
+  );
+
+for (const [run, { next, askedAfter, change }] of Object.entries(RUNS)) {
+  test(`${run} run: the agent caught the person up with the one command, and wrote no file and ran no Git itself`, async () => {
+    const calls = toolCallsIn(await runReport(run));
+    assert.ok(calls?.length, "report.md lists no tool calls");
+    const applied = calls.filter(({ call }) => /checkpoint\.mjs \w/.test(call)).map(({ call }) => call);
+    assert.deepEqual(applied, [`Bash \`node tools/checkpoint.mjs ${run}\``]);
+    for (const { call } of calls) {
+      assert.doesNotMatch(call, /^(Edit|Write|NotebookEdit)\b/, call);
+      assert.doesNotMatch(call, /\bgit\b/, call);
+    }
+  });
+
+  test(`${run} run: what changed is exactly what the command changes, and the person's own files are untouched`, async () => {
+    for (const file of ["site/content.json", "design/brief.md", "docs/spec.md"]) {
+      assert.ok(!existsSync(join(runsDir, run, "after", file)), `${file} changed`);
+    }
+    const ended = await runRepo(run);
+    const replayed = await runRepo(run, { replay: true });
+    try {
+      assert.deepEqual(undated(await repoFiles(ended.dir)), undated(await repoFiles(replayed.dir)));
+    } finally {
+      await ended.remove();
+      await replayed.remove();
+    }
+  });
+
+  test(`${run} run: the agent read back what changed and that the person's content stayed, then sent them to a fresh chat for ${next}`, async () => {
+    const readBack = answersTo(turnsIn(await runReport(run), "Chat"))[askedAfter - 1];
+    for (const needed of [change, /content/i, /kept|stayed/i, /fresh chat/i, new RegExp(next)]) assert.match(readBack, needed);
+  });
+
+  test(`${run} run: asked for ${next} in the same chat, the agent did not start it`, async () => {
+    const report = await runReport(run);
+    const answers = answersTo(turnsIn(report, "Chat"));
+    const last = answers.length;
+    assert.ok(last > askedAfter, "the person never asked for the next role");
+    // It may read the role's skill, where it learns that the role starts in a fresh chat, but run nothing.
+    for (const { call } of toolCallsIn(report).filter(({ after }) => after === last)) {
+      assert.match(call, /^Read `(AGENTS\.md|\.agents\/skills\/[\w-]+\/SKILL\.md)`$/, call);
+    }
+    assert.match(answers.at(-1), /fresh chat/i);
+  });
+}
+
+test("developer run: the person named the checkpoint, so the agent ran it at once", async () => {
+  assert.equal(toolCallsIn(await runReport("developer")).find(({ call }) => /checkpoint\.mjs \w/.test(call)).after, 1);
+});
+
+test("lawyer run: the person did not say where the room is, so the agent asked once, then took the block before Ops", async () => {
+  const report = await runReport("lawyer");
+  assert.equal(toolCallsIn(report).find(({ call }) => /checkpoint\.mjs \w/.test(call)).after, 2);
+  assert.match(answersTo(turnsIn(report, "Chat"))[0], /\?/);
 });

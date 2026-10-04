@@ -1,0 +1,232 @@
+/* Colour tokens from the design brief */
+:root {
+  color-scheme: light dark;
+  --background: light-dark(#f7f5f0, #10201e);
+  --surface: light-dark(#ece7dc, #1a2e2b);
+  --text: light-dark(#1c1917, #f5f5f4);
+  --muted: light-dark(#57534e, #a8a29e);
+  --accent: light-dark(#095f59, #5eead4);
+  --on-accent: light-dark(#ffffff, #1c1917);
+}
+
+/* Semantic typography tokens */
+:root {
+  /* Headings */
+  --font-heading: "Plus Jakarta Sans", system-ui, sans-serif;
+  --weight-heading: 700;
+  --size-name: 2.5rem;
+  --size-section-heading: 1.5rem;
+  --size-card-heading: 1.125rem;
+
+  /* Body text */
+  --font-body: "Plus Jakarta Sans", system-ui, sans-serif;
+  --weight-body: 400;
+  --size-body: 1rem;
+  --line-height-body: 1.6;
+}
+
+/* Global styles */
+html {
+  background: var(--background);
+  color: var(--text);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--size-body);
+  font-weight: var(--weight-body);
+  line-height: var(--line-height-body);
+}
+
+/* Layout containers */
+main,
+footer {
+  max-width: 44rem;
+  margin-inline: auto;
+  padding: 2rem 1.25rem;
+}
+
+/* Sections */
+.section + .section {
+  margin-block-start: 4rem;
+}
+
+/* Headings */
+h1 {
+  font-family: var(--font-heading);
+  font-size: var(--size-name);
+  font-weight: var(--weight-heading);
+  margin: 0 0 0.5rem 0;
+}
+
+h2 {
+  font-family: var(--font-heading);
+  font-size: var(--size-section-heading);
+  font-weight: var(--weight-heading);
+  margin: 0 0 1.5rem 0;
+}
+
+h3 {
+  font-family: var(--font-heading);
+  font-size: var(--size-card-heading);
+  font-weight: var(--weight-heading);
+  margin: 0 0 0.75rem 0;
+}
+
+h4 {
+  font-family: var(--font-heading);
+  font-weight: var(--weight-heading);
+  margin: 0 0 0.5rem 0;
+}
+
+/* Headline and period text */
+.headline,
+.period {
+  color: var(--muted);
+  margin: 0.5rem 0;
+}
+
+/* Links */
+a {
+  color: var(--accent);
+  text-decoration: underline;
+  transition: text-decoration-color 200ms ease;
+}
+
+a:hover:not(:focus-visible) {
+  text-decoration-color: transparent;
+}
+
+a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Lists */
+.projects,
+.links,
+.cv-list,
+.skills {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Project cards */
+.projects {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 40rem) {
+  .projects {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.project {
+  background: var(--surface);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.project h3 {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+}
+
+.project > p:not(.project-links) {
+  margin: 0 0 1rem 0;
+  flex: 1;
+}
+
+.project-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Links list */
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-block-end: 1.5rem;
+}
+
+.links li {
+  margin: 0;
+}
+
+/* CV sections */
+.cv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-block-end: 1.5rem;
+}
+
+.cv-list li {
+  margin: 0;
+}
+
+.cv-list h4 {
+  margin: 0 0 0.5rem 0;
+}
+
+.cv-list p {
+  margin: 0.25rem 0;
+}
+
+/* Skill tags */
+.skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-block-end: 1.5rem;
+}
+
+.skills li {
+  background: var(--surface);
+  border-radius: 9999px;
+  padding: 0.25rem 0.75rem;
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text);
+}
+
+/* Footer */
+footer {
+  padding: 2rem 1.25rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+footer a {
+  color: var(--accent);
+}
+
+/* Paragraphs */
+p {
+  margin: 0.75rem 0;
+}
+
+header p {
+  margin: 0.5rem 0;
+}
+
+/* Remove default margin on lists within project cards and CV */
+.project ul,
+.cv-list ul {
+  margin: 0;
+  padding: 0;
+}

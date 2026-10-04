@@ -90,6 +90,9 @@ function attention(result, role) {
     );
   }
   if (result.privacy && result.changed.includes("site/privacy.html")) {
+    notes.push(
+      "The privacy page comes from a template for a personal portfolio in the EU that has no tracking. It is not legal advice: if you sell services through the site or run it as a business, ask someone who knows the law in your country.",
+    );
     if (!result.privacy.EMAIL) {
       notes.push(
         "Your content file has no email address, so the privacy page still has a blank for it: the law asks for a way to reach whoever runs the site. The Lawyer asks you for one in a fresh chat.",

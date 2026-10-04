@@ -1,0 +1,21 @@
+/* Colours from the design brief */
+:root {
+  color-scheme: light dark;
+  --background: light-dark(#f7f5f0, #10201e);
+  --surface: light-dark(#ece7dc, #1a2e2b);
+  --text: light-dark(#1c1917, #f5f5f4);
+  --muted: light-dark(#57534e, #a8a29e);
+  --accent: light-dark(#095f59, #5eead4);
+  --on-accent: light-dark(#ffffff, #1c1917);
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--text);
+  font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+}
+
+.projects {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(18rem
