@@ -42,6 +42,19 @@ if ($WithoutGit) {
     if (-not $changes) { Write-Pass 'working tree matches the repo' } else { Write-Failure "working tree matches the repo: $changes" }
 }
 
+# Antigravity IDE starts Chrome DevTools for agents with npx, the version in
+# .agents/mcp_config.json. The Install script put it in the npm cache, so it
+# starts from there without the network.
+$config = Get-Content (Join-Path $PSScriptRoot '../../.agents/mcp_config.json') -Raw | ConvertFrom-Json
+$devtools = $config.mcpServers.'chrome-devtools'.args | Where-Object { $_ -like 'chrome-devtools-mcp@*' }
+$devtoolsVersion = ''
+if (Get-Command npx.cmd -ErrorAction SilentlyContinue) { $devtoolsVersion = (& npx.cmd --offline -y $devtools --version 2>$null | Select-Object -Last 1) }
+if ($devtools -and $devtoolsVersion -eq ($devtools -replace '^chrome-devtools-mcp@', '')) {
+    Write-Pass "Chrome DevTools for agents $devtoolsVersion starts from the npm cache, offline, in a fresh terminal"
+} else {
+    Write-Failure "Chrome DevTools for agents ($devtools) starts from the npm cache, offline (got '$devtoolsVersion')"
+}
+
 Push-Location $RepoDir
 $checkOutput = (& node tools/check.mjs 2>&1) -join "`n"
 Pop-Location

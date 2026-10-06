@@ -51,6 +51,17 @@ else
   if [ -z "$changes" ]; then pass "working tree matches the repo"; else fail "working tree matches the repo: $changes"; fi
 fi
 
+# Antigravity IDE starts Chrome DevTools for agents with npx, the version in
+# .agents/mcp_config.json. The Install script put it in the npm cache, so it
+# starts from there without the network.
+devtools=$(sed -n 's/.*"\(chrome-devtools-mcp@[^"]*\)".*/\1/p' "$(dirname "$0")/../../.agents/mcp_config.json")
+devtools_version=$(in_fresh_terminal "npx --offline -y $devtools --version" | tail -n 1)
+if [ -n "$devtools" ] && [ "$devtools_version" = "${devtools#chrome-devtools-mcp@}" ]; then
+  pass "Chrome DevTools for agents $devtools_version starts from the npm cache, offline, in a fresh terminal"
+else
+  fail "Chrome DevTools for agents (${devtools:-not in the config}) starts from the npm cache, offline (got '${devtools_version:-nothing}')"
+fi
+
 check_output=$(cd "$repo_dir" && in_fresh_terminal 'node tools/check.mjs')
 if printf '%s' "$check_output" | grep -q 'items pass'; then
   pass "the Check runs in the repo"

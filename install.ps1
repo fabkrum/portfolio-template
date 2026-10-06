@@ -3,8 +3,9 @@
 #   irm https://raw.githubusercontent.com/fabkrum/portfolio-template/main/install.ps1 | iex
 #
 # It checks Google Chrome and Antigravity IDE, installs Git and Node where they
-# are missing, puts your own portfolio repo in your home folder and opens it in
-# Antigravity IDE. It is safe to run again at any time.
+# are missing, downloads Chrome DevTools for agents for the QA role, puts your
+# own portfolio repo in your home folder and opens it in Antigravity IDE. It is
+# safe to run again at any time.
 #
 # It asks for your GitHub username. PORTFOLIO_GITHUB_USER and PORTFOLIO_REPO
 # answer that up front (the automated tests use them).
@@ -208,6 +209,48 @@
         Write-Todo 'Node could not be installed.' 'Install the LTS version from https://nodejs.org (the Check needs it), then run this command again.'
     }
 
+    # ------------------------------------------ Chrome DevTools for agents
+
+    # The version .agents/mcp_config.json starts; tests/devtools.test.js keeps
+    # the two the same.
+    $devtools = 'chrome-devtools-mcp@1.10.1'
+
+    # Runs a command line in cmd.exe for at most $seconds, with nothing to read
+    # and its output thrown away; then stops it with everything it started.
+    # cmd.exe runs npm.cmd and npx.cmd: PowerShell would pick npm.ps1 and
+    # npx.ps1, which the default execution policy does not let run.
+    function Invoke-AtMost($seconds, $commandLine) {
+        try {
+            $start = New-Object System.Diagnostics.ProcessStartInfo
+            $start.FileName = 'cmd.exe'
+            $start.Arguments = "/d /s /c `"$commandLine <NUL >NUL 2>&1`""
+            $start.UseShellExecute = $false
+            $start.CreateNoWindow = $true
+            $process = [Diagnostics.Process]::Start($start)
+            if ($process.WaitForExit($seconds * 1000)) { return ($process.ExitCode -eq 0) }
+            & taskkill.exe /pid $process.Id /t /f 2>&1 | Out-Null
+            return $false
+        } catch {
+            return $false
+        }
+    }
+
+    # Antigravity IDE starts Chrome DevTools for agents with npx, from the npm
+    # cache. Putting it there now means nothing is downloaded during the QA
+    # block. The download runs on its own first, so stopping it half-way leaves
+    # nothing broken behind; then one start from the cache alone, offline,
+    # shows that it runs on this laptop. QA works without it, so this never
+    # stops the script.
+    function Install-DevToolsServer {
+        if ((Get-NodeMajor node) -lt $nodeMin) { return }
+        Write-Info 'Getting Chrome DevTools for agents ready for the QA role...'
+        if ((Invoke-AtMost 120 "npm.cmd cache add $devtools") -and (Invoke-AtMost 60 "npx.cmd --offline -y $devtools --version")) {
+            Write-Ok 'Chrome DevTools for agents is ready.'
+        } else {
+            Write-Info 'Chrome DevTools for agents could not be set up. That is fine: the QA role works without it.'
+        }
+    }
+
     # ---------------------------------------------------------------- repo
 
     function Test-LooksLikeTemplate($dir) {
@@ -331,6 +374,7 @@
     Write-Heading 'Tools'
     Install-Git
     Install-Node
+    Install-DevToolsServer
 
     Write-Heading 'Your repo'
     Get-Repo $repo

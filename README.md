@@ -33,7 +33,7 @@ wget -qO- https://raw.githubusercontent.com/fabkrum/portfolio-template/main/inst
 irm https://raw.githubusercontent.com/fabkrum/portfolio-template/main/install.ps1 | iex
 ```
 
-It checks Google Chrome and Antigravity IDE, installs Git and Node where they are missing, puts your repo in a `portfolio` folder in your home folder and opens it in Antigravity IDE. Whatever it cannot do itself, it tells you in plain words, with what to do next. Run it again any time; it only does what is still missing.
+It checks Google Chrome and Antigravity IDE, installs Git and Node where they are missing, downloads Chrome DevTools for agents, puts your repo in a `portfolio` folder in your home folder and opens it in Antigravity IDE. Whatever it cannot do itself, it tells you in plain words, with what to do next. Run it again any time; it only does what is still missing.
 
 ## Preview your site
 
@@ -64,6 +64,10 @@ node tools/look.mjs
 ```
 
 It saves screenshots of every page at phone and wide width, in light and dark mode, into the folder `qa/`, and tells you how fast the home page shows up on a phone with a slow connection (LCP) and whether it jumps while it loads (CLS). The QA role uses it; you can open the screenshots too.
+
+## Chrome DevTools for agents
+
+Chrome DevTools for agents is a set of tools from the Chrome team that lets your agent work in Chrome: open your site, take screenshots, record how fast it loads and run a Lighthouse audit. This repo switches it on for your agent in `.agents/mcp_config.json`, and the Install script downloads it ahead of time. Antigravity IDE asks you before each of these tools runs: read what the agent wants to do, then allow it. The QA role uses them when they are there; without them, QA works too.
 
 ## Publish your site
 
@@ -107,6 +111,7 @@ Once your site is live, you can add Optional modules: a section for YouTube vide
 - `checkpoints/` – one checkpoint per block of the workshop: the repo at the end of that block. `checkpoints/README.md` explains them.
 - `.agents/skills/` – one skill per role, plus `portfolio-add-module` for Optional modules and `checkpoint` for catching up. Antigravity IDE finds them when you open the repo.
 - `.agents/skills/modern-web-guidance/` – Modern Web Guidance by the Chrome team: current best practices the Developer reads before building. Stored in the repo, so nothing is downloaded.
+- `.agents/mcp_config.json` – switches on Chrome DevTools for agents for your agent in Antigravity IDE.
 - `install.sh`, `install.ps1` – the Install script for macOS/Linux and for Windows.
 - `AGENTS.md` – the rules your agent follows.
 

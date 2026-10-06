@@ -31,7 +31,8 @@ jobs:
       # Includes the Check against the sample site, against every checkpoint
       # (applied to a fresh copy, with the sample content and with a
       # participant's own) and against every broken fixture site, in the
-      # runner's own Chrome.
+      # runner's own Chrome. Also an MCP handshake with Chrome DevTools for
+      # agents, started as .agents/mcp_config.json says (npx downloads it).
       - name: Tests (renderer, Check and checkpoints)
         run: node --test
       - name: Content file matches the schema
@@ -96,6 +97,7 @@ jobs:
         run: >
           bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/first-run.log"
           "Google Chrome is not installed" "Antigravity IDE is not installed"
+          "Chrome DevTools for agents is ready"
           "open a new terminal window" "Run this command again any time"
       - name: Chrome comes back (the participant installed it)
         run: while read -r path; do sudo mv "$path.hidden" "$path"; done < "$RUNNER_TEMP/hidden-chrome"
@@ -111,7 +113,8 @@ jobs:
       - name: Second run asked, then found everything in place
         run: >
           bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/second-run.log"
-          "What is your GitHub username?" "Your repo is already in" "Run this command again any time"
+          "What is your GitHub username?" "Chrome DevTools for agents is ready"
+          "Your repo is already in" "Run this command again any time"
       - name: Still ready after the second run
         run: bash under-test/tests/install/assert-ready.sh "$HOME/$PORTFOLIO_REPO" "$ORIGIN"
 
@@ -147,6 +150,7 @@ jobs:
         run: >
           bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/first-run.log"
           "command line developer tools" "Antigravity IDE is not installed"
+          "Chrome DevTools for agents is ready"
           "open a new terminal window" "Run this command again any time"
       - name: Downloaded without Git after the first run
         run: bash under-test/tests/install/assert-ready.sh "$HOME/$PORTFOLIO_REPO" "$ORIGIN" --without-git
@@ -155,7 +159,8 @@ jobs:
       - name: Second run connected the download to Git
         run: >
           bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/second-run.log"
-          "Connected your repo folder to Git" "Run this command again any time"
+          "Chrome DevTools for agents is ready" "Connected your repo folder to Git"
+          "Run this command again any time"
       - name: Ready after the second run
         run: bash under-test/tests/install/assert-ready.sh "$HOME/$PORTFOLIO_REPO" "$ORIGIN"
 
@@ -202,7 +207,7 @@ jobs:
           if ('${{ matrix.winget }}' -eq 'missing') { $env:Path = "$env:RUNNER_TEMP\no-winget;$env:Path" }
           powershell.exe -NoProfile -ExecutionPolicy Restricted -Command "irm $env:INSTALL_URL | iex" *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\first-run.log"
       - name: First run told the participant what is missing
-        run: under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\first-run.log" -Message 'Antigravity IDE is not installed', 'open a new terminal window', 'Run this command again any time'
+        run: under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\first-run.log" -Message 'Antigravity IDE is not installed', 'Chrome DevTools for agents is ready', 'open a new terminal window', 'Run this command again any time'
       - name: "With winget: ready after the first run"
         if: matrix.winget == 'present'
         run: under-test/tests/install/assert-ready.ps1 -RepoDir "$HOME\$env:PORTFOLIO_REPO" -Origin $env:ORIGIN
@@ -216,6 +221,6 @@ jobs:
       - name: Second run found the repo in place, or connected the download to Git
         run: |
           $expected = if ('${{ matrix.winget }}' -eq 'missing') { 'Connected your repo folder to Git' } else { 'Your repo is already in' }
-          under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\second-run.log" -Message $expected, 'Run this command again any time'
+          under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\second-run.log" -Message $expected, 'Chrome DevTools for agents is ready', 'Run this command again any time'
       - name: Ready after the second run
         run: under-test/tests/install/assert-ready.ps1 -RepoDir "$HOME\$env:PORTFOLIO_REPO" -Origin $env:ORIGIN

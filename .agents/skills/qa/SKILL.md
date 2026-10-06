@@ -54,13 +54,17 @@ The Check cannot see any of the layout findings above: it may pass while the pag
 
 ## 3. If you have Chrome DevTools tools
 
-If you have tools from Chrome DevTools for agents, such as `lighthouse_audit`, `performance_start_trace` and `take_screenshot`, use them as well. Start the preview in a terminal of its own; it never finishes by itself, so do not wait for it:
+If you have tools from Chrome DevTools for agents, such as `lighthouse_audit`, `performance_start_trace` and `take_screenshot`, use them as well. Antigravity asks the person before each of these tools runs, so tell them first:
+
+"Antigravity will ask you before each Chrome DevTools tool runs. Read what it wants to do, for example open your preview in Chrome, then allow it."
+
+Start the preview in a terminal of its own; it never finishes by itself, so do not wait for it:
 
 ```
 node tools/preview.mjs
 ```
 
-Open the address it prints. Run `lighthouse_audit` for accessibility and best practices, then `performance_start_trace` with a reload for LCP and CLS. Lighthouse leaves performance out, which is why you need the trace. Add what they find to your list. If you do not have these tools, steps 1 and 2 cover accessibility, LCP and CLS; only Lighthouse's best-practices audit is left out, and you say so in your report.
+Open the address it prints. Run `lighthouse_audit` for accessibility and best practices, then `performance_start_trace` with a reload for LCP and CLS. Lighthouse leaves performance out, which is why you need the trace. Add what they find to your list. If you do not have these tools, or the person does not allow one, steps 1 and 2 cover accessibility, LCP and CLS; only Lighthouse's best-practices audit is left out, and you say so in your report.
 
 ## 4. Report in plain words
 

@@ -5,8 +5,9 @@
 #   Linux:  wget -qO- https://raw.githubusercontent.com/fabkrum/portfolio-template/main/install.sh | sh
 #
 # It checks Google Chrome and Antigravity IDE, installs Git and Node where they
-# are missing, puts your own portfolio repo in your home folder and opens it in
-# Antigravity IDE. It is safe to run again at any time.
+# are missing, downloads Chrome DevTools for agents for the QA role, puts your
+# own portfolio repo in your home folder and opens it in Antigravity IDE. It is
+# safe to run again at any time.
 #
 # It asks for your GitHub username. PORTFOLIO_GITHUB_USER and PORTFOLIO_REPO
 # answer that up front (the automated tests use them).
@@ -265,6 +266,54 @@ ensure_node() {
   ok "Node is installed ($(node --version))."
 }
 
+# ---------------------------------------------- Chrome DevTools for agents
+
+# The version .agents/mcp_config.json starts; tests/devtools.test.js keeps the
+# two the same.
+DEVTOOLS=chrome-devtools-mcp@1.10.1
+
+# Runs a command for at most $1 seconds, with nothing to read and its output
+# thrown away. Fails if the command fails or has to be stopped. The watchdog
+# ends by itself once the command is gone, and the 2>/dev/null on wait keeps
+# the shell from printing "Terminated" when the time runs out.
+run_at_most() {
+  seconds=$1
+  shift
+  "$@" </dev/null >/dev/null 2>&1 &
+  pid=$!
+  (
+    waited=0
+    while kill -0 "$pid" 2>/dev/null; do
+      if [ "$waited" -ge "$seconds" ]; then
+        kill "$pid"
+        break
+      fi
+      sleep 1
+      waited=$((waited + 1))
+    done
+  ) >/dev/null 2>&1 &
+  watchdog=$!
+  wait "$pid" 2>/dev/null
+  exit_code=$?
+  wait "$watchdog"
+  return "$exit_code"
+}
+
+# Antigravity IDE starts Chrome DevTools for agents with npx, from the npm
+# cache. Putting it there now means nothing is downloaded during the QA block.
+# The download runs on its own first, so stopping it half-way leaves nothing
+# broken behind; then one start from the cache alone, offline, shows that it
+# runs on this laptop. QA works without it, so this never stops the script.
+prepare_devtools() {
+  node_is_new_enough node || return 0
+  info "Getting Chrome DevTools for agents ready for the QA role..."
+  if have npx && run_at_most 120 npm cache add "$DEVTOOLS" && run_at_most 60 npx --offline -y "$DEVTOOLS" --version; then
+    ok "Chrome DevTools for agents is ready."
+  else
+    info "Chrome DevTools for agents could not be set up. That is fine: the QA role works without it."
+  fi
+}
+
 # -------------------------------------------------------------------- repo
 
 looks_like_the_template() {
@@ -385,6 +434,7 @@ check_ide
 heading "Tools"
 ensure_git
 ensure_node
+prepare_devtools
 
 heading "Your repo"
 get_repo
