@@ -64,7 +64,7 @@ Start the preview in a terminal of its own; it never finishes by itself, so do n
 node tools/preview.mjs
 ```
 
-Open the address it prints. Run `lighthouse_audit` for accessibility and best practices, then `performance_start_trace` with a reload for LCP and CLS. Lighthouse leaves performance out, which is why you need the trace. Add what they find to your list. If you do not have these tools, or the person does not allow one, steps 1 and 2 cover accessibility, LCP and CLS; only Lighthouse's best-practices audit is left out, and you say so in your report.
+Open the address it prints. Run `lighthouse_audit` for accessibility and best practices, then `performance_start_trace` with a reload for LCP and CLS. Lighthouse leaves performance out, which is why you need the trace. Add what they find to your list. If you do not have these tools, or one of them does not run, steps 1 and 2 cover accessibility, LCP and CLS; only Lighthouse's best-practices audit is left out, and you say so in your report.
 
 ## 4. Report in plain words
 

@@ -268,14 +268,15 @@ ensure_node() {
 
 # ---------------------------------------------- Chrome DevTools for agents
 
-# The version .agents/mcp_config.json starts; tests/devtools.test.js keeps the
-# two the same.
-DEVTOOLS=chrome-devtools-mcp@1.10.1
+# The package and version .agents/mcp_config.json starts;
+# tests/devtools.test.js keeps the two the same.
+DEVTOOLS_PACKAGE=chrome-devtools-mcp@1.10.1
 
 # Runs a command for at most $1 seconds, with nothing to read and its output
-# thrown away. Fails if the command fails or has to be stopped. The watchdog
-# ends by itself once the command is gone, and the 2>/dev/null on wait keeps
-# the shell from printing "Terminated" when the time runs out.
+# thrown away. Fails if the command fails or has to be stopped: first asked to
+# stop, then forced 5 seconds later. The watchdog ends by itself once the
+# command is gone, and the 2>/dev/null on wait keeps the shell from printing
+# "Terminated" when the time runs out.
 run_at_most() {
   seconds=$1
   shift
@@ -284,10 +285,8 @@ run_at_most() {
   (
     waited=0
     while kill -0 "$pid" 2>/dev/null; do
-      if [ "$waited" -ge "$seconds" ]; then
-        kill "$pid"
-        break
-      fi
+      if [ "$waited" -eq "$seconds" ]; then kill "$pid"; fi
+      if [ "$waited" -ge "$((seconds + 5))" ]; then kill -9 "$pid"; fi
       sleep 1
       waited=$((waited + 1))
     done
@@ -299,15 +298,32 @@ run_at_most() {
   return "$exit_code"
 }
 
+# Starts the server from the npm cache alone, offline, the way Antigravity
+# will: it succeeds only if the server is there and runs on this laptop.
+devtools_runs() {
+  have npx && run_at_most 60 npx --offline -y "$DEVTOOLS_PACKAGE" --version
+}
+
 # Antigravity IDE starts Chrome DevTools for agents with npx, from the npm
 # cache. Putting it there now means nothing is downloaded during the QA block.
-# The download runs on its own first, so stopping it half-way leaves nothing
-# broken behind; then one start from the cache alone, offline, shows that it
-# runs on this laptop. QA works without it, so this never stops the script.
+# If it is there already, nothing is downloaded now either. The download runs
+# on its own, so stopping it half-way leaves nothing broken behind. QA works
+# without it, so this never stops the script.
 prepare_devtools() {
   node_is_new_enough node || return 0
-  info "Getting Chrome DevTools for agents ready for the QA role..."
-  if have npx && run_at_most 120 npm cache add "$DEVTOOLS" && run_at_most 60 npx --offline -y "$DEVTOOLS" --version; then
+  case $(node --version) in
+    v22.[0-9].* | v22.1[01].*)
+      info "Chrome DevTools for agents needs Node 22.12 or newer, and you have $(node --version)."
+      info "The QA role works without it. To get it anyway, install the LTS version from https://nodejs.org, then run this command again."
+      return 0
+      ;;
+  esac
+  if devtools_runs; then
+    ok "Chrome DevTools for agents is ready."
+    return 0
+  fi
+  info "Downloading Chrome DevTools for agents for the QA role..."
+  if run_at_most 120 npm cache add "$DEVTOOLS_PACKAGE" && devtools_runs; then
     ok "Chrome DevTools for agents is ready."
   else
     info "Chrome DevTools for agents could not be set up. That is fine: the QA role works without it."

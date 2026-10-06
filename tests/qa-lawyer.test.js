@@ -36,6 +36,10 @@ test("QA looks at the page before it trusts the Check, and looks again after fix
   // Chrome DevTools for agents when Antigravity has it: Lighthouse and a performance trace.
   assert.match(skill, /lighthouse_audit/);
   assert.match(skill, /performance_start_trace/);
+  // Antigravity asks before each of these tools runs: the person reads what it wants to do, then allows it.
+  assert.match(skill, /Antigravity asks/);
+  assert.match(skill, /Read what it wants to do/);
+  assert.match(skill, /allow it/);
   // Looking comes first; the Check alone cannot see the layout.
   assert.ok(skill.indexOf("node tools/look.mjs") < skill.indexOf("node tools/check.mjs"));
   // It looks again after fixing: the look command is named more than once.

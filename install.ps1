@@ -211,9 +211,9 @@
 
     # ------------------------------------------ Chrome DevTools for agents
 
-    # The version .agents/mcp_config.json starts; tests/devtools.test.js keeps
-    # the two the same.
-    $devtools = 'chrome-devtools-mcp@1.10.1'
+    # The package and version .agents/mcp_config.json starts;
+    # tests/devtools.test.js keeps the two the same.
+    $devtoolsPackage = 'chrome-devtools-mcp@1.10.1'
 
     # Runs a command line in cmd.exe for at most $seconds, with nothing to read
     # and its output thrown away; then stops it with everything it started.
@@ -235,16 +235,31 @@
         }
     }
 
+    # Starts the server from the npm cache alone, offline, the way Antigravity
+    # will: true only if the server is there and runs on this laptop.
+    function Test-DevToolsServer {
+        Invoke-AtMost 60 "npx.cmd --offline -y $devtoolsPackage --version"
+    }
+
     # Antigravity IDE starts Chrome DevTools for agents with npx, from the npm
     # cache. Putting it there now means nothing is downloaded during the QA
-    # block. The download runs on its own first, so stopping it half-way leaves
-    # nothing broken behind; then one start from the cache alone, offline,
-    # shows that it runs on this laptop. QA works without it, so this never
-    # stops the script.
+    # block. If it is there already, nothing is downloaded now either. The
+    # download runs on its own, so stopping it half-way leaves nothing broken
+    # behind. QA works without it, so this never stops the script.
     function Install-DevToolsServer {
         if ((Get-NodeMajor node) -lt $nodeMin) { return }
-        Write-Info 'Getting Chrome DevTools for agents ready for the QA role...'
-        if ((Invoke-AtMost 120 "npm.cmd cache add $devtools") -and (Invoke-AtMost 60 "npx.cmd --offline -y $devtools --version")) {
+        $version = & node --version
+        if ($version -match '^v22\.(\d+)\.' -and [int]$Matches[1] -lt 12) {
+            Write-Info "Chrome DevTools for agents needs Node 22.12 or newer, and you have $version."
+            Write-Info 'The QA role works without it. To get it anyway, install the LTS version from https://nodejs.org, then run this command again.'
+            return
+        }
+        if (Test-DevToolsServer) {
+            Write-Ok 'Chrome DevTools for agents is ready.'
+            return
+        }
+        Write-Info 'Downloading Chrome DevTools for agents for the QA role...'
+        if ((Invoke-AtMost 120 "npm.cmd cache add $devtoolsPackage") -and (Test-DevToolsServer)) {
             Write-Ok 'Chrome DevTools for agents is ready.'
         } else {
             Write-Info 'Chrome DevTools for agents could not be set up. That is fine: the QA role works without it.'
