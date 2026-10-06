@@ -37,12 +37,14 @@ test("the Install scripts download exactly the version Antigravity starts", asyn
 });
 
 // Starts a program and speaks MCP with it over its standard input and output:
-// one JSON-RPC message per line. Every answer is awaited at most this long. The
-// first one waits for npx to download the server, as on a participant's laptop:
-// this is the one test that needs the npm registry. A cold start took 51
-// seconds on the Windows runner.
-const ANSWER_MS = 120_000;
-const HANDSHAKE_MS = 2 * ANSWER_MS + 30_000;
+// one JSON-RPC message per line. The first answer waits for npx to download and
+// start the server, as on a participant's laptop: this is the one test that
+// needs the npm registry. On the Windows runner, next to the other tests, that
+// took between 50 and 110 seconds. Every later answer comes from the running
+// server.
+const START_MS = 300_000;
+const ANSWER_MS = 30_000;
+const HANDSHAKE_MS = START_MS + 2 * ANSWER_MS + 15_000;
 
 function startServer(command, args, options = {}) {
   // On macOS and Linux the server gets a process group of its own, so that
@@ -76,12 +78,12 @@ function startServer(command, args, options = {}) {
   let nextId = 1;
   const send = (message) => child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", ...message })}\n`);
   return {
-    async request(method, params = {}) {
+    async request(method, params = {}, withinMs = ANSWER_MS) {
       const id = nextId++;
       const answer = new Promise((done) => waiting.set(id, done));
       send({ id, method, params });
-      const message = await waitAtMost(Promise.race([answer, ended]), ANSWER_MS);
-      assert.ok(message, `no answer to ${method} within ${ANSWER_MS / 1000} s. Its error output:\n${stderr}`);
+      const message = await waitAtMost(Promise.race([answer, ended]), withinMs);
+      assert.ok(message, `no answer to ${method} within ${withinMs / 1000} s. Its error output:\n${stderr}`);
       assert.equal(message.error, undefined, `${method}: ${JSON.stringify(message.error)}`);
       return message.result;
     },
@@ -103,11 +105,11 @@ function startServer(command, args, options = {}) {
 // The handshake an MCP host such as Antigravity makes before it offers the
 // tools to the agent: initialize, initialized, then the list of tools, page by page.
 async function handshake(server) {
-  const init = await server.request("initialize", {
-    protocolVersion: "2025-06-18",
-    capabilities: {},
-    clientInfo: { name: "portfolio-template-tests", version: "1.0.0" },
-  });
+  const init = await server.request(
+    "initialize",
+    { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "portfolio-template-tests", version: "1.0.0" } },
+    START_MS,
+  );
   server.notify("notifications/initialized");
   const tools = [];
   let cursor;
