@@ -37,11 +37,12 @@ test("the Install scripts download exactly the version Antigravity starts", asyn
 });
 
 // Starts a program and speaks MCP with it over its standard input and output:
-// one JSON-RPC message per line. The first answer waits for npx to download and
-// start the server, as on a participant's laptop: this is the one test that
-// needs the npm registry. On the Windows runner, next to the other tests, that
-// took between 50 and 110 seconds. Every later answer comes from the running
-// server.
+// one JSON-RPC message per line. The first answer waits for npx to start the
+// server, and to download it first if npm's cache does not have it yet: this is
+// the one test that needs the npm registry. CI downloads it in a step before
+// the tests, as the Install script does; a cold start on the Windows runner,
+// next to the other tests, took between 50 and 110 seconds. Every later answer
+// comes from the running server.
 const START_MS = 300_000;
 const ANSWER_MS = 30_000;
 const HANDSHAKE_MS = START_MS + 2 * ANSWER_MS + 15_000;

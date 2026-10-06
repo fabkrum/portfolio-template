@@ -28,11 +28,19 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install check-jsonschema
+      # The server .agents/mcp_config.json starts, downloaded and unpacked
+      # before the tests, as the Install script does on a laptop. On Windows
+      # a cold npx start keeps the disk busy for a minute or two, and next to
+      # it Chrome in the other tests could miss its 15-second start.
+      - name: Download Chrome DevTools for agents, as the Install script does
+        shell: bash
+        run: |
+          npx -y "$(node -p "require('./.agents/mcp_config.json').mcpServers['chrome-devtools'].args[1]")" --version
       # Includes the Check against the sample site, against every checkpoint
       # (applied to a fresh copy, with the sample content and with a
       # participant's own) and against every broken fixture site, in the
       # runner's own Chrome. Also an MCP handshake with Chrome DevTools for
-      # agents, started as .agents/mcp_config.json says (npx downloads it).
+      # agents, started as .agents/mcp_config.json says.
       - name: Tests (renderer, Check and checkpoints)
         run: node --test
       - name: Content file matches the schema
