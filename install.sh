@@ -299,16 +299,20 @@ run_at_most() {
 }
 
 # Starts the server from the npm cache alone, offline, the way Antigravity
-# will: it succeeds only if the server is there and runs on this laptop.
+# will: it succeeds only if the server is there and runs on this laptop. The
+# first start unpacks it from the cache; stopped half-way through that, npx
+# would keep a broken copy for good. Offline it never waits for the network,
+# so it gets all the time a slow laptop needs.
 devtools_runs() {
-  have npx && run_at_most 60 npx --offline -y "$DEVTOOLS_PACKAGE" --version
+  have npx && run_at_most 300 npx --offline -y "$DEVTOOLS_PACKAGE" --version
 }
 
 # Antigravity IDE starts Chrome DevTools for agents with npx, from the npm
 # cache. Putting it there now means nothing is downloaded during the QA block.
 # If it is there already, nothing is downloaded now either. The download runs
-# on its own, so stopping it half-way leaves nothing broken behind. QA works
-# without it, so this never stops the script.
+# on its own, so stopping it half-way, at the time limit or with Ctrl+C,
+# leaves nothing broken behind. QA works without it, so this never stops the
+# script.
 prepare_devtools() {
   node_is_new_enough node || return 0
   case $(node --version) in
@@ -323,7 +327,7 @@ prepare_devtools() {
     return 0
   fi
   info "Downloading Chrome DevTools for agents for the QA role..."
-  if run_at_most 120 npm cache add "$DEVTOOLS_PACKAGE" && devtools_runs; then
+  if run_at_most 180 npm cache add "$DEVTOOLS_PACKAGE" && devtools_runs; then
     ok "Chrome DevTools for agents is ready."
   else
     info "Chrome DevTools for agents could not be set up. That is fine: the QA role works without it."

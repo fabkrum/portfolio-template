@@ -236,16 +236,20 @@
     }
 
     # Starts the server from the npm cache alone, offline, the way Antigravity
-    # will: true only if the server is there and runs on this laptop.
+    # will: true only if the server is there and runs on this laptop. The
+    # first start unpacks it from the cache; stopped half-way through that,
+    # npx would keep a broken copy for good. Offline it never waits for the
+    # network, so it gets all the time a slow laptop needs.
     function Test-DevToolsServer {
-        Invoke-AtMost 60 "npx.cmd --offline -y $devtoolsPackage --version"
+        Invoke-AtMost 300 "npx.cmd --offline -y $devtoolsPackage --version"
     }
 
     # Antigravity IDE starts Chrome DevTools for agents with npx, from the npm
     # cache. Putting it there now means nothing is downloaded during the QA
     # block. If it is there already, nothing is downloaded now either. The
-    # download runs on its own, so stopping it half-way leaves nothing broken
-    # behind. QA works without it, so this never stops the script.
+    # download runs on its own, so stopping it half-way, at the time limit or
+    # with Ctrl+C, leaves nothing broken behind. QA works without it, so this
+    # never stops the script.
     function Install-DevToolsServer {
         if ((Get-NodeMajor node) -lt $nodeMin) { return }
         $version = & node --version
@@ -259,7 +263,7 @@
             return
         }
         Write-Info 'Downloading Chrome DevTools for agents for the QA role...'
-        if ((Invoke-AtMost 120 "npm.cmd cache add $devtoolsPackage") -and (Test-DevToolsServer)) {
+        if ((Invoke-AtMost 180 "npm.cmd cache add $devtoolsPackage") -and (Test-DevToolsServer)) {
             Write-Ok 'Chrome DevTools for agents is ready.'
         } else {
             Write-Info 'Chrome DevTools for agents could not be set up. That is fine: the QA role works without it.'
