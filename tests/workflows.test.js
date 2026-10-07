@@ -48,6 +48,15 @@ test("Every copy publishes the built site: the deploy sets up Node, builds the s
   assert.match(steps[at(/upload-pages-artifact/)], /^ +path: _site$/m);
 });
 
+test("On the daily run, a copy without GitHub Pages switched on skips publishing quietly, never failing every day", async () => {
+  const steps = stepsOf(await read("../.github/workflows/deploy.yml"), "deploy");
+  const pages = steps.findIndex((step) => /uses: actions\/configure-pages@/.test(step));
+  assert.match(steps[pages], /^ *id: pages$/m);
+  assert.match(steps[pages], /^ *continue-on-error: \$\{\{ github\.event_name == 'schedule' \}\}$/m);
+  // Every step after it runs only when GitHub Pages is there; on a push, a missing Pages fails the run as before.
+  for (const step of steps.slice(pages + 1)) assert.match(step, /^ *if: steps\.pages\.outcome == 'success'$/m, step);
+});
+
 test("The deploy also runs once a day, so what depends on the date stays right without a push", async () => {
   const workflow = await read("../.github/workflows/deploy.yml");
   const triggers = workflow.split(/^on:\n/m)[1].split(/^\S/m)[0];

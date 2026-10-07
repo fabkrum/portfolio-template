@@ -29,13 +29,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - uses: actions/configure-pages@v5
+      # On the daily run, a copy whose GitHub Pages is not switched on yet
+      # skips the rest quietly, instead of failing and sending its owner a
+      # "Run failed" email every day.
+      - id: pages
+        uses: actions/configure-pages@v5
+        continue-on-error: ${{ github.event_name == 'schedule' }}
       # The finished site, with the content in the pages, in _site/: the same
       # build as the preview's, at the address GitHub publishes the repo at.
       - name: Build the site
+        if: steps.pages.outcome == 'success'
         run: node tools/build.mjs
       - uses: actions/upload-pages-artifact@v3
+        if: steps.pages.outcome == 'success'
         with:
           path: _site
       - id: deployment
+        if: steps.pages.outcome == 'success'
         uses: actions/deploy-pages@v4
