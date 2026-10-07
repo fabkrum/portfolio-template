@@ -77,6 +77,7 @@ Then style the page the way the brief describes it:
 
 - **Style**: if the brief has a Style section, build its style with the recipe in `styles.md`, next to this skill: it also puts the sections in the brief's order and lists the AI look to avoid.
 - **Signature**: if the brief has a Signature section, build that one move as `signatures.md`, next to this skill, describes it, with its rules for reduced motion.
+- **Personal detail**: if the brief's Style section names a personal detail, build exactly that one, small, the way `styles.md` describes it: an icon, a faint pattern, a frame for the photo, a divider, or the accent colour. Never leave it out: it is what makes this site the person's own.
 - **Type**: font stacks, sizes and weights for headings and body text, and for dates and labels if the brief has a details row.
 - **Shapes**: corner radius, borders and shadows.
 - **Layout**: page width, the space at the sides on phones, the space between sections and items, and the project columns.
@@ -129,6 +130,7 @@ Explain the change file by file in plain words before the person accepts it:
 
 - which files you changed, and what each change does
 - how the colours, fonts, shapes and layout follow the brief, and where you did something different, and why (for example, a system font instead of a web font)
+- the personal detail and the signature move: where on the page each one is, and how you built it
 - what you did because of Modern Web Guidance
 - what the Check said
 

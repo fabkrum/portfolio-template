@@ -82,7 +82,11 @@ These are all the questions there are. Ask them in this order, each as a message
 6. **Links**: "Where can people find you online? For example GitHub, LinkedIn or a blog. And which email address may visitors see?"
 7. **Work and education**: "What work have you done so far, latest first: your role, the organisation, from when to when? And which schools, studies or courses should your site list: what, where, and the year?"
 
-There is no question about skills, highlights, certifications or events: take them from the person's text, projects and work, and they can change them when you read the file back. They can add more later with the skill `portfolio-add-module`. If their text has a sentence that says what they offer, that is the pitch: skip the pitch part of question 3.
+There is no question about skills, highlights, certifications or events: take them from the person's text, projects and work, and they can change them when you read the file back. An event gets `sessions` only for a talk, workshop, keynote, panel or codelab the text names; when the person organised or attended an event without one, leave `sessions` out and never make one up. They can add more later with the skill `portfolio-add-module`. If their text has a sentence that says what they offer, that is the pitch: skip the pitch part of question 3.
+
+LinkedIn text and CVs usually answer question 7 and most of question 4. Then skip question 7, and of question 4 ask only for what is missing, often just the city and the languages: "Which city do you live in, and which languages do you speak, how well?"
+
+A city without a country is enough: keep the city, and leave the country and the time zone out. Never ask a follow-up for them.
 
 After question 7, or after your 8th question in the whole chat, ask nothing more. Write the files with what you have.
 
