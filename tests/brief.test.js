@@ -278,3 +278,22 @@ test("a brief without a style, a signature move or the order of the sections hea
   assert.equal(notes.length, 1, notes.join("\n"));
   for (const heading of ["Style", "Signature", "Sections"]) assert.ok(notes[0].includes(`"${heading}"`), notes[0]);
 });
+
+test("the command says the brief is ready, then what is good to know about its fonts, and the fonts in fonts/ count as bundled", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "brief-"));
+  try {
+    const path = join(dir, "brief.md");
+    await writeFile(path, newBrief);
+    const unbundled = runCommand(path);
+    assert.equal(unbundled.status, 0);
+    assert.match(unbundled.stdout, /is ready for the Developer/);
+    assert.match(unbundled.stdout, /Good to know/);
+    assert.match(unbundled.stdout, /"Plus Jakarta Sans"/);
+    await writeFile(path, withFonts(newBrief, '"Anton", Impact, sans-serif', '"Work Sans", system-ui, sans-serif'));
+    const bundled = runCommand(path);
+    assert.match(bundled.stdout, /is ready for the Developer/);
+    assert.doesNotMatch(bundled.stdout, /Good to know/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});

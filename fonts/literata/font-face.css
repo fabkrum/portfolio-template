@@ -1,0 +1,16 @@
+/* Literata 3.103, SIL Open Font License 1.1: fonts/literata/OFL.txt */
+@font-face {
+  font-family: "Literata";
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url("fonts/literata/literata-latin-wght-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Literata";
+  font-style: italic;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url("fonts/literata/literata-latin-wght-italic.woff2") format("woff2");
+}
