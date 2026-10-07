@@ -196,6 +196,15 @@ test("a commit that is not pushed yet is named, and Ops is next", async () => {
   });
 });
 
+// The Install script writes workshop.json for the Analyst. Like qa/, it stays
+// on the laptop: Git ignores it, so Ops never offers to publish it.
+test("the Install script's workshop.json is no change waiting for GitHub", async () => {
+  await withClone(async (dir) => {
+    await writeFile(join(dir, "workshop.json"), '{\n  "event": "DevFest Milano 2026",\n  "date": "2026-10-10",\n  "city": "Milan"\n}\n');
+    assert.equal(roleLine(whereIn(dir).stdout, "Ops").note, "everything so far is on GitHub.");
+  });
+});
+
 test("without Git, as after the Install script's download, or without a remote, Ops says what is missing", async () => {
   await withRepo(async (dir) => {
     const { status, stdout } = whereIn(dir);
