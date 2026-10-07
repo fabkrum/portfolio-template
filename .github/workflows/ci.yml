@@ -42,7 +42,9 @@ jobs:
       # runner's own Chrome. Also an MCP handshake with Chrome DevTools for
       # agents, started as .agents/mcp_config.json says.
       - name: Tests (renderer, Check and checkpoints)
-        run: node --test
+        # Many Chromes at once starve the small Windows runner until one stops
+        # answering; two test files at a time keep it steady there.
+        run: node --test ${{ runner.os == 'Windows' && '--test-concurrency=2' || '' }}
       - name: Content file matches the schema
         shell: bash
         run: bash tests/validate-content.sh
