@@ -41,6 +41,74 @@
       "type": "string",
       "minLength": 1
     },
+    "photo": {
+      "description": "Optional photo of you, made with node tools/photo.mjs. src is the file under assets/, alt describes the photo in a few words for people who cannot see it.",
+      "$ref": "#/$defs/image"
+    },
+    "pitch": {
+      "description": "One sentence: what you offer, concrete. At most 160 characters.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "highlights": {
+      "description": "Up to three things a visitor gets from you, each with an optional link that proves it.",
+      "type": "array",
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["text"],
+        "properties": {
+          "text": { "type": "string", "minLength": 1 },
+          "url": { "description": "A link that proves it, for example to a project or an article.", "$ref": "#/$defs/webUrl" }
+        }
+      }
+    },
+    "availability": {
+      "description": "Whether you are available, in words with a date, and an optional action: a link a visitor clicks, with its text. Email is fine; phone numbers are not.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text"],
+      "dependentRequired": { "actionLabel": ["actionUrl"], "actionUrl": ["actionLabel"] },
+      "properties": {
+        "text": { "type": "string", "minLength": 1 },
+        "actionLabel": { "description": "The text of the action's link, for example Write to me.", "type": "string", "minLength": 1 },
+        "actionUrl": {
+          "description": "Where the action's link goes: an address starting with https:// or an email link starting with mailto:.",
+          "type": "string",
+          "pattern": "^(https://|mailto:)"
+        }
+      }
+    },
+    "location": {
+      "description": "Where you are based: the city only, never a street, a house number or a postcode.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["city"],
+      "properties": {
+        "city": { "$ref": "#/$defs/place" },
+        "country": { "$ref": "#/$defs/place" },
+        "timeZone": {
+          "description": "Your time zone as its IANA name, for example Europe/Rome.",
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$"
+        }
+      }
+    },
+    "languages": {
+      "description": "The languages you speak, each with its level: A1 to C2 as in the Common European Framework, or native.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "level"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "level": { "enum": ["A1", "A2", "B1", "B2", "C1", "C2", "native"] }
+        }
+      }
+    },
     "bio": {
       "description": "Short paragraphs about you.",
       "type": "array",
@@ -194,10 +262,49 @@
           "url": { "description": "Optional link, for example to an issue where you collect notes.", "$ref": "#/$defs/webUrl" }
         }
       }
+    },
+    "builtAt": {
+      "description": "The event where you built this site with AI agents. It writes the line at the bottom of the page.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event"],
+      "properties": {
+        "event": { "type": "string", "minLength": 1 },
+        "url": { "$ref": "#/$defs/webUrl" },
+        "date": { "$ref": "#/$defs/date" }
+      }
     }
   },
   "$defs": {
     "webUrl": { "type": "string", "pattern": "^https://" },
-    "label": { "type": "string", "minLength": 1 }
+    "label": { "type": "string", "minLength": 1 },
+    "date": {
+      "description": "A date as year-month-day, for example 2026-10-10, or year-month, for example 2026-10.",
+      "type": "string",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])(-(0[1-9]|[12][0-9]|3[01]))?$"
+    },
+    "place": {
+      "description": "A city or a country only: no street, no house number, no postcode.",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[^0-9]+$"
+    },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["src", "alt"],
+      "properties": {
+        "src": {
+          "description": "A picture in the folder assets/: a .webp, .jpg, .png, .avif or .svg file, for example assets/photo.webp.",
+          "type": "string",
+          "pattern": "^assets/([A-Za-z0-9_-][A-Za-z0-9._-]*/)*[A-Za-z0-9_-][A-Za-z0-9._-]*\\.(webp|jpg|jpeg|png|avif|svg)$"
+        },
+        "alt": {
+          "description": "What the picture shows, in a few words, for people who cannot see it.",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
   }
 }

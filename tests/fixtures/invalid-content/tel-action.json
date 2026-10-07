@@ -1,0 +1,12 @@
+{
+  "name": "Sam Fixture",
+  "headline": "Test person",
+  "bio": [
+    "Fictional test data."
+  ],
+  "availability": {
+    "text": "Available from January.",
+    "actionLabel": "Call me",
+    "actionUrl": "tel:0000000000"
+  }
+}
