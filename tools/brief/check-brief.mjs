@@ -17,22 +17,23 @@ const STYLE_SECTIONS = ["Style", "Signature", "Sections"];
 
 export const STYLES = ["Classic", "Modern", "Bold", "Playful", "Technical"];
 
-// The signature menu in .agents/skills/build/signatures.md: one Modern Web
-// Guidance guide per move. A site gets exactly one of them.
-export const SIGNATURE_GUIDES = [
-  "guides/ui-behaviors/same-document-transitions.md",
-  "guides/ui-behaviors/cross-document-transitions.md",
-  "guides/ui-behaviors/scroll-entry-exit-effects.md",
-  "guides/ui-atoms/scroll-progress-indicator.md",
-  "guides/ui-atoms/shrinking-header-on-scroll.md",
-  "guides/ui-components/scrollspy.md",
-  "guides/ui-behaviors/dynamic-sibling-animations.md",
-  "guides/css/child-state-based-styling.md",
-  "guides/ui-behaviors/physics-based-easing.md",
-  "guides/visual-design/complex-shapes.md",
-  "guides/ui-behaviors/animate-element-entry-exit.md",
-  "guides/visual-design/improve-text-layout-and-legibility.md",
-];
+// The signature menu in .agents/skills/build/signatures.md: each move with the
+// Modern Web Guidance guide to read first. A site gets exactly one of them.
+export const SIGNATURE_MOVES = {
+  "Theme switch as an opening circle": "guides/ui-behaviors/same-document-transitions.md",
+  "Soft transition to the privacy page": "guides/ui-behaviors/cross-document-transitions.md",
+  "Sections appear on scroll": "guides/ui-behaviors/scroll-entry-exit-effects.md",
+  "Reading progress line": "guides/ui-atoms/scroll-progress-indicator.md",
+  "Header shrinks on scroll": "guides/ui-atoms/shrinking-header-on-scroll.md",
+  "Navigation marks the current section": "guides/ui-components/scrollspy.md",
+  "Staggered entrance on load": "guides/ui-behaviors/dynamic-sibling-animations.md",
+  "Other cards step back on hover and focus": "guides/css/child-state-based-styling.md",
+  "Stickers with a spring": "guides/ui-behaviors/physics-based-easing.md",
+  "Photo in an arch or circle": "guides/visual-design/complex-shapes.md",
+  "Event badges pop in": "guides/ui-behaviors/animate-element-entry-exit.md",
+  "Typographic polish": "guides/visual-design/improve-text-layout-and-legibility.md",
+};
+export const SIGNATURE_GUIDES = Object.values(SIGNATURE_MOVES);
 
 // The body of every "## " section, by heading.
 function sections(markdown) {
@@ -92,7 +93,7 @@ const PAIRS = [
   ["on-accent", "accent"],
 ];
 // WCAG 2.2 AA for normal-size text.
-const MINIMUM_CONTRAST = 4.5;
+export const MINIMUM_CONTRAST = 4.5;
 
 // Relative luminance and contrast ratio as WCAG 2.2 defines them.
 function luminance(hex) {
@@ -109,6 +110,11 @@ export function contrast(foreground, background) {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
+// A contrast ratio as people read it, such as "4.48:1". A failing ratio is
+// never shown rounded up to the minimum.
+export const shownContrast = (ratio) =>
+  `${(ratio >= MINIMUM_CONTRAST ? ratio : Math.min(Number(ratio.toFixed(2)), MINIMUM_CONTRAST - 0.01)).toFixed(2)}:1`;
+
 function contrastProblems(colours) {
   const problems = [];
   for (const mode of MODES) {
@@ -117,10 +123,8 @@ function contrastProblems(colours) {
       if (!fg || !bg) continue;
       const ratio = contrast(fg, bg);
       if (ratio >= MINIMUM_CONTRAST) continue;
-      // Never show a failing ratio rounded up to 4.50.
-      const shown = Math.min(Number(ratio.toFixed(2)), 4.49).toFixed(2);
       problems.push(
-        `"${foreground}" on "${background}" (${mode}) is hard to read: ${fg} on ${bg} has a contrast of ${shown}:1, it needs at least ${MINIMUM_CONTRAST}:1. Make one of the two lighter or darker.`,
+        `"${foreground}" on "${background}" (${mode}) is hard to read: ${fg} on ${bg} has a contrast of ${shownContrast(ratio)}, it needs at least ${MINIMUM_CONTRAST}:1. Make one of the two lighter or darker.`,
       );
     }
   }
@@ -141,9 +145,17 @@ function typeProblems(body) {
 // What a "- Name: …" line of a section says, or undefined.
 const lineOf = (body, name) => body.match(new RegExp(`^\\s*[-*]?\\s*${name}\\s*:(.*)$`, "im"))?.[1].trim();
 
+// The styles a "- Style:" line names. A mix's cue comes after the colon, as in
+// "Playful, with a Technical touch: monospace dates in bold", and may use a
+// style's name as a plain word, like what is in brackets; so only the part
+// before the colon counts.
+function stylesNamed(line) {
+  const named = line.split(":")[0].replace(/\([^)]*\)/g, "");
+  return [...new Set([...named.matchAll(new RegExp(`\\b(${STYLES.join("|")})\\b`, "gi"))].map(([word]) => word.toLowerCase()))];
+}
+
 function styleProblems(body) {
-  const style = lineOf(body, "Style");
-  const named = [...new Set([...(style ?? "").matchAll(/\b(classic|modern|bold|playful|technical)\b/gi)].map(([word]) => word.toLowerCase()))];
+  const named = stylesNamed(lineOf(body, "Style") ?? "");
   if (named.length === 0) {
     return [
       `The "Style" section has no line "- Style: …" that names one of the five styles: ${STYLES.join(", ")}. Name one, or two for a mix, such as "- Style: Playful, with a Technical touch: monospace dates".`,
@@ -168,6 +180,11 @@ function signatureProblems(body) {
   }
   if (guides.length > 1) {
     return [`The "Signature" section names ${guides.length} moves. A site gets exactly one signature move: keep the one that fits the style best.`];
+  }
+  const move = lineOf(body, "Move");
+  const named = Object.keys(SIGNATURE_MOVES).find((name) => move?.toLowerCase().replace(/\.$/, "") === name.toLowerCase());
+  if (named && SIGNATURE_MOVES[named] !== guides[0]) {
+    return [`The move "${named}" goes with the guide ${SIGNATURE_MOVES[named]}, not ${guides[0]}. Copy both from .agents/skills/build/signatures.md.`];
   }
   return [];
 }
@@ -223,9 +240,28 @@ export const SYSTEM_FONTS = new Set([
   "courier new", "courier", "menlo", "monaco", "consolas",
 ]);
 
+// The fonts of a stack by name, maybe written in backticks: '`"Inter", system-ui`' gives Inter and system-ui.
+export const fontsIn = (stack) =>
+  stack
+    .trim()
+    .replace(/^`(.*)`$/, "$1")
+    .split(",")
+    .map((font) => font.trim().replace(/^["']|["']$/g, ""))
+    .filter(Boolean);
+
 // The first font of a stack, the one the design asks for: '"Inter", system-ui' gives Inter.
-export const firstFont = (stack) =>
-  stack.trim().replace(/^`(.*)`$/, "$1").split(",")[0].trim().replace(/^["']|["']$/g, "");
+export const firstFont = (stack) => fontsIn(stack)[0] ?? "";
+
+// Font names ignore case: "geist" is Geist.
+export const sameFont = (a, b) => a.toLowerCase() === b.toLowerCase();
+
+// What a font is for the site: "system", one every computer has; "bundled",
+// one of the fonts in fonts/ (by name); or "web", a web font the site cannot
+// load unless its files are in site/assets/fonts/.
+export function kindOfFont(font, bundled) {
+  if (SYSTEM_FONTS.has(font.toLowerCase())) return "system";
+  return bundled.some((name) => sameFont(name, font)) ? "bundled" : "web";
+}
 
 // What is good to know about a brief that is ready: a web font the Developer
 // cannot add in the workshop, because it is neither among the bundled fonts
@@ -235,17 +271,17 @@ export const firstFont = (stack) =>
 export function briefNotes(markdown, { bundled = [] } = {}) {
   const found = sections(markdown);
   const notes = [];
-  const isBundled = (font) => bundled.some((name) => name.toLowerCase() === font.toLowerCase());
   // The rows of the Type table per web font that is not bundled.
   const unbundled = new Map();
   for (const [role, stack] of Object.entries(briefFonts(markdown))) {
     const font = firstFont(stack);
-    if (!font || SYSTEM_FONTS.has(font.toLowerCase()) || isBundled(font)) continue;
+    if (!font || kindOfFont(font, bundled) !== "web") continue;
     unbundled.set(font, [...(unbundled.get(font) ?? []), role]);
   }
+  const choose = bundled.length > 0 ? ` To use a font of the design, choose one that is bundled: ${listed(bundled, "or")}.` : "";
   for (const [font, roles] of unbundled) {
     notes.push(
-      `The Type table names "${font}" for ${listed(roles, "and")}. It is not one of the fonts in the folder fonts/ and not a font every computer has, so the site cannot load it in the workshop: the page shows the next font of the stack. To use a font of your design, choose one that is bundled: ${listed(bundled, "or")}.`,
+      `The Type table names "${font}" for ${listed(roles, "and")}. It is not one of the fonts in the folder fonts/ and not a font every computer has. Unless its files are in site/assets/fonts/, the site cannot load it, and nobody downloads fonts in the workshop: the page shows the next font of the stack.${choose}`,
     );
   }
   const missing = STYLE_SECTIONS.filter((heading) => !found.has(heading));

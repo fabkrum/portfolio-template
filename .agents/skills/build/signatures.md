@@ -1,6 +1,6 @@
 # The signature menu
 
-Every site gets exactly one signature move: the one in the brief's Signature section. It is the detail people remember. Each move below names the site it comes from and the Modern Web Guidance guide to read first, in `.agents/skills/modern-web-guidance/`. Read that guide before you write its code: the move works because the guide is newer than your training data. Where a guide's advice needs a package, a build tool or a file from another server, skip that advice: `AGENTS.md` wins.
+Every site gets exactly one signature move: the one in the brief's Signature section. It is the detail people remember. Each move below names a site that has it and the Modern Web Guidance guide to read first, in `.agents/skills/modern-web-guidance/`. Read that guide before you write its code: the move works because the guide is newer than your training data. Where a guide's advice needs a package, a build tool or a file from another server, skip that advice: `AGENTS.md` wins.
 
 ## Rules for every move
 
@@ -80,7 +80,7 @@ Like brittanychiang.com. Guide: `guides/css/child-state-based-styling.md`
 
 Like cydstumpel.nl and joshwcomeau.com. Guide: `guides/ui-behaviors/physics-based-easing.md`
 
-- Skill stickers, and badges, wobble and grow a little on hover, and on keyboard focus where they are links, with a spring easing made with `linear()`, on `scale` and `rotate`.
+- Skill stickers, and event badges, wobble and grow a little on hover, and on keyboard focus where they are links, with a spring easing made with `linear()`, on `scale` and `rotate`.
 - Skip the guide's library fallback: it loads a file from another server. A plain `ease-out` is the fallback.
 - Reduced motion: no spring; the sticker changes at once, or not at all.
 
@@ -93,7 +93,7 @@ Like una.im and delba.dev. Guide: `guides/visual-design/complex-shapes.md`
 
 ## Event badges pop in
 
-For the event badges. Guide: `guides/ui-behaviors/animate-element-entry-exit.md`
+This workshop's own idea, for the event badges. Guide: `guides/ui-behaviors/animate-element-entry-exit.md`
 
 - The event and session badges pop in when the page shows them: a transition from `scale: 0.6` with `@starting-style`. Needs `events` in the content file; the badges' markup is described in `widgets.md`, next to this skill.
 - Scale only, never from see-through.

@@ -4,8 +4,8 @@
 import { existsSync } from "node:fs";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
-import { briefColours, briefFonts, checkBrief, firstFont, SYSTEM_FONTS, TOKENS } from "../brief/check-brief.mjs";
-import { bundledFonts } from "../fonts/bundled-fonts.mjs";
+import { briefColours, briefFonts, checkBrief, firstFont, kindOfFont, TOKENS } from "../brief/check-brief.mjs";
+import { bundledFonts, familyOf, fontFaceRules } from "../fonts/bundled-fonts.mjs";
 import { findPrivateDataInContent } from "../check/private-data.mjs";
 import { privacyPageProblems } from "../check/run-check.mjs";
 
@@ -133,18 +133,16 @@ function styledByBrief(css, brief) {
 // webFonts: the other fonts its stacks start with that no computer has.
 async function developersStylesheet(repoDir, css, brief) {
   const styled = brief ? styledByBrief(css, brief) : { css, unusableFonts: [] };
-  const firsts = [...new Set([...styled.css.matchAll(/--font-[\w-]+\s*:\s*([^;]+);/g)].map(([, stack]) => firstFont(stack)))];
-  const families = (await bundledFonts(repoDir)).filter(({ name }) => firsts.some((font) => font.toLowerCase() === name.toLowerCase()));
-  // In the stylesheet's own line endings: Git on Windows may check it out with CRLF.
+  const bundled = await bundledFonts(repoDir);
+  // The first font of each font stack, in the stylesheet's order: headings, body, details.
+  const firstFonts = [...new Set([...styled.css.matchAll(/--font-[\w-]+\s*:\s*([^;]+);/g)].map(([, stack]) => firstFont(stack)))];
+  const families = [...new Set(firstFonts.map((font) => familyOf(font, bundled)).filter(Boolean))];
   const eol = styled.css.includes("\r\n") ? "\r\n" : "\n";
-  const rules = families.map((family) => family.rules.trim().replaceAll("\n", eol));
   return {
-    css: rules.length > 0 ? `${rules.join(eol + eol)}${eol}${eol}${styled.css}` : styled.css,
+    css: families.length > 0 ? `${fontFaceRules(families, eol)}${eol}${eol}${styled.css}` : styled.css,
     families,
     unusableFonts: styled.unusableFonts,
-    webFonts: firsts.filter(
-      (font) => font && !SYSTEM_FONTS.has(font.toLowerCase()) && !families.some(({ name }) => name.toLowerCase() === font.toLowerCase()),
-    ),
+    webFonts: firstFonts.filter((font) => font && kindOfFont(font, bundled.map(({ name }) => name)) === "web"),
   };
 }
 

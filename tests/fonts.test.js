@@ -124,6 +124,15 @@ test("a web font that is not bundled is named, with what the page shows instead;
   });
 });
 
+test("for a stack in backticks, the command names the font the page shows instead as it is", async () => {
+  await withRepo(async (dir) => {
+    await briefWithFonts(dir, { headings: '`"Plus Jakarta Sans", sans-serif`', body: "`system-ui, sans-serif`" });
+    const { stdout } = fontsCommand(dir);
+    assert.match(stdout, /"Plus Jakarta Sans" \(headings\).*next font of its stack, sans-serif\. /);
+    assert.doesNotMatch(stdout, /`/);
+  });
+});
+
 test("run twice, the command gives the same site and says the same", async () => {
   await withRepo(async (dir) => {
     await briefWithFonts(dir, { headings: '"Newsreader", Georgia, serif', body: '"Literata", Georgia, serif' });

@@ -217,6 +217,22 @@ test("a mix of three styles says that two is the most, and that the first one wi
   assert.match(problems[0], /first/);
 });
 
+test("a mix's cue may use a style's name as a plain word: only the styles before the cue count", () => {
+  for (const line of [
+    "- Style: Playful, with a Technical touch: monospace dates in bold.",
+    "- Style: Classic, with a Modern touch: lots of whitespace, and a bold serif name.",
+    "- Style: Classic (with a bold name).",
+  ]) {
+    assert.deepEqual(checkBrief(newBrief.replace("- Style: Playful, with a Technical touch: monospace dates.", line)), [], line);
+  }
+});
+
+test("a move named on the menu must come with its own guide", () => {
+  const problems = checkBrief(newBrief.replace("- Move: Stickers with a spring", "- Move: Reading progress line"));
+  assert.equal(problems.length, 1, problems.join("\n"));
+  assert.match(problems[0], /"Reading progress line" goes with the guide guides\/ui-atoms\/scroll-progress-indicator\.md/);
+});
+
 test("a signature move that is not on the menu says so and names the menu", () => {
   const problems = checkBrief(newBrief.replace("guides/ui-behaviors/physics-based-easing.md", "guides/ui-atoms/state-aware-sticky-headers.md"));
   assert.equal(problems.length, 1, problems.join("\n"));
@@ -264,6 +280,12 @@ test("a web font that is neither bundled nor on every computer is good to know, 
   assert.equal(fontNotes.length, 1, notes.join("\n"));
   assert.match(fontNotes[0], /fonts\//);
   for (const family of BUNDLED) assert.ok(fontNotes[0].includes(family), family);
+});
+
+test("without a font folder, the note about a web font names no bundled fonts to choose from", () => {
+  const notes = briefNotes(olderBrief, { bundled: [] });
+  assert.ok(notes.some((note) => note.includes('"Plus Jakarta Sans"')), notes.join("\n"));
+  for (const note of notes) assert.doesNotMatch(note, /choose one that is bundled/);
 });
 
 test("bundled fonts, fonts on every computer and font stacks in backticks need no note", () => {
@@ -343,13 +365,14 @@ test("the phrase bank has every line for each of the five styles", () => {
   for (const style of STYLES) {
     const part = styleParts[style];
     assert.ok(part, `no part for ${style}`);
-    for (const key of ["Offer", "More examples", "Theme", "Touch", "Fonts", "Background", "Skills", "Photo", "Leave out", "Motion", "Signature"]) {
+    for (const key of ["Offer", "More examples", "Phrase", "Touch", "Feel", "Fonts", "Background", "Skills", "Photo", "Leave out", "Motion", "Signature", "Brief"]) {
       assert.ok(lineIn(part, key) !== undefined, `${style}: ${key}`);
     }
     assert.match(lineIn(part, "Offer"), /^\*\*\w+\*\*: .+\. Like [\w.-]+\.\w+\.$/, `${style}: one sentence and one example site`);
     for (const role of ["headings", "body", "details"]) assert.match(part, new RegExp(`^  - ${role}: \`[^\`]+\`$`, "m"), `${style}: ${role}`);
     // Never a URL in a phrase that goes into the prompt.
-    for (const key of ["Theme", "Touch", "Skills", "Photo", "Leave out"]) assert.doesNotMatch(lineIn(part, key), /https?:|www\.|\.(com|dev|me|nl|co|as)\b/, `${style}: ${key}`);
+    for (const key of ["Phrase", "Touch", "Skills", "Photo", "Leave out"]) assert.doesNotMatch(lineIn(part, key), /https?:|www\.|\.(com|dev|me|nl|co|as)\b/, `${style}: ${key}`);
+    assert.equal(lineIn(part, "Feel").split(", ").length, 3, `${style}: three words to feel`);
   }
 });
 
@@ -370,7 +393,7 @@ test("every font the phrase bank names is in the font folder, with its licence",
 
 test("the phrase bank marks exactly the default accents that are too light for text as fills behind dark text", () => {
   for (const style of STYLES) {
-    const [background, accent] = [...lineIn(styleParts[style], "Background").matchAll(/#[0-9A-F]{6}/gi)].map(([hex]) => hex);
+    const [background, accent] = lineIn(styleParts[style], "Background").match(/#[0-9A-F]{6}/gi);
     const tooLight = contrast(accent, background) < 4.5;
     assert.equal(/fills behind dark text/.test(lineIn(styleParts[style], "Background")), tooLight, `${style}: ${accent} on ${background}`);
   }
@@ -396,7 +419,7 @@ test("the Designer offers the five styles, each in one sentence with one example
 });
 
 test("the Designer interviews in at most five questions, one at a time, and asks once for a sharper word", () => {
-  for (const needed of [/\*\*At most five questions\*\*/, /\*\*One question at a time\.\*\*/, /sharper word/, /counts as a question/, /exactly one small detail/, /Never a whole theme/]) {
+  for (const needed of [/\*\*At most five questions\*\*/, /\*\*One question at a time\.\*\*/, /sharper word/, /counts as a question/, /exactly one small detail/, /Never a whole design/, /Never ask both/]) {
     assert.match(designerSkill, needed);
   }
   // The goal comes from the spec, the content from the content file.
@@ -434,4 +457,41 @@ test("the brief template in the Designer skill has the style, a third font, the 
   }
   assert.match(template, /^\| details \|/m);
   for (const line of ["- Style:", "- Feel:", "- Personal detail:", "- Motion:", "- Move:", "- Guide:", "1. `bio`"]) assert.ok(template.includes(line), line);
+});
+
+// The ready brief of each style, for a brief without Stitch.
+const readyBrief = (style) => read(`../.agents/skills/design/${lineIn(styleParts[style], "Brief").replaceAll("`", "")}`);
+
+test("without Stitch, the Designer starts from the style's ready brief and the answers, never from the default brief", () => {
+  const section = designerSkill.split("## 6c. Without Stitch")[1]?.split("\n## ")[0] ?? "";
+  for (const needed of [/Never fall back to the default brief/, /\*\*Brief\*\*/, /Source: the interview, without Stitch/]) assert.match(section, needed);
+  assert.match(designerSkill, /\*\*no Stitch\*\*, or any message that they cannot use Stitch: go to step 6c/);
+  assert.match(designerSkill, /\*\*default\*\* is only for someone with no time for the interview/);
+});
+
+for (const style of STYLES) {
+  test(`the ready ${style} brief is ready for the Developer, in the fonts, signature move and colours of the phrase bank`, async () => {
+    const brief = await readyBrief(style);
+    assert.deepEqual(checkBrief(brief), []);
+    assert.deepEqual(briefNotes(brief, { bundled: (await bundledFonts(repoDir)).map(({ name }) => name) }), []);
+    assert.match(brief, /^Source: the interview, without Stitch$/m);
+    assert.match(brief, new RegExp(`^- Style: ${style}\\.$`, "m"));
+    assert.match(brief, new RegExp(`^- Feel: ${lineIn(styleParts[style], "Feel")}\\.$`, "m"));
+    // The font stacks of the phrase bank, row by row.
+    for (const role of ["headings", "body", "details"]) {
+      const stack = styleParts[style].match(new RegExp(`^ {2}- ${role}: \`([^\`]+)\`$`, "m"))[1];
+      assert.match(brief, new RegExp(`^\\| ${role} \\| ${stack.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} \\|`, "m"), `${style}: ${role}`);
+    }
+    // Its signature move is the style's first suggestion.
+    const [, move, guide] = styleParts[style].match(/^ {2}- ([^:`]+): `(guides\/[^`]+)`$/m);
+    assert.ok(brief.includes(`- Move: ${move}\n- Guide: ${guide}`), `${style}: ${move}`);
+    // Its background is the style's.
+    const background = lineIn(styleParts[style], "Background").match(/#[0-9A-F]{6}/i)[0];
+    assert.match(brief, new RegExp(`^\\| background \\| ${background} \\|`, "im"));
+  });
+}
+
+test("the ready Classic brief is the default design, but for where it comes from and the personal detail", async () => {
+  const without = (brief) => brief.replace(/^Source: .*$/m, "").replace(/^- Personal detail: .*$/m, "");
+  assert.equal(without(await readyBrief("Classic")), without(defaultBrief));
 });

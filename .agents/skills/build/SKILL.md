@@ -36,7 +36,6 @@ Your training data is older than today's web. The Modern Web Guidance skill in `
 - `guides/html/html.md`: the markup
 - `guides/accessibility/accessibility.md`: making the page usable for everyone
 - `guides/visual-design/visually-stable-font-fallbacks.md`: only if the brief names a web font (step 3)
-- the guide of the signature move in the brief's Signature section, if it has one: `signatures.md`, next to this skill, describes the move
 
 For anything else you plan to add, such as images or animation, find the matching guide in the skill's `index.md` and read it first. Where a guide's advice needs a package, a build tool or a file from another server, skip that advice: `AGENTS.md` wins.
 
@@ -78,7 +77,7 @@ Then style the page the way the brief describes it:
 
 - **Style**: if the brief has a Style section, build its style with the recipe in `styles.md`, next to this skill: it also puts the sections in the brief's order and lists the AI look to avoid.
 - **Signature**: if the brief has a Signature section, build that one move as `signatures.md`, next to this skill, describes it, with its rules for reduced motion.
-- **Type**: font stacks, sizes and weights for headings and body text, and for dates and labels if the brief has a details row. Set `font-size-adjust: from-font` where a web font is used, as the font fallbacks guide says.
+- **Type**: font stacks, sizes and weights for headings and body text, and for dates and labels if the brief has a details row.
 - **Shapes**: corner radius, borders and shadows.
 - **Layout**: page width, the space at the sides on phones, the space between sections and items, and the project columns.
 - **Components**: links, project cards, skill tags and section headings. Every link and button shows a clearly visible focus ring when reached with the keyboard.

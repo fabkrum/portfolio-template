@@ -100,7 +100,7 @@ Once your site is live, you can add Optional modules: a section for YouTube vide
 - `docs/spec.md` – a short spec of your site: who it is for and what a visitor should do. The Analyst role writes it, with your content file.
 - `design/brief.md` – your design brief: style, colours, fonts, shapes, layout, the one signature move and the order of the sections. It starts as the default design, in the Classic style; the Designer role interviews you and replaces it with yours from Stitch.
 - `design/default-brief.md` – that default design, kept so you can always go back to it.
-- `fonts/` – two openly licensed fonts for each of the five styles, with their licences. Only the ones your design uses go into your site.
+- `fonts/` – two openly licensed fonts for each of the five styles, with their licences. The ones your design brief names are copied into your site.
 - `site/` – the site itself: plain HTML, CSS and JavaScript, no build step.
 - `tools/preview.mjs` – the preview.
 - `tools/look.mjs` – screenshots and load speed, for QA.

@@ -1,6 +1,6 @@
 # Fonts
 
-Two openly licensed fonts for each of the five styles, so the Stitch design and the site use the same fonts, nobody downloads a font in the workshop, and the site loads nothing from other servers. They live here, outside `site/`, so only the fonts a site uses get published.
+Two openly licensed fonts for each of the five styles, so the Stitch design and the site use the same fonts, nobody downloads a font in the workshop, and the site loads nothing from other servers. They live here, outside `site/`, so a site publishes only the fonts copied into it: those its design brief names.
 
 | Font | Folder | Style | Used for | In a brief's Type table |
 |---|---|---|---|---|

@@ -10,7 +10,7 @@
 // itself and loads nothing from other servers.
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { bundledFonts, copyIntoSite, fontsOfBrief } from "./fonts/bundled-fonts.mjs";
+import { bundledFonts, copyIntoSite, fontFaceRules, fontsOfBrief } from "./fonts/bundled-fonts.mjs";
 
 const repoDir = fileURLToPath(new URL("..", import.meta.url));
 
@@ -41,23 +41,23 @@ async function run() {
   }
 
   console.log("The fonts in design/brief.md:\n");
-  const rules = [];
-  for (const { font, roles, family, system, next } of fonts) {
+  const copied = [];
+  for (const { font, roles, kind, family, next } of fonts) {
     const where = `${font} (${roles.join(", ")})`;
-    if (family) {
+    if (kind === "bundled") {
       console.log(`  ${where} – copied into ${await copyIntoSite(repoDir, family)}, with its licence.`);
-      rules.push(family.rules.trim());
-    } else if (system) {
+      copied.push(family);
+    } else if (kind === "system") {
       console.log(`  ${where} – a font every computer has: nothing to copy.`);
     } else {
       console.log(
-        `  "${font}" (${roles.join(", ")}) – not one of the fonts in fonts/, so the site cannot load it: the page shows the next font of its stack${next ? `, ${next}` : ""}. Leave "${font}" out of that stack in the CSS. The Designer can choose one of the bundled fonts in a fresh chat.`,
+        `  "${font}" (${roles.join(", ")}) – not one of the fonts in fonts/. Unless its files are already in site/assets/fonts/, the site cannot load it, and the page shows the next font of its stack${next ? `, ${next}` : ""}. The Designer can choose one of the bundled fonts in a fresh chat.`,
       );
     }
   }
-  if (rules.length > 0) {
+  if (copied.length > 0) {
     console.log("\nPut these rules at the top of site/assets/styles.css, before everything else, exactly as they are:\n");
-    console.log(rules.join("\n\n"));
+    console.log(fontFaceRules(copied));
   }
 }
 

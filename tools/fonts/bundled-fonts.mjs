@@ -5,7 +5,7 @@
 import { existsSync } from "node:fs";
 import { copyFile, mkdir, readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { briefFonts, firstFont, SYSTEM_FONTS } from "../brief/check-brief.mjs";
+import { briefFonts, fontsIn, kindOfFont, sameFont } from "../brief/check-brief.mjs";
 
 // Every family in fonts/: its name, its folder, the files the site needs
 // (the fonts and their licence) and its @font-face rules, from font-face.css.
@@ -22,23 +22,28 @@ export async function bundledFonts(repoDir) {
     const files = (await readdir(dir)).filter((file) => file.endsWith(".woff2") || file === "OFL.txt").sort();
     families.push({ name, folder: entry.name, dir, files, rules });
   }
-  return families.sort((a, b) => a.name.localeCompare(b.name));
+  // In the same order on every computer, whatever its language.
+  return families.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
 }
 
-// The first font of each row of the brief's Type table, and what it is:
-// { role: "headings", font: "Newsreader", family } for a bundled font,
-// { role, font, system: true } for one every computer has, { role, font, next }
-// otherwise, with next the font the page shows instead.
+// The family in fonts/ of this font name, if it is bundled.
+export const familyOf = (font, families) => families.find(({ name }) => sameFont(name, font));
+
+// The first font of each row of the brief's Type table and its kind, as
+// kindOfFont tells it: { role: "headings", font: "Newsreader", kind: "bundled",
+// family }, with next, the font the page shows instead of a "web" font.
 export function fontsOfBrief(brief, families) {
+  const names = families.map(({ name }) => name);
   return Object.entries(briefFonts(brief))
-    .map(([role, stack]) => ({ role, font: firstFont(stack), next: firstFont(stack.split(",").slice(1).join(",")) }))
-    .filter(({ font }) => font)
-    .map(({ role, font, next }) => {
-      if (SYSTEM_FONTS.has(font.toLowerCase())) return { role, font, system: true };
-      const family = families.find(({ name }) => name.toLowerCase() === font.toLowerCase());
-      return family ? { role, font, family } : { role, font, next };
-    });
+    .map(([role, stack]) => [role, fontsIn(stack)])
+    .filter(([, fonts]) => fonts.length > 0)
+    .map(([role, [font, next]]) => ({ role, font, next, kind: kindOfFont(font, names), family: familyOf(font, families) }));
 }
+
+// The @font-face rules of these families, one family after the other, in the
+// given line endings: Git on Windows may check a stylesheet out with CRLF.
+export const fontFaceRules = (families, eol = "\n") =>
+  families.map((family) => family.rules.trim().replaceAll("\n", eol)).join(eol + eol);
 
 // Copies a family's fonts and licence into the site, as site/assets/fonts/<folder>/.
 export async function copyIntoSite(repoDir, family) {

@@ -6,7 +6,7 @@ import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { briefColours, SIGNATURE_GUIDES, STYLES, TOKENS } from "../tools/brief/check-brief.mjs";
+import { briefColours, SIGNATURE_GUIDES, SIGNATURE_MOVES, STYLES, TOKENS } from "../tools/brief/check-brief.mjs";
 import { findChrome } from "../tools/check/chrome.mjs";
 import { runCheck } from "../tools/check/run-check.mjs";
 import { lookAtSite } from "../tools/look/look-at-site.mjs";
@@ -157,16 +157,21 @@ const partsOf = (markdown) =>
   Object.fromEntries(markdown.split(/^## /m).slice(1).map((part) => [part.split("\n")[0].trim(), part]));
 const moves = Object.entries(partsOf(menu)).filter(([heading]) => heading !== "Rules for every move");
 
+// The one move that has no site to copy from: the badges are this workshop's own idea.
+const OWN_IDEAS = ["Event badges pop in"];
+
 test("the signature menu names, for every move, an example site and the Modern Web Guidance guide to read first", async () => {
   const indexed = await indexedGuides();
   assert.equal(moves.length, 12, moves.map(([heading]) => heading).join(", "));
   for (const [move, part] of moves) {
-    const guide = part.match(/^(?:Like|For) .+?\. Guide: `(guides\/[\w-]+\/[\w-]+\.md)`$/m)?.[1];
+    const example = OWN_IDEAS.includes(move) ? "This workshop's own idea, for the event badges\\." : "Like [\\w.-]+\\.\\w+(?:,? (?:and )?[\\w.-]+\\.\\w+)*\\.";
+    const guide = part.match(new RegExp(`^${example} Guide: \`(guides\\/[\\w-]+\\/[\\w-]+\\.md)\`$`, "m"))?.[1];
     assert.ok(guide, `${move}: no example and guide line`);
     assert.ok(indexed.includes(guide), `${move}: ${guide} is not in Modern Web Guidance`);
   }
-  // The brief checker knows the same moves, so a brief can name only these.
-  assert.deepEqual(moves.map(([, part]) => guidePaths(part)[0]).sort(), [...SIGNATURE_GUIDES].sort());
+  // The brief checker knows the same moves with the same guides, so a brief can name only these.
+  assert.deepEqual(Object.fromEntries(moves.map(([move, part]) => [move, guidePaths(part)[0]])), SIGNATURE_MOVES);
+  assert.deepEqual([...SIGNATURE_GUIDES].sort(), Object.values(SIGNATURE_MOVES).sort());
 });
 
 test("every move says what happens when the visitor prefers reduced motion", () => {
@@ -209,7 +214,7 @@ test("the recipes list the AI look to avoid", () => {
 
 test("the Developer skill builds the style and the one signature move, and takes its fonts from the font folder", async () => {
   const skill = await read("../.agents/skills/build/SKILL.md");
-  for (const needed of ["`styles.md`", "`signatures.md`", "node tools/fonts.mjs", "font-size-adjust: from-font"]) assert.ok(skill.includes(needed), needed);
+  for (const needed of ["`styles.md`", "`signatures.md`", "node tools/fonts.mjs"]) assert.ok(skill.includes(needed), needed);
   // No download in the room.
   assert.doesNotMatch(skill, /fonts\.google\.com|Download all/);
 });
