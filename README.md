@@ -53,7 +53,7 @@ The preview, the Check, look and publishing build your site by themselves, so yo
 node tools/build.mjs
 ```
 
-It puts your content from `site/content.json` into the pages and writes the finished site into the folder `_site/`: each page with its title, description and link preview, and `robots.txt`, `sitemap.xml` and `llms.txt` for search engines and AI agents. Your content is in the pages themselves, so they show it without JavaScript. It uses only what comes with Node: no npm packages.
+It puts your content from `site/content.json` into the pages and writes the finished site into the folder `_site/`: each page with its title, description and link preview, and `robots.txt`, `llms.txt` and `sitemap.xml` for search engines and AI agents. The sitemap needs your site's address, which the build takes from your repo on GitHub. Your content is in the pages themselves, so they show it without JavaScript. It uses only what comes with Node: no npm packages.
 
 ## Check your site
 

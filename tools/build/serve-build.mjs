@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { serveSite } from "../check/serve-site.mjs";
 import { buildSite } from "./build-site.mjs";
 
-export async function serveBuild(siteDir, options = {}) {
+export async function serveBuild(siteDir) {
   const outDir = await mkdtemp(join(tmpdir(), "portfolio-built-"));
   const server = await serveSite(outDir).catch(async (error) => {
     await rm(outDir, { recursive: true, force: true });
@@ -20,7 +20,7 @@ export async function serveBuild(siteDir, options = {}) {
     await rm(outDir, { recursive: true, force: true, maxRetries: 5 });
   };
   try {
-    const build = await buildSite(siteDir, outDir, { address: `${server.origin}/`, ...options });
+    const build = await buildSite(siteDir, outDir, { address: `${server.origin}/` });
     return { origin: server.origin, outDir, build, close };
   } catch (error) {
     await close();

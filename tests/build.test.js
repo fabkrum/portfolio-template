@@ -346,6 +346,14 @@ test("the privacy page keeps the title and language the Lawyer gave it, gets its
   });
 });
 
+test("a page's title without the person's name gets it: the placeholder privacy page is \"Privacy · Ada Example\"", async () => {
+  await withBuilt({}, async (outDir) => {
+    const tags = headTags(await read(outDir, "privacy.html"));
+    assert.equal(tags.title, "Privacy · Ada Example");
+    assert.equal(tags["og:title"], "Privacy · Ada Example");
+  });
+});
+
 test("tags the Developer wrote into the head themselves are replaced, never doubled", async () => {
   const index = (await readFile(join(sampleSite, "index.html"), "utf8")).replace(
     "</head>",
@@ -361,7 +369,8 @@ test("tags the Developer wrote into the head themselves are replaced, never doub
 });
 
 test("a page whose <head> has no end tag gets its tags in front of <body>", async () => {
-  const index = (await readFile(join(sampleSite, "index.html"), "utf8")).replace("  </head>\n", "");
+  const index = (await readFile(join(sampleSite, "index.html"), "utf8")).replace(/[ \t]*<\/head>\r?\n/, "");
+  assert.doesNotMatch(index, /<\/head>/);
   await withBuilt({ change: writeFiles({ "index.html": index }) }, async (outDir, { warnings }) => {
     const html = await read(outDir, "index.html");
     assert.deepEqual(warnings, []);
@@ -402,11 +411,32 @@ test("every other file of the site is copied as it is; what an earlier build lef
   });
 });
 
+test("a file renamed only in upper and lower case keeps its new name in _site/, on every system", async () => {
+  await withBuilt({}, async (outDir, result, siteDir) => {
+    const icon = await readFile(join(siteDir, "assets", "favicon.svg"));
+    await rm(join(siteDir, "assets", "favicon.svg"));
+    await writeFile(join(siteDir, "assets", "Favicon.svg"), icon);
+    await buildSite(siteDir, outDir, { address: ADDRESS });
+    const names = await readdir(join(outDir, "assets"));
+    assert.ok(names.includes("Favicon.svg"), names.join(", "));
+    assert.ok(!names.includes("favicon.svg"), names.join(", "));
+    assert.ok((await readFile(join(outDir, "assets", "Favicon.svg"))).equals(icon));
+  });
+});
+
 test("a robots.txt, sitemap.xml or llms.txt of the person's own stays as they wrote it", async () => {
   await withBuilt({ change: writeFiles({ "robots.txt": "User-agent: *\nDisallow: /drafts/\n", "llms.txt": "# My own\n" }) }, async (outDir) => {
     assert.equal(await read(outDir, "robots.txt"), "User-agent: *\nDisallow: /drafts/\n");
     assert.equal(await read(outDir, "llms.txt"), "# My own\n");
     assert.ok(existsSync(join(outDir, "sitemap.xml")));
+  });
+});
+
+test("a content file that starts with a byte order mark, as some Windows editors write it, is read like any other", async () => {
+  const withMark = `\uFEFF${JSON.stringify(sample)}`;
+  await withBuilt({ change: writeFiles({ "content.json": withMark }) }, async (outDir, { warnings }) => {
+    assert.deepEqual(warnings, []);
+    assert.match(await read(outDir, "index.html"), /<h1>Ada Example<\/h1>/);
   });
 });
 

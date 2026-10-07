@@ -10,16 +10,24 @@ import { createHash } from "node:crypto";
 import { copyFile, mkdir, readdir, readFile, rm, rmdir, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
-import { Worker } from "node:worker_threads";
+import { filledText as text, readContentFile } from "../check/content-file.mjs";
 import { validateContent } from "../check/schema.mjs";
-import { decodeEntities, escapeHtml, findElement, findInHead, headOf, insertBefore, removeFromHead, replaceInHead, withAttribute } from "./html.mjs";
+import {
+  decodeEntities,
+  escapeHtml,
+  findElement,
+  findInHead,
+  headOf,
+  insertBefore,
+  isJsonLdScript,
+  removeFromHead,
+  replaceInHead,
+  withAttribute,
+} from "./html.mjs";
 import { jsonLdScript, llmsTxt, photoUrl, profilePage } from "./profile.mjs";
 
 // A problem with the site that the person can fix, in plain words.
 export class BuildError extends Error {}
-
-// A value from the content file, if it is text with something in it.
-const text = (value) => (typeof value === "string" && value.trim() ? value.trim() : undefined);
 
 // Today as YYYY-MM-DD, the day render.js splits upcoming from past events
 // on. In the person's own time zone when the content file names one, so the
@@ -38,29 +46,6 @@ export function todayFor(content, now = new Date()) {
   }
   const pad = (number) => String(number).padStart(2, "0");
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-}
-
-async function readContentFile(siteDir) {
-  let source;
-  try {
-    source = await readFile(join(siteDir, "content.json"), "utf8");
-  } catch (error) {
-    if (error.code === "ENOENT") throw new BuildError("There is no content.json in the site folder. The Analyst role writes it.");
-    throw error;
-  }
-  let content;
-  try {
-    // Windows editors may start the file with a byte order mark.
-    content = JSON.parse(source.replace(/^﻿/, ""));
-  } catch (error) {
-    throw new BuildError(
-      `content.json is not valid JSON: ${error.message}. Look for a missing comma between two entries, a comma after the last entry of a list, or a missing quote.`,
-    );
-  }
-  if (!content || typeof content !== "object" || Array.isArray(content)) {
-    throw new BuildError('content.json must hold one object in curly braces, such as { "name": "Ada Example", … }.');
-  }
-  return content;
 }
 
 // What in the content file does not match the schema. The build goes on
@@ -202,7 +187,6 @@ const isTitle = (tag) => tag.name === "title";
 const isDescription = (tag) => tag.name === "meta" && tag.attributes.name?.toLowerCase() === "description";
 const isCanonical = (tag) => tag.name === "link" && /(^|\s)canonical(\s|$)/i.test(tag.attributes.rel ?? "");
 const isSocial = (tag) => tag.name === "meta" && /^(og|twitter|profile):/i.test(tag.attributes.property ?? tag.attributes.name ?? "");
-const isJsonLd = (tag) => tag.name === "script" && /^\s*application\/ld\+json\s*(;|$)/i.test(tag.attributes.type ?? "");
 
 // The canonical link, and the Open Graph and Twitter tags link previews on
 // LinkedIn, WhatsApp or Slack read. Those that need an absolute address are
@@ -222,24 +206,25 @@ function socialTags({ type, title, description, url, image, imageAlt }) {
 
 // The <head> as the build writes it. The home page takes its title,
 // description, language and structured data from the content file. Any other
-// page keeps its own title, description and language, as the Lawyer wrote
-// them for the privacy page. Tags the build writes replace any already there.
+// page keeps its own description and language, as the Lawyer wrote them for
+// the privacy page, and its title gets the person's name if it lacks it.
+// Tags the build writes replace any already there.
 function writeHead(html, head, file) {
   if (!headOf(html)) return { page: html, problems: [`${file} has no <head>, so it got no title, description or link preview tags.`] };
   let page = html;
   const added = [];
-  if (head.home) {
+  if (head.title) {
     const title = replaceInHead(page, isTitle, `<title>${escapeHtml(head.title)}</title>`);
     page = title.html;
     if (!title.found) added.push(`<title>${escapeHtml(head.title)}</title>`);
-    if (head.description) {
-      const tag = `<meta name="description" content="${escapeHtml(head.description)}">`;
-      const description = replaceInHead(page, isDescription, tag);
-      page = description.html;
-      if (!description.found) added.push(tag);
-    }
   }
-  page = removeFromHead(page, (tag) => isCanonical(tag) || isSocial(tag) || (head.home && isJsonLd(tag)));
+  if (head.home && head.description) {
+    const tag = `<meta name="description" content="${escapeHtml(head.description)}">`;
+    const description = replaceInHead(page, isDescription, tag);
+    page = description.html;
+    if (!description.found) added.push(tag);
+  }
+  page = removeFromHead(page, (tag) => isCanonical(tag) || isSocial(tag) || (head.home && isJsonLdScript(tag)));
   added.push(...socialTags(head));
   if (head.jsonLd) added.push(jsonLdScript(head.jsonLd));
   page = insertBefore(page, headOf(page).contentEnd, added);
@@ -248,6 +233,15 @@ function writeHead(html, head, file) {
     page = page.slice(0, root.tag.start) + withAttribute(page.slice(root.tag.start, root.tag.end), "lang", head.lang) + page.slice(root.tag.end);
   }
   return { page, problems: [] };
+}
+
+// The head of a page other than the home page: its own title, with the
+// person's name in it ("Privacy" becomes "Privacy · Ada Example", while
+// "Privacy · Ada Example", as the Lawyer writes it, stays), and its own
+// description.
+function otherPageHead(own, name, homeTitle) {
+  const title = !own.title ? homeTitle : name && !own.title.includes(name) ? `${own.title} · ${name}` : own.title;
+  return { title, description: own.description };
 }
 
 // A page's own title and description, as written in its <head>.
@@ -288,16 +282,13 @@ const within = (inner, outer) => {
   return path === "" || (path !== ".." && !path.startsWith(`..${sep}`) && !isAbsolute(path));
 };
 
-// Writes the finished site into outDir, and removes what an earlier build
-// left there that is no longer part of the site.
-async function writeSite(siteDir, outDir, files, made) {
-  const keep = new Set([...files, ...made.keys()]);
-  for (const file of keep) {
-    const target = join(outDir, ...file.split("/"));
-    await mkdir(dirname(target), { recursive: true });
-    if (made.has(file)) await writeFile(target, made.get(file));
-    else await copyFile(join(siteDir, ...file.split("/")), target);
-  }
+// Writes the finished site into outDir. First it removes what an earlier build
+// left there that is no longer part of the site, so that a file renamed only
+// in upper and lower case, such as Me.JPG to me.jpg, gets its new name on
+// macOS and Windows too.
+async function writeSite(siteDir, outDir, files, builtFiles) {
+  const keep = new Set([...files, ...builtFiles.keys()]);
+  await mkdir(outDir, { recursive: true });
   const folders = [];
   for (const entry of await readdir(outDir, { recursive: true, withFileTypes: true })) {
     const path = join(entry.parentPath, entry.name);
@@ -306,6 +297,12 @@ async function writeSite(siteDir, outDir, files, made) {
   }
   // Folders left empty, the deepest first.
   for (const folder of folders.sort((a, b) => b.length - a.length)) await rmdir(folder).catch(() => {});
+  for (const file of keep) {
+    const target = join(outDir, ...file.split("/"));
+    await mkdir(dirname(target), { recursive: true });
+    if (builtFiles.has(file)) await writeFile(target, builtFiles.get(file));
+    else await copyFile(join(siteDir, ...file.split("/")), target);
+  }
 }
 
 // Builds the site in siteDir into outDir. address is where the site is
@@ -318,7 +315,8 @@ export async function buildSite(siteDir, outDir, { address = null, today, commit
   if (within(outDir, siteDir) || within(siteDir, outDir)) {
     throw new Error(`The build writes into a folder of its own, never into the site folder or a folder around it: ${outDir}`);
   }
-  const content = await readContentFile(siteDir);
+  const { content, unreadable } = await readContentFile(siteDir);
+  if (unreadable) throw new BuildError(unreadable);
   const warnings = await schemaProblems(siteDir, content);
   const renderer = await loadRenderer(siteDir);
   const day = today ?? todayFor(content);
@@ -330,9 +328,9 @@ export async function buildSite(siteDir, outDir, { address = null, today, commit
   const name = text(content.name);
   const title = name ? `${name} · Portfolio` : "Portfolio";
   const image = photoUrl(content, address);
-  const preview = { image: /\.svg$/i.test(image ?? "") ? undefined : image, imageAlt: text(content.photo?.alt) };
+  const linkPreview = { image: /\.svg$/i.test(image ?? "") ? undefined : image, imageAlt: text(content.photo?.alt) };
   const lang = text(content.language) ?? "en";
-  const made = new Map();
+  const builtFiles = new Map();
   const pages = files.filter((file) => file.endsWith(".html"));
   for (const file of pages) {
     const home = file === "index.html";
@@ -340,35 +338,22 @@ export async function buildSite(siteDir, outDir, { address = null, today, commit
     const filled = fillSections(source, sections, file);
     let page = filled.page;
     if (home) page = labelPrivacyLink(appendSections(page, filled.homeless), labels.privacy);
-    const own = ownHead(page);
     const head = home
       ? { home, type: "profile", title, description: text(content.pitch) ?? text(content.headline), lang, jsonLd: profilePage(content, { address, title }) }
-      : { home, type: "website", title: own.title, description: own.description, lang };
-    const written = writeHead(page, { ...head, ...preview, url: address ? pageUrl(address, file) : undefined }, file);
-    made.set(file, written.page);
+      : { home, type: "website", ...otherPageHead(ownHead(page), name, title), lang };
+    const written = writeHead(page, { ...head, ...linkPreview, url: address ? pageUrl(address, file) : undefined }, file);
+    builtFiles.set(file, written.page);
     warnings.push(...filled.problems, ...written.problems);
   }
 
   const has = (file) => files.includes(file);
-  if (!has("robots.txt")) made.set("robots.txt", robotsTxt(address));
+  if (!has("robots.txt")) builtFiles.set("robots.txt", robotsTxt(address));
   if (address && !has("sitemap.xml")) {
-    made.set("sitemap.xml", sitemapXml(["index.html", "privacy.html"].filter(has).map((file) => pageUrl(address, file))));
+    builtFiles.set("sitemap.xml", sitemapXml(["index.html", "privacy.html"].filter(has).map((file) => pageUrl(address, file))));
   }
-  if (!has("llms.txt")) made.set("llms.txt", llmsTxt(content, labels, { address, title, privacy: has("privacy.html") }));
-  if (commit) made.set("version.txt", `${commit}\n`);
+  if (!has("llms.txt")) builtFiles.set("llms.txt", llmsTxt(content, labels, { address, title, privacy: has("privacy.html") }));
+  if (commit) builtFiles.set("version.txt", `${commit}\n`);
 
-  await writeSite(siteDir, outDir, files, made);
-  return { address, today: day, pages, files: [...new Set([...files, ...made.keys()])].sort(), warnings };
-}
-
-// buildSite in a worker thread of its own, so that render.js, and every file
-// it imports, loads fresh: the preview builds again and again in one process.
-// Resolves to { warnings }, or to { problem } in plain words.
-export function buildInWorker(siteDir, outDir, options = {}) {
-  return new Promise((done) => {
-    const worker = new Worker(new URL("./build-worker.mjs", import.meta.url), { workerData: { siteDir, outDir, options } });
-    worker.once("message", done);
-    worker.once("error", (error) => done({ problem: `The build itself ran into a problem: ${firstLine(error)}` }));
-    worker.once("exit", () => done({ problem: "The build stopped before it was done." }));
-  });
+  await writeSite(siteDir, outDir, files, builtFiles);
+  return { address, today: day, pages, files: [...new Set([...files, ...builtFiles.keys()])].sort(), warnings };
 }

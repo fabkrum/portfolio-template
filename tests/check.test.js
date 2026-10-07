@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { cp, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, cp, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -151,6 +151,52 @@ test("what an agent sees: a missing robots.txt or sitemap.xml is named", async (
     await rm(join(dir, "sitemap.xml"));
   });
   assert.deepEqual(found, ["There is no robots.txt next to the pages.", "There is no sitemap.xml next to the pages."]);
+});
+
+test("what an agent sees: without a name in the content file, no structured data is missed; the content item names the name", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "agent-view-"));
+  const siteDir = join(dir, "site");
+  try {
+    await cp(sampleSite, siteDir, { recursive: true });
+    const { name, ...nameless } = sample;
+    await writeFile(join(siteDir, "content.json"), JSON.stringify(nameless));
+    await buildSite(siteDir, join(dir, "built"), { address: "https://ada-example.github.io/portfolio/" });
+    assert.deepEqual(await agentViewProblems(join(dir, "built"), nameless), []);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("a content file that starts with a byte order mark is read like any other: every item is reported", async () => {
+  const { siteDir, remove } = await buildFixtureSite(fixturesDir, "finished-privacy");
+  try {
+    await writeFile(join(siteDir, "content.json"), `\uFEFF${await readFile(join(siteDir, "content.json"), "utf8")}`);
+    const items = await runCheck(siteDir);
+    assert.deepEqual(items.map((item) => item.id), ITEMS);
+    for (const item of items) assert.equal(item.pass, true, `${item.id}: ${item.details}`);
+  } finally {
+    await remove();
+  }
+});
+
+// A file the build cannot read: the Check reports every item all the same.
+// Not on Windows, and not as root: there, a file stays readable.
+const unreadableFiles = process.platform === "win32" || process.getuid?.() === 0;
+
+test("when the Check cannot build the site for another reason, the items that look at the built site say so and the others still report", { skip: unreadableFiles && "a file stays readable here" }, async () => {
+  const { siteDir, remove } = await buildFixtureSite(fixturesDir, "finished-privacy");
+  try {
+    await chmod(join(siteDir, "assets", "favicon.svg"), 0o000);
+    const items = await runCheck(siteDir);
+    assert.deepEqual(items.map((item) => item.id), ITEMS);
+    assert.deepEqual(items.filter((item) => !item.pass).map((item) => item.id), ["accessibility", "console", "agent"]);
+    for (const item of items.filter((item) => !item.pass)) {
+      assert.match(item.details.join("\n"), /^The Check could not build and open the site, so this could not be checked: /);
+    }
+  } finally {
+    await chmod(join(siteDir, "assets", "favicon.svg"), 0o644);
+    await remove();
+  }
 });
 
 test("a site that cannot be built is named under every item that looks at the built site", async () => {

@@ -20,7 +20,7 @@ function report({ address, pages, files, warnings }) {
   console.log(
     address
       ? `Its address: ${address}`
-      : "Its address is not known here, because this folder is not connected to a repo on GitHub. The build on GitHub knows it, and adds what needs it: the canonical link, the photo in link previews and sitemap.xml.",
+      : "Its address is not known here, because this folder is not connected to a repo on GitHub. The build on GitHub knows it, and adds what needs it: the page's own address for search engines, the photo in link previews and sitemap.xml.",
   );
   console.log(`Pages: ${pages.join(", ")}`);
   console.log(`For search engines and AI agents: ${["robots.txt", "sitemap.xml", "llms.txt"].filter((file) => files.includes(file)).join(", ")}`);

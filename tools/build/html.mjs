@@ -22,7 +22,7 @@ export const escapeHtml = (value) =>
     .replaceAll("'", "&#39;");
 
 const NAMED_ENTITIES = {
-  amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", middot: "·", ndash: "–", mdash: "—",
+  amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: "\u00a0", middot: "·", ndash: "–", mdash: "—",
   lsquo: "‘", rsquo: "’", ldquo: "“", rdquo: "”", hellip: "…", copy: "©",
 };
 
@@ -44,7 +44,7 @@ function attributesOf(text) {
 
 // Every start and end tag of the page, in order, as { name, closing, start,
 // end, attributes }: start and end are where the tag itself begins and ends.
-export function tagsOf(html) {
+function tagsOf(html) {
   const tags = [];
   const markup = new RegExp(MARKUP.source, "g");
   for (let match = markup.exec(html); match; match = markup.exec(html)) {
@@ -85,6 +85,9 @@ export function findElement(html, matches) {
   }
   return element;
 }
+
+// A <script> that holds structured data (JSON-LD) instead of a script.
+export const isJsonLdScript = (tag) => tag.name === "script" && /^\s*application\/ld\+json\s*(;|$)/i.test(tag.attributes.type ?? "");
 
 // Every element of a kind with its content, such as each <script> with the
 // script in it: { tag, content }.

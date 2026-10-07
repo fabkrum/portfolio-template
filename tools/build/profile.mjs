@@ -2,9 +2,8 @@
 // file: the structured data (JSON-LD) in the home page, and llms.txt, a short
 // summary in Markdown that follows llmstxt.org. Every field but the name may
 // be missing; a field that is missing is left out.
+import { filledText as text } from "../check/content-file.mjs";
 
-// A value from the content file, if it is text with something in it.
-const text = (value) => (typeof value === "string" && value.trim() ? value.trim() : undefined);
 const list = (value) => (Array.isArray(value) ? value.filter((entry) => entry && typeof entry === "object") : []);
 const texts = (value) => (Array.isArray(value) ? value.map(text).filter(Boolean) : []);
 const unique = (values) => [...new Set(values)];
@@ -19,7 +18,7 @@ const compact = (object) =>
 
 // A job is the current one when it has no end, or an end such as "present".
 const ONGOING = /^(present|now|today|current(ly)?|ongoing|presente|oggi|attuale|ad oggi|in corso|heute|jetzt|aktuell|bis heute|actualidad|actualmente|hoy|aujourd'hui|maintenant|en cours|atual|hoje)$/iu;
-export const isCurrentJob = (job) => !text(job.end) || ONGOING.test(text(job.end));
+const isCurrentJob = (job) => !text(job.end) || ONGOING.test(text(job.end));
 
 const currentJobs = (content) => list(content.cv?.experience).filter((job) => text(job.organization) && isCurrentJob(job));
 
@@ -111,9 +110,9 @@ const linkTarget = (url) => plain(url).replace(/[ ()<>]/g, (character) => `%${ch
 // One entry of a list of links, "- [name](url): notes", or without a link
 // when there is no address to go to.
 function entry(name, url, notes = []) {
-  const said = notes.map(text).filter(Boolean).map(plain).join(" ");
+  const noted = notes.map(text).filter(Boolean).map(plain).join(" ");
   const head = url ? `[${linkText(name)}](${linkTarget(url)})` : linkText(name);
-  return `- ${head}${said ? `: ${said}` : ""}`;
+  return `- ${head}${noted ? `: ${noted}` : ""}`;
 }
 
 const period = (start, end) => [text(start), text(end)].filter(Boolean).join(" – ");
@@ -155,8 +154,8 @@ export function llmsTxt(content, labels, { address, title, privacy }) {
   if (experience.length > 0) {
     lines.push(`${label("experience", "Experience")}:`);
     for (const job of experience) {
-      const said = [text(job.role), text(job.organization), period(job.start, job.end)].filter(Boolean).join(", ");
-      lines.push(`- ${plain(said)}${text(job.summary) ? `: ${plain(job.summary)}` : ""}`);
+      const where = [text(job.role), text(job.organization), period(job.start, job.end)].filter(Boolean).join(", ");
+      lines.push(`- ${plain(where)}${text(job.summary) ? `: ${plain(job.summary)}` : ""}`);
     }
     lines.push("");
   }
@@ -197,10 +196,10 @@ export function llmsTxt(content, labels, { address, title, privacy }) {
         const where = text(event.city) ?? (event.online === true ? "online" : undefined);
         const url = text(event.url) ?? sessions.map((session) => text(session.url)).find(Boolean);
         const role = text(event.role) && `${text(event.role)[0].toUpperCase()}${text(event.role).slice(1)}`;
-        const said = sessions.map((session) => [text(session.type), `"${plain(session.title)}"`].filter(Boolean).join(" ")).join("; ");
+        const talks = sessions.map((session) => [text(session.type), `"${plain(session.title)}"`].filter(Boolean).join(" ")).join("; ");
         return entry(event.name, url, [
           `${[period(event.date, event.endDate), where].filter(Boolean).join(", ")}.`,
-          role && `${role}${said ? `: ${said}` : ""}.`,
+          role && `${role}${talks ? `: ${talks}` : ""}.`,
         ]);
       }),
   );

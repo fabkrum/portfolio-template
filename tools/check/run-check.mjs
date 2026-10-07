@@ -9,6 +9,7 @@ import { BuildError } from "../build/build-site.mjs";
 import { serveBuild } from "../build/serve-build.mjs";
 import { agentViewProblems } from "./agent-view.mjs";
 import { findChrome, inspectSite } from "./browser.mjs";
+import { readContentFile } from "./content-file.mjs";
 import { findPrivateDataInContent, findPrivateDataInSiteFiles } from "./private-data.mjs";
 import { validateContent } from "./schema.mjs";
 
@@ -44,19 +45,6 @@ async function browserItems(site, notBuilt) {
   ];
 }
 
-// The parsed content file, or the reason it could not be read.
-async function readContent(siteDir) {
-  try {
-    return { content: JSON.parse(await readFile(join(siteDir, "content.json"), "utf8")) };
-  } catch (error) {
-    const reason =
-      error.code === "ENOENT"
-        ? "There is no content.json in the site folder."
-        : `content.json is not valid JSON: ${error.message}`;
-    return { unreadable: reason };
-  }
-}
-
 async function schemaProblems(siteDir, content, unreadable) {
   if (unreadable) return [unreadable];
   try {
@@ -89,24 +77,29 @@ async function privacyProblems(siteDir) {
   return privacyPageProblems(await readFile(path, "utf8"));
 }
 
-// The site built and served for the Check, or why it could not be built.
+// The site built and served for the Check, or why it could not be: then the
+// items that look at the built site say so, and the others still report.
 async function builtSite(siteDir) {
   try {
     return { site: await serveBuild(siteDir) };
   } catch (error) {
-    if (!(error instanceof BuildError)) throw error;
-    return { notBuilt: `The site could not be built, so this could not be checked: ${error.message}` };
+    return {
+      notBuilt:
+        error instanceof BuildError
+          ? `The site could not be built, so this could not be checked: ${error.message}`
+          : `The Check could not build and open the site, so this could not be checked: ${error.message}`,
+    };
   }
 }
 
 export async function runCheck(siteDir) {
-  const { content, unreadable } = await readContent(siteDir);
+  const { content, unreadable } = await readContentFile(siteDir);
   const { site, notBuilt } = await builtSite(siteDir);
   try {
     return [
       item("content", "Content file matches the schema", await schemaProblems(siteDir, content, unreadable)),
       ...(await browserItems(site, notBuilt)),
-      item("agent", "What an agent sees: your content without JavaScript", notBuilt ? [notBuilt] : await agentViewProblems(site.outDir, content)),
+      item("agent", "What an agent sees: your content without JavaScript", notBuilt ? [notBuilt] : await agentViewProblems(site.outDir, content ?? {})),
       item("privacy", "Privacy page written", await privacyProblems(siteDir)),
       // The files people and agents write: the built pages only repeat them.
       item("private-data", "No phone number or postal address in the site", [

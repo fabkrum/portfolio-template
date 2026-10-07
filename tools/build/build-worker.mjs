@@ -1,5 +1,6 @@
-// One build in a worker thread of its own, for the preview: see buildInWorker
-// in build-site.mjs. It answers { warnings }, or { problem } in plain words.
+// One build in a worker thread of its own, for the preview (tools/preview.mjs):
+// every build loads render.js, and every file it imports, fresh. It answers
+// { warnings }, or { problem } in plain words.
 import { parentPort, workerData } from "node:worker_threads";
 import { BuildError, buildSite } from "./build-site.mjs";
 
