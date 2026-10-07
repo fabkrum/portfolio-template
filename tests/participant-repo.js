@@ -10,7 +10,7 @@ export const templateDir = fileURLToPath(new URL("..", import.meta.url));
 
 export async function participantRepo(own = {}) {
   const dir = await mkdtemp(join(tmpdir(), "participant-"));
-  const skip = new Set([".git", "tests", "qa", "node_modules"]);
+  const skip = new Set([".git", "tests", "qa", "_site", "node_modules"]);
   await cp(templateDir, dir, {
     recursive: true,
     filter: (source) => !skip.has(relative(templateDir, source).split(sep)[0]),
