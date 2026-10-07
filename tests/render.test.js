@@ -88,17 +88,20 @@ test("labels are escaped like every other value", () => {
   assert.ok(links.includes("&lt;b&gt;Find"));
 });
 
-// The Analyst translates the core sections' words; the Optional-module skill
-// translates a module's heading when it adds the module.
+// The Analyst translates the words of what it writes; the Optional-module
+// skill translates a module's heading, or a widget's words, when it adds it.
+// Both may translate a widget's words: the Analyst writes events too.
 test("the schema and the page name the same labels, and the skills translate every one", async () => {
   const read = async (path) => (await readFile(new URL(path, import.meta.url), "utf8")).replaceAll("\r\n", "\n");
   const page = Object.keys(pageLabels({})).sort();
   const schema = JSON.parse(await read("../site/content.schema.json"));
   assert.deepEqual(Object.keys(schema.properties.labels.properties).sort(), page);
   const labelNames = (block) => [...block.matchAll(/"(\w+)":/g)].map((match) => match[1]);
-  const analyst = labelNames((await read("../.agents/skills/analyst/SKILL.md")).match(/"labels": \{([\s\S]*?)\}/)[1]);
-  const modules = labelNames((await read("../.agents/skills/portfolio-add-module/SKILL.md")).match(/^\| Module \|[\s\S]*?\n\n/m)[0]);
-  assert.deepEqual([...analyst, ...modules].sort(), page);
+  const labelBlocks = (skill) => [...skill.matchAll(/"labels": \{([\s\S]*?)\}/g)].map((match) => match[1]);
+  const analyst = labelNames(labelBlocks(await read("../.agents/skills/analyst/SKILL.md"))[0]);
+  const moduleSkill = await read("../.agents/skills/portfolio-add-module/SKILL.md");
+  const modules = [moduleSkill.match(/^\| Module \|[\s\S]*?\n\n/m)[0], ...labelBlocks(moduleSkill)].flatMap(labelNames);
+  assert.deepEqual([...new Set([...analyst, ...modules])].sort(), page);
 });
 
 // What the page shows in Chrome when it is built from this content file: its

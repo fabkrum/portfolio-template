@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { renderSections } from "../site/assets/render.js";
+import { pageLabels, renderSections } from "../site/assets/render.js";
 import { findPrivateDataInContent } from "../tools/check/private-data.mjs";
 import { validateContent } from "../tools/check/schema.mjs";
 import { buildFixtureSite } from "./fixture-site.js";
@@ -271,3 +271,44 @@ test("in Chrome, each widget gets its place on the page: numbers and now under t
     await remove();
   }
 });
+
+// The skill portfolio-add-module adds a widget later, one recipe per widget:
+// its question, an example of its entries, and its labels.
+const moduleSkill = await read("../.agents/skills/portfolio-add-module/SKILL.md");
+const recipeOf = (name) => moduleSkill.split(/^### /m).find((part) => part.startsWith(`${name}\n`));
+const jsonBlocksIn = (section) => [...section.matchAll(/```json\n([\s\S]*?)```/g)].map((match) => match[1]);
+
+// Each widget's recipe, its key in the content file, and the sections it fills.
+const RECIPES = {
+  Events: { key: "events", sections: ["events"] },
+  Certifications: { key: "certifications", sections: ["certifications", "courses"] },
+  Now: { key: "now", sections: ["now"] },
+  Numbers: { key: "stats", sections: ["stats"] },
+  "Case study": { key: "projects", sections: ["projects"] },
+};
+
+// Every label the page has, marked, so the words a section writes can be found in it.
+const marked = Object.fromEntries(Object.keys(pageLabels({})).map((name) => [name, `‹${name}›`]));
+const markedSections = renderSections({ ...widgets, labels: marked }, { today: TODAY });
+// The Analyst translates these for every site, with the projects.
+const CORE = ["projects", "code", "live"];
+
+for (const [name, { key, sections }] of Object.entries(RECIPES)) {
+  test(`the ${name} recipe asks one question, and its example matches the schema and shows on the page`, () => {
+    const recipe = recipeOf(name);
+    assert.ok(recipe, name);
+    assert.match(recipe, /^"[^"\n]+\?[^\n]*"$/m);
+    const example = JSON.parse(`{${jsonBlocksIn(recipe)[0]}}`);
+    assert.deepEqual(Object.keys(example), [key]);
+    assert.deepEqual(validateContent(schema, { ...sample, ...example }), []);
+    const shown = renderSections({ ...sample, ...example }, { today: TODAY });
+    assert.ok(sections.some((section) => shown[section] !== renderSections(sample, { today: TODAY })[section]), name);
+  });
+
+  test(`the ${name} recipe's labels hold every word its widget writes`, () => {
+    const labels = Object.keys(JSON.parse(`{${jsonBlocksIn(recipeOf(name)).find((block) => block.includes('"labels"'))}}`).labels);
+    const written = new Set(sections.flatMap((section) => [...markedSections[section].matchAll(/‹(\w+)›/g)].map((match) => match[1])));
+    for (const word of written) assert.ok(labels.includes(word) || CORE.includes(word), `${name} writes ${word}`);
+    for (const label of labels) assert.ok(label in marked, label);
+  });
+}

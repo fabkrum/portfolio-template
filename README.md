@@ -91,7 +91,7 @@ Use the block that has just ended, not the one that starts now. It brings your s
 
 ## Add more sections
 
-Once your site is live, you can add Optional modules: a section for YouTube videos, podcasts, a blog, resources or project ideas. Start a fresh chat and ask to add one; the `portfolio-add-module` skill asks you for the entries and writes them into `site/content.json`. The section shows up below your CV.
+Once your site is live, you can add Optional modules: a section for YouTube videos, podcasts, a blog, resources or project ideas. Start a fresh chat and ask to add one; the `portfolio-add-module` skill asks you for the entries and writes them into `site/content.json`. The section shows up below your CV. The same skill adds widgets: events with your talks, certifications, a Now list, numbers, or a project told as a case study. Each shows up in its own place on the page.
 
 ## What is where
 
