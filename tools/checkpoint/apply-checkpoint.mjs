@@ -135,9 +135,11 @@ async function developersStylesheet(repoDir, css, brief) {
   const styled = brief ? styledByBrief(css, brief) : { css, unusableFonts: [] };
   const firsts = [...new Set([...styled.css.matchAll(/--font-[\w-]+\s*:\s*([^;]+);/g)].map(([, stack]) => firstFont(stack)))];
   const families = (await bundledFonts(repoDir)).filter(({ name }) => firsts.some((font) => font.toLowerCase() === name.toLowerCase()));
-  const rules = families.map((family) => family.rules.trim());
+  // In the stylesheet's own line endings: Git on Windows may check it out with CRLF.
+  const eol = styled.css.includes("\r\n") ? "\r\n" : "\n";
+  const rules = families.map((family) => family.rules.trim().replaceAll("\n", eol));
   return {
-    css: rules.length > 0 ? `${rules.join("\n\n")}\n\n${styled.css}` : styled.css,
+    css: rules.length > 0 ? `${rules.join(eol + eol)}${eol}${eol}${styled.css}` : styled.css,
     families,
     unusableFonts: styled.unusableFonts,
     webFonts: firsts.filter(

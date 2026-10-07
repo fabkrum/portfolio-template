@@ -196,3 +196,15 @@ test("with a brief in the Bold style, the Developer's checkpoint serves and load
     assert.match(jumpTo(dir, "developer").stdout, /Nothing to change/);
   });
 });
+
+test("on a stylesheet with Windows line endings, the checkpoint writes the font rules with Windows line endings too", async () => {
+  await withRepo(async (dir) => {
+    // Git on Windows checks the checkpoint's stylesheet out with CRLF.
+    const stored = join(dir, "checkpoints", "developer", "site", "assets", "styles.css");
+    await writeFile(stored, (await readText(stored)).replaceAll("\n", "\r\n"));
+    assert.equal(jumpTo(dir, "developer").status, 0);
+    const css = await readFile(join(dir, "site", "assets", "styles.css"), "utf8");
+    assert.match(css, /font-family: "Newsreader";/);
+    assert.equal(css.split("\n").length, css.split("\r\n").length, "every line ends in CRLF");
+  });
+});

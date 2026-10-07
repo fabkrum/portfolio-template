@@ -58,7 +58,7 @@ If the command says a font is not one of the fonts in `fonts/`, leave that font 
 
 ## 4. Write the stylesheet
 
-Replace all of `site/assets/styles.css`. Start with the six colour tokens from the brief's Colours table, each with `light-dark()`: the Light hex value first, the Dark one second. Copy each value exactly from the brief; `LIGHT` and `DARK` below stand for them.
+Replace all of `site/assets/styles.css`. Start with the `@font-face` rules from step 3, if there are any, then the six colour tokens from the brief's Colours table, each with `light-dark()`: the Light hex value first, the Dark one second. Copy each value exactly from the brief; `LIGHT` and `DARK` below stand for them.
 
 ```css
 :root {

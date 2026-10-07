@@ -14,7 +14,8 @@ The brief's Style section names one of five styles, or two. Build the page with 
   - a divider: a line between the sections, made with a border or a background gradient.
   - the accent colour: nothing to build, it is in the tokens.
 - **Sections**: the brief's Sections list gives their order, top to bottom. Put the empty sections of `site/index.html` in that order. A section the list names that `index.html` lacks gets an empty `<section id="ID" class="section"></section>` at its place.
-- **What look checks**, so each style must keep it: every section is one below the other, with at least 2rem between them; each section's heading sits above its content, never beside it; the lists and paragraphs of a section are as wide as the section; nothing is wider than a phone screen. A split screen goes inside a section, below its heading.
+- **What look checks**, so each style must keep it: every section is one below the other, with at least 2rem of margin between them, outside any line at a section's top; each section's heading sits above its content, never beside it; the lists and paragraphs of a section are as wide as the section; nothing is wider than a phone screen. A split screen goes inside a section, below its heading.
+- **Nothing jumps while the page loads**, which look measures too. A section that is still empty must take no room, or it jumps when its content arrives: `.section:empty { display: none; }`.
 
 ## The AI look: never by default
 
@@ -36,7 +37,7 @@ Pages an AI builds unasked all look the same. None of these, unless the brief as
 Quiet editorial, like a well-set book. Like leerob.com and delba.dev.
 
 - **Type**: serif headings in a medium weight (500 to 600), a reading serif for the text. Name about 2.75rem, section headings 1.5rem, project titles 1.25rem; text 1.0625rem with a line height of 1.65. The headline under the name in the heading font's italic. Numbers in the text with `font-variant-numeric: oldstyle-nums`.
-- **Spacing**: 3.5rem between sections, 1.5rem between items.
+- **Spacing**: 4rem between sections, with the hairline in between, 1.5rem between items.
 - **Shapes**: no corner radius, no shadows, no cards. Hairline rules: 1px lines in a thinned `--muted`.
 - **Layout**: one narrow column, at most 38rem, centred, text flush left. A hairline above every section after the first. Projects as a list, one below the other, each separated by a hairline: title, one sentence, then text links.
 - **Colour**: calm. The accent only for links and the focus ring; links underlined, with the underline a little away from the text (`text-underline-offset: 0.2em`).
@@ -52,7 +53,7 @@ Minimal and precise, like a good product. Like emilkowal.ski and paco.me.
 - **Type**: one clean sans-serif. Few sizes: name about 1.5rem in weight 600, section headings 1rem in weight 600, text 1rem with a line height of 1.6. Hierarchy comes from weight and the muted colour, not from size. Dates and labels in the brief's details font, a monospace, at 0.875rem.
 - **Spacing**: lots of it: 5rem between sections, 1rem between items.
 - **Shapes**: borderless. Thin dividers (1px, thinned `--muted`) between list items, small radius (0.375rem) only where something must look clickable.
-- **Layout**: one column, at most 40rem, centred, flush left. Projects as a list, not boxes: the title as a link, one muted line below it, the date to the right on wide screens.
+- **Layout**: one column, at most 40rem, centred, flush left. Projects as a list, not boxes: the title, one muted line below it, the links in a row; dates to the right on wide screens.
 - **Colour**: grey on near-white; the one accent sparingly, for links on hover and the focus ring. Secondary text in `--muted`.
 - **Skills**: a plain list in `--muted`, separated by spaces or a middle dot.
 - **Photo**: a small round avatar, about 3rem, beside or above the name.
@@ -69,7 +70,7 @@ Confident and poster-like. Like tej.as and cydstumpel.nl.
 - **Layout**: a wide column, up to 72rem. Flat colour blocks: one block, such as the bio, in `--accent` with `--on-accent` text and generous padding. A split screen inside a section: two halves side by side from 48rem, below the section's heading. Projects in two columns from 40rem, as flat blocks with a thick border.
 - **Colour**: high contrast. Blocks of the accent, text on them in `--on-accent`.
 - **Skills**: one big line of words in the heading font, no boxes.
-- **Photo**: a cut-out portrait on a block of `--accent`, square, offset by a few rem.
+- **Photo**: a cut-out portrait on a block of `--accent`, square, offset a little inside the block.
 - **Motion**: confident and quick: big things move once, then stay.
 - **Avoid**: rounded cards, soft shadows, small headings, gradients.
 

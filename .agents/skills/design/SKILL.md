@@ -45,6 +45,7 @@ Start with this message, filled in from `styles.md`. It is your first question:
 You can mix two, for example "Playful with a bit of Technical": the first one wins where they disagree. No time for Stitch? Say **default**, and your site gets the template's design."
 
 - **A style, or two**: note them, in the person's order, and go to step 3. If the answer is none of the five, such as "dark and techy", take the closest style and say which in your next message.
+- **skip**: take Classic, the style of the default design, and go to step 3.
 - **default**: copy `design/default-brief.md` over `design/brief.md`, unchanged. It is the Classic style, with Newsreader and Literata, warm paper and ink red. Run the command in step 8, tell the person the Developer will build from the default design, then go to step 9.
 - **Stitch HTML or a screenshot**, pasted instead of an answer: they made their design already. Skip the interview and the prompt, and read it in step 6a or 6b. In step 7, take the style closest to the design, and three words that describe it.
 
@@ -167,9 +168,9 @@ Look at the screenshot and pick hex values by eye for: the page background, the 
 | accent | links, the focus ring, buttons |
 | on-accent | text on an accent-coloured button |
 
-The site supports light and dark mode, so every token needs both values. If the design shows only one mode, make up the other one yourself. Keep the accent's hue. For dark mode, use a near-black background tinted towards the accent, near-white text and a lighter accent. For light mode, do the opposite. Links are text, so the accent must be readable on the background: when the person's colour is too light for that, keep its hue and make it darker for the brief.
+The site supports light and dark mode, so every token needs both values. Without a design ("no Stitch"), take the style's background and the accent from the interview, and make up the other four to go with them. If the design shows only one mode, make up the other one yourself. Keep the accent's hue. For dark mode, use a near-black background tinted towards the accent, near-white text and a lighter accent. For light mode, do the opposite. Links are text, so the accent must be readable on the background: when the person's colour is too light for that, keep its hue and make it darker for the brief.
 
-**Fonts.** Use the style's font stacks from `styles.md`, the headings, body and details rows. If the design uses another font, such as Inter, write the style's fonts all the same, and say so when you read the brief back: the site can only serve the fonts in `fonts/`.
+**Fonts.** Use the style's font stacks from `styles.md`, the headings, body and details rows. If the person chose another font in Stitch that is in the folder `fonts/` (its `README.md` lists them, with their font stacks), keep theirs. Any other font, such as Inter: write the style's font all the same, and say so when you read the brief back: the site can only serve the fonts in `fonts/`.
 
 **Style.** The style, the person's three words, the one personal detail and the style's motion. After "no Stitch" or a design brought along, write what you know.
 
@@ -250,7 +251,7 @@ Then run this command. It is the same on every operating system:
 node tools/check-brief.mjs
 ```
 
-It either says the brief is ready or lists what to fix. When a colour pair is too hard to read, make the lighter colour lighter or the darker colour darker, and keep its hue. Run the command again until it says the brief is ready. Never call the brief finished before it does. Under "Good to know" it may name a font the site cannot load: write the style's font instead, and run it again. If the command fails because Node is missing, tell the person that running the Install script again installs Node.
+It either says the brief is ready or lists what to fix. When a colour pair is too hard to read, make the lighter colour lighter or the darker colour darker, and keep its hue. Run the command again until it says the brief is ready. Never call the brief finished before it does. Under "Good to know" it may name a font the site cannot load, or a section the brief lacks: write the style's font instead, or add the section, and run it again. If the command fails because Node is missing, tell the person that running the Install script again installs Node.
 
 ## 9. Read it back, then hand over
 

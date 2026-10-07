@@ -46,7 +46,7 @@ Like tej.as. Guide: `guides/ui-atoms/scroll-progress-indicator.md`
 
 Like ishadeed.com. Guide: `guides/ui-atoms/shrinking-header-on-scroll.md`
 
-- The name at the top stays in view and shrinks to a small title as the visitor scrolls: `position: sticky` and a scroll-driven `scale` with `animation-timeline: scroll()` over the first few hundred pixels. Shrink with `scale`, not with `font-size` or `height`, so nothing below it jumps.
+- As the visitor starts to scroll, the name at the top shrinks into a small title and stays at the top while the bio is in view: `position: sticky` on the name (it sticks within the bio, its section) and a scroll-driven `scale` with `animation-timeline: scroll()` and `animation-range: 0 250px`, from the top left corner. Shrink with `scale`, not with `font-size` or `height`, so nothing below it jumps.
 - Give the sticky name the page background, and the page `scroll-padding-top` as tall as the small title, so it never covers what the keyboard focuses.
 - Reduced motion: the name stays at its size and scrolls away with the page.
 
@@ -56,6 +56,7 @@ Like brittanychiang.com. Guide: `guides/ui-components/scrollspy.md`
 
 - A small navigation at the top links to each section, and marks the one in view: `scroll-target-group: auto` and `:target-current`, with the guide's fallback for browsers without them. Mark it with more than colour, such as an underline, and keep `aria-current` in step, as the guide says.
 - Build the links with a small script from the section headings on the page, so they are always in the site's language. Without JavaScript the page has no navigation, and nothing else is missing.
+- Fix the navigation to the top with `position: fixed`, and keep its height free at the top of the page in the stylesheet, so nothing jumps when the script adds it.
 - The sections stay one below the other: never put the navigation or the bio in a column beside them.
 - Reduced motion: the mark moves without animation.
 
@@ -79,7 +80,7 @@ Like brittanychiang.com. Guide: `guides/css/child-state-based-styling.md`
 
 Like cydstumpel.nl and joshwcomeau.com. Guide: `guides/ui-behaviors/physics-based-easing.md`
 
-- Skill stickers, and badges, wobble and grow a little on hover and keyboard focus, with a spring easing made with `linear()`, on `scale` and `rotate`.
+- Skill stickers, and badges, wobble and grow a little on hover, and on keyboard focus where they are links, with a spring easing made with `linear()`, on `scale` and `rotate`.
 - Skip the guide's library fallback: it loads a file from another server. A plain `ease-out` is the fallback.
 - Reduced motion: no spring; the sticker changes at once, or not at all.
 
