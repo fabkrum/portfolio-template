@@ -37,7 +37,35 @@
         "speaks": { "$ref": "#/$defs/label" },
         "native": { "$ref": "#/$defs/label" },
         "builtWith": { "$ref": "#/$defs/label" },
-        "noTrackers": { "$ref": "#/$defs/label" }
+        "noTrackers": { "$ref": "#/$defs/label" },
+        "stats": { "$ref": "#/$defs/label" },
+        "now": { "$ref": "#/$defs/label" },
+        "updated": { "$ref": "#/$defs/label" },
+        "events": { "$ref": "#/$defs/label" },
+        "upcoming": { "$ref": "#/$defs/label" },
+        "past": { "$ref": "#/$defs/label" },
+        "online": { "$ref": "#/$defs/label" },
+        "slides": { "$ref": "#/$defs/label" },
+        "video": { "$ref": "#/$defs/label" },
+        "attendee": { "$ref": "#/$defs/label" },
+        "speaker": { "$ref": "#/$defs/label" },
+        "organizer": { "$ref": "#/$defs/label" },
+        "volunteer": { "$ref": "#/$defs/label" },
+        "mentor": { "$ref": "#/$defs/label" },
+        "talk": { "$ref": "#/$defs/label" },
+        "workshop": { "$ref": "#/$defs/label" },
+        "keynote": { "$ref": "#/$defs/label" },
+        "panel": { "$ref": "#/$defs/label" },
+        "codelab": { "$ref": "#/$defs/label" },
+        "certifications": { "$ref": "#/$defs/label" },
+        "courses": { "$ref": "#/$defs/label" },
+        "verify": { "$ref": "#/$defs/label" },
+        "credentialId": { "$ref": "#/$defs/label" },
+        "problem": { "$ref": "#/$defs/label" },
+        "role": { "$ref": "#/$defs/label" },
+        "outcome": { "$ref": "#/$defs/label" },
+        "stack": { "$ref": "#/$defs/label" },
+        "aiNote": { "$ref": "#/$defs/label" }
       }
     },
     "name": { "type": "string", "minLength": 1 },
@@ -134,7 +162,13 @@
             "type": "string",
             "pattern": "^https://github\\.com/"
           },
-          "url": { "$ref": "#/$defs/webUrl" }
+          "url": { "$ref": "#/$defs/webUrl" },
+          "problem": { "description": "Case study: the problem the project solves.", "type": "string", "minLength": 1 },
+          "role": { "description": "Case study: what you did in it.", "type": "string", "minLength": 1 },
+          "outcome": { "description": "Case study: what came out of it, best with a number.", "type": "string", "minLength": 1 },
+          "stack": { "description": "Case study: what it is built with, for example HTML, CSS and JavaScript.", "type": "string", "minLength": 1 },
+          "image": { "description": "Case study: a screenshot or photo of the project, in assets/, with its alt text.", "$ref": "#/$defs/image" },
+          "aiNote": { "description": "Case study: what the AI agent did, and what you did.", "type": "string", "minLength": 1 }
         }
       }
     },
@@ -277,6 +311,87 @@
         "event": { "type": "string", "minLength": 1 },
         "url": { "$ref": "#/$defs/webUrl" },
         "date": { "$ref": "#/$defs/date" }
+      }
+    },
+    "stats": {
+      "description": "Widget: up to four honest numbers, each with what it counts, for example 2 projects shipped.",
+      "type": "array",
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["value", "label"],
+        "properties": {
+          "value": { "type": ["string", "number"], "minLength": 1 },
+          "label": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "now": {
+      "description": "Widget: what you are doing now, up to three things, with the month you wrote it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["updated", "items"],
+      "properties": {
+        "updated": { "$ref": "#/$defs/date" },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "events": {
+      "description": "Widget: events you attended, spoke at, organised, volunteered or mentored at, each with what you gave there as sessions. Upcoming ones show first.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "date", "role"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "date": { "$ref": "#/$defs/date" },
+          "endDate": { "description": "The last day of an event of more than one day.", "$ref": "#/$defs/date" },
+          "city": { "$ref": "#/$defs/place" },
+          "online": { "description": "true for an event online.", "type": "boolean" },
+          "url": { "$ref": "#/$defs/webUrl" },
+          "role": { "enum": ["attendee", "speaker", "organizer", "volunteer", "mentor"] },
+          "sessions": {
+            "description": "What you gave or took part in at the event: talks, workshops, keynotes, panels or codelabs.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["type", "title"],
+              "properties": {
+                "type": { "enum": ["talk", "workshop", "keynote", "panel", "codelab"] },
+                "title": { "type": "string", "minLength": 1 },
+                "url": { "$ref": "#/$defs/webUrl" },
+                "slides": { "$ref": "#/$defs/webUrl" },
+                "video": { "$ref": "#/$defs/webUrl" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "certifications": {
+      "description": "Widget: certifications you passed an exam for (kind exam), and courses and workshops you finished (kind course or workshop). Expired ones are left out of the page.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "issuer", "kind", "issued"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "issuer": { "type": "string", "minLength": 1 },
+          "kind": { "enum": ["exam", "course", "workshop"] },
+          "issued": { "$ref": "#/$defs/date" },
+          "expires": { "$ref": "#/$defs/date" },
+          "credentialId": { "type": "string", "minLength": 1 },
+          "url": { "description": "The link that verifies it, for example on Credly.", "$ref": "#/$defs/webUrl" }
+        }
       }
     }
   },

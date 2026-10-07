@@ -59,3 +59,13 @@ a {
 .photo {
   border-radius: 50%;
 }
+
+.role,
+.type {
+  color: var(--muted);
+}
+
+.project-image {
+  max-width: 100%;
+  height: auto;
+}

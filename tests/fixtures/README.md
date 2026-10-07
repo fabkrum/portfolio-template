@@ -70,6 +70,13 @@ ones in: this repo is public.
   all five Optional modules (videos, podcasts, blog posts, resources, project
   ideas). Video IDs such as `EXAMPLE0001` and every `example.com` address are
   made up.
+- `clean-sites/all-widgets/` – the sample content with every widget: numbers,
+  Now, four events (the workshop of DevFest Milano as an attendee, a talk
+  ahead, past talks and a panel, a meetup online), four certifications (one
+  from an exam, one expired, a course and a workshop), and the first project
+  as a case study with a made-up screenshot, `assets/tide-tables.svg`. Every
+  event, issuer and `example.com` address is made up; the tests pass the day
+  as `today`, so the split into upcoming and past events stays the same.
 - `module-runs/` – the Optional-module skill in proxy runs on 2026-10-04, the
   same way as the Analyst runs: one folder per recipe, with `answers.md`,
   `report.md` and in `site/` the content file the agent wrote, laid over the

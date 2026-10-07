@@ -43,6 +43,92 @@ The words the page adds itself, such as "Based in", come from `labels` in the co
 
 Keep the empty `<div id="colophon"></div>` in the footer of `index.html`: the line is filled in there. Without it, the line lands at the end of `<main>`. Style it as `#colophon`: the footer's small print. The event is a link only when the content file gives its address.
 
+## The widgets
+
+Each widget is a section of its own, shown only when the content file has its field. Style the widgets the person has; give the others nothing. Dates, such as `Oct 10, 2026`, are written in the site's language, each in a `<time>` element.
+
+### Numbers: `<section id="stats">`
+
+```html
+<h2>In numbers</h2>
+<ul class="stats">
+  <li class="stat"><span class="stat-value">2</span> <span class="stat-label">projects shipped</span></li>
+</ul>
+```
+
+Up to four, one `li.stat` each in `ul.stats`. Make `.stat-value` big and `.stat-label` small, side by side on wide screens.
+
+### Now: `<section id="now">`
+
+```html
+<h2>Now</h2>
+<p class="period">Updated <time datetime="2026-10">October 2026</time></p>
+<ul class="now">
+  <li>Learning view transitions</li>
+</ul>
+```
+
+Up to three things the person is doing now, in `ul.now`, with the month they wrote them in `p.period`.
+
+### Events: `<section id="events">`
+
+```html
+<h2>Events</h2>
+<h3>Up next</h3>
+<ul class="events upcoming">
+  <li class="event">
+    <h4 class="event-badge"><a href="https://…">Example Conf</a> <span class="role">Speaker</span></h4>
+    <p class="period"><time datetime="2026-11-20">Nov 20 – 21, 2026</time> · Turin</p>
+    <ul class="sessions">
+      <li class="session"><span class="session-badge"><span class="type">Talk</span> <a href="https://…">Accessible Forms</a></span> <a href="https://…">Slides</a> <a href="https://…">Video</a></li>
+    </ul>
+  </li>
+</ul>
+<h3>Past events</h3>
+<ul class="events past">…</ul>
+```
+
+- Each event is a container, `li.event`, with its sessions inside. Two kinds of badge: `h4.event-badge` holds the event's name and the person's role, `span.role` (Attendee, Speaker, Organizer, Volunteer or Mentor); `span.session-badge` holds a session's type, `span.type` (Talk, Workshop, Keynote, Panel or Codelab), and its title. Style both as badges, such as pills or stickers, each with its `.role` or `.type` set apart. The workshop of the day shows as an event badge, such as DevFest Milano · Attendee, and a session badge, Workshop · AI-Native Web Development, Hands-On.
+- `ul.events.upcoming` comes first, the soonest event first: give it the most weight, it says where to meet the person. `ul.events.past` follows, the latest first. Either is left out when it has no event; an event counts as upcoming up to its last day.
+- `ul.sessions` holds one `li.session` per session. A session's slides and video are the links after its badge; its title links inside the badge.
+- An event online says Online where the city would be.
+
+### Certifications: `<section id="certifications">` and `<section id="courses">`
+
+```html
+<h2>Certifications</h2>
+<ul class="certifications">
+  <li class="certification">
+    <h3>Example Certified Frontend Developer</h3>
+    <p class="period">Example Academy · <time datetime="2026-03">Mar 2026</time> – <time datetime="2029-03">Mar 2029</time></p>
+    <p class="credential-id">Credential ID EX-0000-0000</p>
+    <p class="verify"><a href="https://…">Verify</a></p>
+  </li>
+</ul>
+```
+
+Certifications from an exam go into `#certifications`; courses and workshops into `#courses`, under the heading Courses & workshops, with the same markup: one `li.certification` each in `ul.certifications`. Expired ones are left out. `p.credential-id` shows the ID when there is one, and `p.verify` links to the issuer's page that proves it.
+
+### A project as a case study: in `li.project`
+
+```html
+<li class="project">
+  <h3>Tide Tables</h3>
+  <img class="project-image" src="assets/tide-tables.webp" alt="…" loading="lazy" decoding="async">
+  <p>One sentence about the project.</p>
+  <dl class="case-study">
+    <dt>Problem</dt><dd>…</dd>
+    <dt>My role</dt><dd>…</dd>
+    <dt>Outcome</dt><dd>…</dd>
+    <dt>Stack</dt><dd>…</dd>
+    <dt>With AI</dt><dd>What the agent did, and what the person did.</dd>
+  </dl>
+  <p class="project-links">…</p>
+</li>
+```
+
+A project without these fields is the plain card as before. `img.project-image` has no width and height in the markup, as a screenshot can have any shape: give it `width: 100%`, `height: auto`, an `aspect-ratio` and `object-fit: cover` in the CSS, so it fits the card on a phone and the card does not jump while it loads. `dl.case-study` lists only the fields the project has.
+
 ## Where each part goes
 
-Every part fills the element of `index.html` with its id, wherever that element is. A part with no element of its own goes at the end of `<main>`. To move one, put its empty element where it belongs, for example `<section id="events" class="section"></section>`.
+Every part fills the element of `index.html` with its id, wherever that element is. `index.html` has an empty element for each: the numbers and Now under the first screen, then the projects, events, certifications, courses, links and CV. A part with no element of its own goes at the end of `<main>`. To move one, move its empty element, for example `<section id="events" class="section"></section>`.

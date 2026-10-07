@@ -32,6 +32,36 @@ const ENGLISH_LABELS = {
   native: "native",
   builtWith: "Built with AI agents at",
   noTrackers: "No trackers. Fonts served from this site.",
+  // The widgets: numbers, now, events with their roles and sessions,
+  // certifications, and the case study of a project.
+  stats: "In numbers",
+  now: "Now",
+  updated: "Updated",
+  events: "Events",
+  upcoming: "Up next",
+  past: "Past events",
+  online: "Online",
+  slides: "Slides",
+  video: "Video",
+  attendee: "Attendee",
+  speaker: "Speaker",
+  organizer: "Organizer",
+  volunteer: "Volunteer",
+  mentor: "Mentor",
+  talk: "Talk",
+  workshop: "Workshop",
+  keynote: "Keynote",
+  panel: "Panel",
+  codelab: "Codelab",
+  certifications: "Certifications",
+  courses: "Courses & workshops",
+  verify: "Verify",
+  credentialId: "Credential ID",
+  problem: "Problem",
+  role: "My role",
+  outcome: "Outcome",
+  stack: "Stack",
+  aiNote: "With AI",
 };
 
 export const pageLabels = (content) => ({ ...ENGLISH_LABELS, ...content.labels });
@@ -55,17 +85,45 @@ function localeOf(content) {
   }
 }
 
-// A date of the content file, such as 2026-10-10 or 2026-10, written out in
-// the site's language: "October 10, 2026" or "October 2026".
-function formatDate(value, locale) {
+// A date of the content file, 2026-10-10 or 2026-10 (a whole month), as
+// { time, day }; undefined for anything else.
+function parseDate(value) {
   const [, year, month, day] = String(value).match(/^(\d{4})-(\d{2})(?:-(\d{2}))?$/) ?? [];
-  if (!year) return escapeHtml(value);
-  const date = Date.UTC(Number(year), Number(month) - 1, Number(day ?? 1));
-  const options = day ? { dateStyle: "long" } : { year: "numeric", month: "long" };
-  return escapeHtml(new Intl.DateTimeFormat(locale, { ...options, timeZone: "UTC" }).format(date));
+  return year ? { time: Date.UTC(Number(year), Number(month) - 1, Number(day ?? 1)), day } : undefined;
 }
 
-const timeElement = (value, locale) => `<time datetime="${escapeHtml(value)}">${formatDate(value, locale)}</time>`;
+// How a date is written: "long" in a sentence, October 10, 2026; "short"
+// in a list, Oct 10, 2026. A month alone: October 2026, Oct 2026.
+const dateOptions = ({ day }, length) =>
+  day ? { dateStyle: length === "long" ? "long" : "medium" } : { year: "numeric", month: length };
+
+const dateFormat = (date, locale, length) => new Intl.DateTimeFormat(locale, { ...dateOptions(date, length), timeZone: "UTC" });
+
+// A date written out in the site's language, in a <time> element.
+function timeElement(value, locale, length = "long") {
+  const date = parseDate(value);
+  const text = date ? dateFormat(date, locale, length).format(date.time) : value;
+  return `<time datetime="${escapeHtml(value)}">${escapeHtml(text)}</time>`;
+}
+
+// The first and last day of something that lasts longer than a day, such
+// as Nov 20 – 21, 2026; or its one date.
+function dateRange(start, end, locale) {
+  const from = parseDate(start);
+  const to = filled(end) && parseDate(end);
+  if (!from || !to || Boolean(from.day) !== Boolean(to.day) || to.time <= from.time) return timeElement(start, locale, "short");
+  return `<time datetime="${escapeHtml(start)}">${escapeHtml(dateFormat(from, locale, "short").formatRange(from.time, to.time))}</time>`;
+}
+
+// The last day a date stands for: a month alone lasts to its end. Dates
+// written as year-month-day compare as text.
+const lastDayOf = (value) => (/^\d{4}-\d{2}$/.test(value) ? `${value}-31` : value);
+
+// Today as year-month-day, where the page is built or shown.
+function currentDay() {
+  const now = new Date();
+  return [now.getFullYear(), now.getMonth() + 1, now.getDate()].map((part) => String(part).padStart(2, "0")).join("-");
+}
 
 // The name of a time zone such as Europe/Rome in the site's language,
 // "Central European Time"; undefined for a name the browser does not know.
@@ -174,17 +232,122 @@ function renderColophon(content, labels, locale) {
   return `${escapeHtml(labels.builtWith)} ${linked(url, escapeHtml(event))}${when}. ${escapeHtml(labels.noTrackers)}`;
 }
 
+// Up to four honest numbers, each with what it counts.
+function renderStats(content, labels) {
+  const items = renderEach(
+    (content.stats ?? []).filter((stat) => filled(String(stat?.value ?? "")) && filled(stat?.label)).slice(0, 4),
+    ({ value, label }) => `<li class="stat"><span class="stat-value">${escapeHtml(value)}</span> <span class="stat-label">${escapeHtml(label)}</span></li>`,
+  );
+  return listWithHeading(`<h2>${escapeHtml(labels.stats)}</h2>`, "stats", items);
+}
+
+// What the person is doing now, up to three things, and when they wrote it.
+function renderNow(content, labels, locale) {
+  const items = renderEach((content.now?.items ?? []).filter(filled).slice(0, 3), (item) => `<li>${escapeHtml(item)}</li>`);
+  if (!items) return "";
+  const updated = filled(content.now.updated) ? `<p class="period">${escapeHtml(labels.updated)} ${timeElement(content.now.updated, locale)}</p>` : "";
+  return `<h2>${escapeHtml(labels.now)}</h2>${updated}<ul class="now">${items}</ul>`;
+}
+
+// A word for one of a few known values, such as a role or a session type,
+// from labels; any other value as it is.
+const ROLES = ["attendee", "speaker", "organizer", "volunteer", "mentor"];
+const SESSION_TYPES = ["talk", "workshop", "keynote", "panel", "codelab"];
+const wordFor = (value, known, labels) => escapeHtml(known.includes(value) ? labels[value] : value);
+
+// A session badge: its type and title. Its slides and video follow it.
+function renderSession(session, labels) {
+  const extras = [["slides", session.slides], ["video", session.video]]
+    .filter(([, url]) => filled(url))
+    .map(([label, url]) => ` <a href="${escapeHtml(url)}">${escapeHtml(labels[label])}</a>`)
+    .join("");
+  const badge = `<span class="session-badge"><span class="type">${wordFor(session.type, SESSION_TYPES, labels)}</span> ${linked(session.url, escapeHtml(session.title))}</span>`;
+  return `<li class="session">${badge}${extras}</li>`;
+}
+
+// An event: the container of its sessions, with its badge, name and role,
+// then its dates and city.
+function renderEvent(event, labels, locale) {
+  const role = filled(event.role) ? ` <span class="role">${wordFor(event.role, ROLES, labels)}</span>` : "";
+  const place = [filled(event.city), event.online === true && labels.online].filter(Boolean).map(escapeHtml).join(" · ");
+  const sessions = renderEach(event.sessions?.filter((session) => filled(session?.title)), (session) => renderSession(session, labels));
+  return `
+      <li class="event">
+        <h4 class="event-badge">${linked(event.url, escapeHtml(event.name))}${role}</h4>
+        <p class="period">${dateRange(event.date, event.endDate, locale)}${place ? ` · ${place}` : ""}</p>${sessions ? `
+        <ul class="sessions">${sessions}</ul>` : ""}
+      </li>`;
+}
+
+// Events still to come first, as Up next, the soonest first; then past
+// ones, the latest first. An event is still to come up to its last day.
+function renderEvents(content, labels, locale, today) {
+  const events = (content.events ?? []).filter((event) => filled(event?.name) && filled(event?.date));
+  const ahead = (event) => lastDayOf(filled(event.endDate) ?? event.date) >= today;
+  const upcoming = events.filter(ahead).sort((a, b) => a.date.localeCompare(b.date));
+  const past = events.filter((event) => !ahead(event)).sort((a, b) => b.date.localeCompare(a.date));
+  const group = (heading, className, entries) =>
+    listWithHeading(`<h3>${escapeHtml(heading)}</h3>`, `events ${className}`, renderEach(entries, (event) => renderEvent(event, labels, locale)));
+  const groups = group(labels.upcoming, "upcoming", upcoming) + group(labels.past, "past", past);
+  return groups && `<h2>${escapeHtml(labels.events)}</h2>${groups}`;
+}
+
+// Certifications, or courses and workshops: each with its issuer, its dates,
+// its credential ID and the link that verifies it.
+function renderCredentials(entries, heading, labels, locale) {
+  const items = renderEach(entries, (entry) => {
+    const dates = filled(entry.expires)
+      ? `${timeElement(entry.issued, locale, "short")} – ${timeElement(entry.expires, locale, "short")}`
+      : timeElement(entry.issued, locale, "short");
+    const id = filled(entry.credentialId) ? `
+        <p class="credential-id">${escapeHtml(labels.credentialId)} ${escapeHtml(entry.credentialId)}</p>` : "";
+    const verify = filled(entry.url) ? `
+        <p class="verify"><a href="${escapeHtml(entry.url)}">${escapeHtml(labels.verify)}</a></p>` : "";
+    return `
+      <li class="certification">
+        <h3>${escapeHtml(entry.name)}</h3>
+        <p class="period">${escapeHtml(entry.issuer)} · ${dates}</p>${id}${verify}
+      </li>`;
+  });
+  return listWithHeading(`<h2>${escapeHtml(heading)}</h2>`, "certifications", items);
+}
+
+// Certifications from an exam under their own heading, courses and
+// workshops under another; expired ones are left out. The latest first.
+function renderCertifications(content, labels, locale, today) {
+  const valid = (content.certifications ?? [])
+    .filter((entry) => filled(entry?.name) && filled(entry?.issuer) && filled(entry?.issued))
+    .filter((entry) => !filled(entry.expires) || lastDayOf(entry.expires) >= today)
+    .sort((a, b) => b.issued.localeCompare(a.issued));
+  return {
+    certifications: renderCredentials(valid.filter((entry) => entry.kind === "exam"), labels.certifications, labels, locale),
+    courses: renderCredentials(valid.filter((entry) => entry.kind !== "exam"), labels.courses, labels, locale),
+  };
+}
+
+// What a project's case study says, in this order, each under its label.
+const CASE_STUDY = ["problem", "role", "outcome", "stack", "aiNote"];
+
+// A project; with a picture and a case study when it has them, and as
+// before when it has neither.
 function renderProjects(content, labels) {
-  const items = renderEach(content.projects, (project) =>
-    card(
+  const items = renderEach(content.projects, (project) => {
+    const { image } = project;
+    const picture = filled(image?.src) && filled(image?.alt) ? `<img class="project-image" src="${escapeHtml(image.src)}" alt="${escapeHtml(image.alt)}" loading="lazy" decoding="async">
+        ` : "";
+    const caseStudy = CASE_STUDY.filter((field) => filled(project[field]))
+      .map((field) => `<dt>${escapeHtml(labels[field])}</dt><dd>${escapeHtml(project[field])}</dd>`)
+      .join("");
+    return card(
       escapeHtml(project.title),
-      `<p>${escapeHtml(project.description)}</p>
+      `${picture}<p>${escapeHtml(project.description)}</p>${caseStudy ? `
+        <dl class="case-study">${caseStudy}</dl>` : ""}
         <p class="project-links">
           <a href="${escapeHtml(project.github)}">${escapeHtml(labels.code)}</a>
           ${project.url ? `<a href="${escapeHtml(project.url)}">${escapeHtml(labels.live)}</a>` : ""}
         </p>`,
-    ),
-  );
+    );
+  });
   return listWithHeading(`<h2>${escapeHtml(labels.projects)}</h2>`, "projects", items);
 }
 
@@ -255,12 +418,19 @@ function renderModule(entries, heading, detailField) {
 // The HTML of each part of the page, by the id of the element it fills. A
 // part with no element of that id in index.html goes at the end of <main>.
 // The colophon's element is in the footer: <div id="colophon"></div>.
-export function renderSections(content) {
+// "today", as year-month-day, splits upcoming from past events and leaves
+// out expired certifications; without it, it is the current date.
+export function renderSections(content, { today } = {}) {
   const labels = pageLabels(content);
   const locale = localeOf(content);
+  const day = /^\d{4}-\d{2}-\d{2}$/.test(today ?? "") ? today : currentDay();
   return {
     bio: renderBio(content, labels, locale),
+    stats: renderStats(content, labels),
+    now: renderNow(content, labels, locale),
     projects: renderProjects(content, labels),
+    events: renderEvents(content, labels, locale, day),
+    ...renderCertifications(content, labels, locale, day),
     links: renderLinks(content, labels),
     cv: renderCv(content, labels),
     ...Object.fromEntries(

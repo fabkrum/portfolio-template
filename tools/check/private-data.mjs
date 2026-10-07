@@ -88,10 +88,13 @@ function findInText(fullText) {
   return found;
 }
 
+// A certification's credential ID is often a long run of digits, never a phone number.
+const isCredentialId = (path) => path.at(-1) === "credentialId";
+
 export function findPrivateDataInContent(content) {
   const findings = [];
   for (const { path, text } of textValues(content)) {
-    if (isPlainWebLink(text)) continue;
+    if (isPlainWebLink(text) || isCredentialId(path)) continue;
     const where = ["content.json", ...path].join(" > ");
     const found = findInText(text);
     for (const finding of found.length === 0 && isPlace(path) ? findInPlace(text) : found) findings.push(`${where}: ${finding}`);

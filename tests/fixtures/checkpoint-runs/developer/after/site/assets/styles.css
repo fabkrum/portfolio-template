@@ -235,3 +235,81 @@ header p {
 .photo {
   border-radius: 50%;
 }
+
+/* First screen: the pitch stands out, the facts sit in a row */
+.pitch {
+  font-size: 1.25rem;
+}
+
+.facts {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.5rem;
+  color: var(--muted);
+}
+
+/* A project's picture: the card's width, the same shape in every card */
+.project-image {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border-radius: 0.5rem;
+  margin-block-end: 1rem;
+}
+
+/* Widgets: badges for events and sessions, and the numbers in a row */
+.events,
+.sessions,
+.certifications,
+.stats {
+  list-style: none;
+  padding: 0;
+}
+
+.event-badge .role,
+.session-badge .type {
+  background: var(--surface);
+  border-radius: 9999px;
+  padding: 0.125rem 0.625rem;
+  font-size: 0.875rem;
+  font-weight: 400;
+}
+
+.events,
+.certifications {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.events + h3 {
+  margin-block-start: 2rem;
+}
+
+.sessions {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.stat-value {
+  display: block;
+  font-family: var(--font-heading);
+  font-size: 2rem;
+  font-weight: var(--weight-heading);
+}
+
+.case-study dt {
+  font-weight: var(--weight-heading);
+}
+
+.case-study dd {
+  margin: 0 0 0.5rem;
+}
