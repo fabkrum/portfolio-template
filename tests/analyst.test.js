@@ -111,6 +111,42 @@ test("the Analyst keeps phone numbers and postal addresses out", async () => {
   assert.match(skill, /postal address/);
 });
 
+// The JSON blocks of a skill, as text, and the spec template the Analyst fills in.
+const jsonBlocks = (skill) => [...skill.matchAll(/```json\n([\s\S]*?)```/g)].map((match) => match[1]);
+const specTemplate = (skill) => skill.match(/```markdown\n([\s\S]*?)```/)[1];
+
+test("the content file the Analyst skill shows matches the schema, the fields of the first screen too", async () => {
+  const shape = JSON.parse(jsonBlocks(await analystSkill()).find((block) => block.includes('"$schema"')));
+  const schema = JSON.parse(await read("../site/content.schema.json"));
+  assert.deepEqual(validateContent(schema, shape), []);
+  for (const field of ["pitch", "highlights", "availability", "location", "languages"]) assert.ok(field in shape, field);
+});
+
+test("the Analyst asks the site's goal and writes it into the spec", async () => {
+  const skill = await analystSkill();
+  const interview = skill.split(/^## /m).find((section) => section.startsWith("3"));
+  const goal = interview.match(/^\d+\. \*\*Goal\*\*: (.*)$/m)?.[1] ?? "";
+  for (const kind of [/job/, /freelance clients/, /speaking invitations/, /community/]) assert.match(goal, kind);
+  assert.match(specTemplate(skill), /^## Goal$/m);
+});
+
+test("on a workshop day the Analyst adds the colophon's event without asking, and on no other day", async () => {
+  const skill = await analystSkill();
+  for (const needed of [/without asking/, /10 October 2026/, /DevFest Milano/, /"date": "2026-10-10"/, /24 October 2026/, /DevFest Venezia/, /2026-10-24/, /On any other day, leave `builtAt` out/]) {
+    assert.match(skill, needed);
+  }
+  const schema = JSON.parse(await read("../site/content.schema.json"));
+  const builtAt = JSON.parse(`{${jsonBlocks(skill).find((block) => block.includes('"builtAt"'))}}`);
+  assert.deepEqual(validateContent(schema, { ...sample, ...builtAt }), []);
+});
+
+test("the Analyst explains how to add a photo: into the repo folder, then the photo tool, with alt text", async () => {
+  const skill = await analystSkill();
+  for (const needed of ["Copy the photo into your repo folder", "node tools/photo.mjs", '"src": "assets/photo.webp"', '"alt"', "not one made by AI", "delete the original photo"]) {
+    assert.ok(skill.includes(needed), needed);
+  }
+});
+
 // Proxy runs: a fresh agent on Claude Haiku 4.5 played the Analyst on fake
 // LinkedIn text, a fake CV as a PDF, and an interview with nothing to start
 // from, while the person's answers came from answers.md. Each run folder holds
