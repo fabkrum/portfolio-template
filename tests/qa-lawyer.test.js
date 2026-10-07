@@ -189,6 +189,27 @@ test("the Lawyer checks that the photo went through the photo tool and has alt t
   }
 });
 
+test("for a site that wins clients, the Lawyer explains the EU address, the Partita IVA and the Impressum, the two options, and adds no address", async () => {
+  const sells = (await lawyerSkill()).split(/^## /m).find((part) => part.startsWith("3. A site that sells"));
+  assert.ok(sells, "no step for a site that sells");
+  for (const needed of [
+    "`## Goal` names freelance clients",
+    "offers services or prices",
+    "This is not legal advice",
+    "geographic address",
+    "E-Commerce Directive, Article 5",
+    "In Italy, your Partita IVA must be on the home page",
+    "In Germany, the site needs an Impressum",
+    "your home address must never go into it",
+    "coworking space",
+    "Keep the site non-commercial",
+    "I add no address and no VAT number to your site",
+    "Add no address and no VAT number yourself, also when the person gives you one",
+  ]) {
+    assert.ok(sells.includes(needed), needed);
+  }
+});
+
 // The Lawyer's checkpoint, run the way a participant runs it.
 const jumpToLawyer = (dir) => spawnSync(process.execPath, [join(dir, "tools", "checkpoint.mjs"), "lawyer"], { cwd: dir, encoding: "utf8" });
 
