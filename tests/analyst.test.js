@@ -250,3 +250,11 @@ test("CV run: it asked only about the gaps, and the site is in Italian, its head
   assert.ok(content.links.some((link) => link.url === "mailto:giulia@example.com"));
   assert.deepEqual(content.projects.map((project) => project.github), ["https://github.com/octocat/Hello-World"]);
 });
+
+// The Designer interviews the person first and writes their Stitch prompt,
+// so the hand-off must not send them to Stitch on their own.
+test("the Analyst hands over to the Designer in a fresh chat, without sending the person to Stitch first", async () => {
+  const handOff = (await analystSkill()).match(/^"The Analyst is done\. (.*)"$/m)?.[1] ?? "";
+  assert.match(handOff, /^Start a fresh chat and ask for the Designer: it asks you a few questions about your style/);
+  assert.doesNotMatch(handOff, /Stitch design|open Stitch|go to Stitch/i);
+});

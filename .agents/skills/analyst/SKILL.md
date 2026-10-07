@@ -252,6 +252,6 @@ Run `node tools/check-content.mjs`, and tell the person to delete the original p
 
 If the person gave you a CV file, add this sentence, in these words: "If you saved your CV inside your repo folder, move it out: it holds your phone number and address, and everything in that folder can end up public." Then end the role:
 
-"The Analyst is done. Start a fresh chat and ask for the Designer: it turns your Stitch design into the design brief."
+"The Analyst is done. Start a fresh chat and ask for the Designer: it asks you a few questions about your style and writes your personal Stitch prompt."
 
 Do not start the design in this chat.
