@@ -79,7 +79,12 @@ jobs:
 
   # The runners ship Git, Node and Chrome. Each job first takes away what a
   # fresh laptop would not have, then runs the one line exactly as the guide
-  # shows it, fetched from this commit, and runs it again afterwards.
+  # shows it, fetched from this commit, and runs it again afterwards. The
+  # workshop guide's line also names the event (EVENT, EVENT_DATE and
+  # EVENT_CITY here, with an apostrophe, double quotes, a backslash and a dash
+  # that is not ASCII), which the script saves in workshop.json; the README's
+  # line names none, and then there is no such file. assert-ready checks
+  # workshop.json against the WORKSHOP_ variables it is given.
   install-linux:
     if: github.repository == 'fabkrum/portfolio-template'
     runs-on: ubuntu-latest
@@ -88,6 +93,9 @@ jobs:
       PORTFOLIO_GITHUB_USER: ${{ github.repository_owner }}
       PORTFOLIO_REPO: ${{ github.event.repository.name }}
       ORIGIN: https://github.com/${{ github.repository }}.git
+      EVENT: DevFest "Ca' Foscari" Venezia–Mestre \o/
+      EVENT_DATE: "2026-10-24"
+      EVENT_CITY: Venezia–Mestre
     steps:
       - uses: actions/checkout@v4
         with:
@@ -113,33 +121,44 @@ jobs:
           "open a new terminal window" "Run this command again any time"
       - name: Chrome comes back (the participant installed it)
         run: while read -r path; do sudo mv "$path.hidden" "$path"; done < "$RUNNER_TEMP/hidden-chrome"
-      - name: Ready after the first run
+      - name: Ready after the first run, and no workshop.json (the line named no event)
         run: bash under-test/tests/install/assert-ready.sh "$HOME/$PORTFOLIO_REPO" "$ORIGIN"
       # This time nothing answers the question up front: the participant types
-      # (here: pastes their repo link) into a real terminal.
-      - name: Second run, answering the question in a terminal
+      # (here: pastes their repo link) into a real terminal. The line is the
+      # workshop guide's, with the event.
+      - name: Second run, from the workshop guide, answering the question in a terminal
         run: >
           printf '%s\n' "https://github.com/$PORTFOLIO_GITHUB_USER/$PORTFOLIO_REPO"
-          | env -u PORTFOLIO_GITHUB_USER -u PORTFOLIO_REPO script -qec 'wget -qO- "$INSTALL_URL" | sh' /dev/null
+          | env -u PORTFOLIO_GITHUB_USER -u PORTFOLIO_REPO script -qec 'wget -qO- "$INSTALL_URL" | WORKSHOP_EVENT="$EVENT" WORKSHOP_DATE="$EVENT_DATE" WORKSHOP_CITY="$EVENT_CITY" sh' /dev/null
           | tee "$RUNNER_TEMP/second-run.log"
-      - name: Second run asked, then found everything in place
+      - name: Second run asked, then found everything in place and saved the event
         run: >
           bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/second-run.log"
           "What is your GitHub username?" "Chrome DevTools for agents is ready"
-          "Your repo is already in" "Run this command again any time"
-      - name: Still ready after the second run
-        run: bash under-test/tests/install/assert-ready.sh "$HOME/$PORTFOLIO_REPO" "$ORIGIN"
+          "Your repo is already in" "Saved your workshop in workshop.json" "Run this command again any time"
+      - name: Still ready after the second run, with the event in workshop.json
+        run: >
+          WORKSHOP_EVENT="$EVENT" WORKSHOP_DATE="$EVENT_DATE" WORKSHOP_CITY="$EVENT_CITY"
+          bash under-test/tests/install/assert-ready.sh "$HOME/$PORTFOLIO_REPO" "$ORIGIN"
       # No npm registry and nothing in npm's cache: Chrome DevTools for agents
-      # cannot be had, and the script says so and carries on to the end.
-      - name: "Third run, without the npm registry"
+      # cannot be had, and the script says so and carries on to the end. The
+      # line names another event, the guide's example word for word: the
+      # script writes workshop.json again.
+      - name: "Third run, without the npm registry, for another event"
         run: >
           wget -qO- "$INSTALL_URL"
-          | npm_config_cache="$RUNNER_TEMP/empty-npm-cache" npm_config_registry=http://127.0.0.1:9/ npm_config_fetch_retries=0 sh 2>&1
+          | npm_config_cache="$RUNNER_TEMP/empty-npm-cache" npm_config_registry=http://127.0.0.1:9/ npm_config_fetch_retries=0
+          WORKSHOP_EVENT="DevFest Milano 2026" WORKSHOP_DATE=2026-10-10 WORKSHOP_CITY=Milan sh 2>&1
           | tee "$RUNNER_TEMP/third-run.log"
-      - name: Third run said QA works without it, and finished
+      - name: Third run said QA works without it, saved the other event, and finished
         run: >
           bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/third-run.log"
-          "Downloading Chrome DevTools for agents" "the QA role works without it" "Run this command again any time"
+          "Downloading Chrome DevTools for agents" "the QA role works without it"
+          "Saved your workshop in workshop.json: DevFest Milano 2026." "Run this command again any time"
+      - name: Ready after the third run, with the other event in workshop.json
+        run: >
+          WORKSHOP_EVENT="DevFest Milano 2026" WORKSHOP_DATE=2026-10-10 WORKSHOP_CITY=Milan
+          bash under-test/tests/install/assert-ready.sh "$HOME/$PORTFOLIO_REPO" "$ORIGIN"
 
   install-macos:
     if: github.repository == 'fabkrum/portfolio-template'
@@ -149,6 +168,9 @@ jobs:
       PORTFOLIO_GITHUB_USER: ${{ github.repository_owner }}
       PORTFOLIO_REPO: ${{ github.event.repository.name }}
       ORIGIN: https://github.com/${{ github.repository }}.git
+      EVENT: DevFest "Ca' Foscari" Venezia–Mestre \o/
+      EVENT_DATE: "2026-10-24"
+      EVENT_CITY: Venezia–Mestre
     steps:
       - uses: actions/checkout@v4
         with:
@@ -167,16 +189,24 @@ jobs:
             hash -r
           done
           if command -v node; then echo "Node is still there"; exit 1; fi
-      - name: First run (Git missing)
-        run: curl -fsSL "$INSTALL_URL" | PATH="$RUNNER_TEMP/fresh-mac:$PATH" sh 2>&1 | tee "$RUNNER_TEMP/first-run.log"
-      - name: First run told the participant what is missing
+      # The workshop guide's line, with the event: the script saves it in the
+      # repo it had to download.
+      - name: First run, from the workshop guide (Git missing)
+        run: >
+          curl -fsSL "$INSTALL_URL"
+          | PATH="$RUNNER_TEMP/fresh-mac:$PATH" WORKSHOP_EVENT="$EVENT" WORKSHOP_DATE="$EVENT_DATE" WORKSHOP_CITY="$EVENT_CITY" sh 2>&1
+          | tee "$RUNNER_TEMP/first-run.log"
+      - name: First run told the participant what is missing, and saved the event
         run: >
           bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/first-run.log"
           "command line developer tools" "Antigravity IDE is not installed"
-          "Chrome DevTools for agents is ready"
+          "Chrome DevTools for agents is ready" "Saved your workshop in workshop.json"
           "open a new terminal window" "Run this command again any time"
-      - name: Downloaded without Git after the first run
-        run: bash under-test/tests/install/assert-ready.sh "$HOME/$PORTFOLIO_REPO" "$ORIGIN" --without-git
+      - name: Downloaded without Git after the first run, with the event in workshop.json
+        run: >
+          WORKSHOP_EVENT="$EVENT" WORKSHOP_DATE="$EVENT_DATE" WORKSHOP_CITY="$EVENT_CITY"
+          bash under-test/tests/install/assert-ready.sh "$HOME/$PORTFOLIO_REPO" "$ORIGIN" --without-git
+      # The README's line, without an event: workshop.json stays as it was.
       - name: Second run (developer tools now installed)
         run: curl -fsSL "$INSTALL_URL" | sh 2>&1 | tee "$RUNNER_TEMP/second-run.log"
       - name: Second run connected the download to Git
@@ -184,8 +214,10 @@ jobs:
           bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/second-run.log"
           "Chrome DevTools for agents is ready" "Connected your repo folder to Git"
           "Run this command again any time"
-      - name: Ready after the second run
-        run: bash under-test/tests/install/assert-ready.sh "$HOME/$PORTFOLIO_REPO" "$ORIGIN"
+      - name: Ready after the second run, with workshop.json unchanged
+        run: >
+          WORKSHOP_EVENT="$EVENT" WORKSHOP_DATE="$EVENT_DATE" WORKSHOP_CITY="$EVENT_CITY"
+          bash under-test/tests/install/assert-ready.sh "$HOME/$PORTFOLIO_REPO" "$ORIGIN"
 
   # Two Windows laptops: one with winget (most Windows 10 and 11), one without
   # it, where the script falls back to downloads and connects Git later.
@@ -201,6 +233,9 @@ jobs:
       PORTFOLIO_GITHUB_USER: ${{ github.repository_owner }}
       PORTFOLIO_REPO: ${{ github.event.repository.name }}
       ORIGIN: https://github.com/${{ github.repository }}.git
+      EVENT: DevFest "Ca' Foscari" Venezia–Mestre \o/
+      EVENT_DATE: "2026-10-24"
+      EVENT_CITY: Venezia–Mestre
     defaults:
       run:
         shell: pwsh
@@ -231,22 +266,27 @@ jobs:
           powershell.exe -NoProfile -ExecutionPolicy Restricted -Command "irm $env:INSTALL_URL | iex" *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\first-run.log"
       - name: First run told the participant what is missing
         run: under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\first-run.log" -Message 'Antigravity IDE is not installed', 'Chrome DevTools for agents is ready', 'open a new terminal window', 'Run this command again any time'
-      - name: "With winget: ready after the first run"
+      - name: "With winget: ready after the first run, and no workshop.json (the line named no event)"
         if: matrix.winget == 'present'
         run: under-test/tests/install/assert-ready.ps1 -RepoDir "$HOME\$env:PORTFOLIO_REPO" -Origin $env:ORIGIN
-      - name: "Without winget: told about Git, downloaded the repo, Node from nodejs.org"
+      - name: "Without winget: told about Git, downloaded the repo, Node from nodejs.org, and no workshop.json"
         if: matrix.winget == 'missing'
         run: |
           under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\first-run.log" -Message 'Git could not be installed', 'Downloading Node from nodejs.org'
           under-test/tests/install/assert-ready.ps1 -RepoDir "$HOME\$env:PORTFOLIO_REPO" -Origin $env:ORIGIN -WithoutGit
-      - name: Second run (winget available again in the missing case)
-        run: powershell.exe -NoProfile -ExecutionPolicy Restricted -Command "irm $env:INSTALL_URL | iex" *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\second-run.log"
-      - name: Second run found the repo in place, or connected the download to Git
+      # The workshop guide's line sets the event in the window, then runs irm.
+      - name: Second run, from the workshop guide (winget available again in the missing case)
+        run: |
+          $env:WORKSHOP_EVENT = $env:EVENT; $env:WORKSHOP_DATE = $env:EVENT_DATE; $env:WORKSHOP_CITY = $env:EVENT_CITY
+          powershell.exe -NoProfile -ExecutionPolicy Restricted -Command "irm $env:INSTALL_URL | iex" *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\second-run.log"
+      - name: Second run found the repo in place, or connected the download to Git, and saved the event
         run: |
           $expected = if ('${{ matrix.winget }}' -eq 'missing') { 'Connected your repo folder to Git' } else { 'Your repo is already in' }
-          under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\second-run.log" -Message $expected, 'Chrome DevTools for agents is ready', 'Run this command again any time'
-      - name: Ready after the second run
-        run: under-test/tests/install/assert-ready.ps1 -RepoDir "$HOME\$env:PORTFOLIO_REPO" -Origin $env:ORIGIN
+          under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\second-run.log" -Message $expected, 'Chrome DevTools for agents is ready', 'Saved your workshop in workshop.json', 'Run this command again any time'
+      - name: Ready after the second run, with the event in workshop.json
+        run: |
+          $env:WORKSHOP_EVENT = $env:EVENT; $env:WORKSHOP_DATE = $env:EVENT_DATE; $env:WORKSHOP_CITY = $env:EVENT_CITY
+          under-test/tests/install/assert-ready.ps1 -RepoDir "$HOME\$env:PORTFOLIO_REPO" -Origin $env:ORIGIN
       # No npm registry and nothing in npm's cache: Chrome DevTools for agents
       # cannot be had, and the script says so and carries on to the end.
       - name: "Third run, without the npm registry"
