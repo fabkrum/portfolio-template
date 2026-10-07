@@ -2,9 +2,9 @@
 //
 //   node tools/look.mjs
 //
-// It opens every page of your site in your own Chrome, at phone and at wide
-// width, in light and in dark mode, and saves a screenshot of each into the
-// folder qa/. It also measures how fast the home page shows up on a phone
+// It builds your site and opens every page of it in your own Chrome, at phone
+// and at wide width, in light and in dark mode, and saves a screenshot of each
+// into the folder qa/. It also measures how fast the home page shows up on a phone
 // with a slow connection, and whether it jumps while it loads. It only
 // reports: it never stops you from publishing.
 // Add a folder name to look at another site folder, and a second one to save
@@ -12,6 +12,7 @@
 import { existsSync } from "node:fs";
 import { relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { BuildError } from "./build/build-site.mjs";
 import { findChrome } from "./check/chrome.mjs";
 import { GOOD, lookAtSite } from "./look/look-at-site.mjs";
 
@@ -66,7 +67,11 @@ try {
     report(await lookAtSite(siteDir, outDir, chromePath));
   }
 } catch (error) {
-  console.log(`Looking at the site ran into a problem: ${error.message}`);
+  console.log(
+    error instanceof BuildError
+      ? `Your site could not be built, so there is nothing to look at: ${error.message}`
+      : `Looking at the site ran into a problem: ${error.message}`,
+  );
 }
 console.log("\nThis only reports. It never stops you from publishing.");
 process.exitCode = 0;

@@ -62,13 +62,14 @@ Prefer one command at a time over long chains on every system.
 
 ## The site
 
-- The site is plain HTML, CSS and JavaScript in `site/`. No build step, no Node, no npm packages.
+- The site is plain HTML, CSS and JavaScript in `site/`. One build tool turns it into the finished site: `node tools/build.mjs` (the same command on every system) puts the content of `site/content.json` into the pages and writes the finished site into `_site/`. It uses only what comes with Node: never add npm packages, a `package.json` or another build tool. The preview, look, the Check and publishing build the site themselves.
+- JavaScript is only for extras, never for content. The content is in the page itself, so it shows without JavaScript, and search engines and AI agents read it. Never load `site/content.json` in the browser.
 - All content lives in `site/content.json`, which must match `site/content.schema.json`. Change content there, not in the HTML. That includes the page's own words, such as section headings, in the site's language: they are the `labels` in the content file.
 - The repo is public. Never put a phone number or a postal address in any file.
 - A photo of the person goes on the site only through `node tools/photo.mjs <file>` (the same command on every system): it saves a small square copy as `site/assets/photo.webp`, without the hidden data a phone saves in a photo, such as where it was taken. Never put the original photo into `site/`.
 - Load nothing from other servers: no fonts from fonts.googleapis.com, no scripts or styles from a CDN. A web font goes into `site/assets/fonts/` and is loaded from there. Loading it from Google would send every visitor's IP address to Google, which EU privacy law does not allow without consent.
 - See whether the published site is live with `node tools/live.mjs` (the same command on every system). It prints the site's address on GitHub Pages and waits until the site online matches the last commit.
-- Preview the site with `node tools/preview.mjs` (the same command on every system). It prints a local address to open in Chrome.
+- Preview the site with `node tools/preview.mjs` (the same command on every system). It builds the site and prints a local address to open in Chrome; after a change, reload the page.
 - Before choosing how to build any part of the page, read the matching guide in Modern Web Guidance, `.agents/skills/modern-web-guidance/`. Your training data is older than today's web.
 - Look at the site with `node tools/look.mjs` (the same command on every system). It saves screenshots of every page at phone and wide width, in light and dark mode, into `qa/`, and measures how fast the home page loads on a phone. Open the screenshots and look at them: the Check cannot see the layout.
 - Check the site with `node tools/check.mjs` (the same command on every system). The Check is a tool next to the site, not part of it: it uses Node, the site never does. It reports what passes and what needs attention and never blocks; read its findings back to the person in plain words.

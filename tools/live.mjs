@@ -3,13 +3,16 @@
 //   node tools/live.mjs
 //
 // It works out your site's address on GitHub Pages from your repo's GitHub
-// address, then waits until the site online shows what you pushed: every
-// file in site/ online is the same as in your last commit. It says plainly
-// what is going on, and what to do if the site does not show up.
+// address, then waits until the site online shows what you pushed: GitHub
+// builds the site from your last commit and writes that commit into the
+// site's version.txt. It says plainly what is going on, and what to do if the
+// site does not show up.
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { customDomain, githubRepo, pagesAddress } from "./build/public-address.mjs";
 
 const repoDir = fileURLToPath(new URL("..", import.meta.url));
+const siteDir = fileURLToPath(new URL("../site", import.meta.url));
 
 const git = (...args) => spawnSync("git", args, { cwd: repoDir, encoding: "buffer" });
 const gitText = (...args) => {
@@ -22,19 +25,6 @@ const gitPaths = (...args) => {
   const result = git(...args);
   return result.status === 0 ? result.stdout.toString("utf8").split("\0").filter(Boolean) : [];
 };
-
-// https://github.com/Owner/repo.git or git@github.com:Owner/repo.git
-function githubRepo(remote) {
-  const match = remote.match(/^(?:https:\/\/(?:[^@/]+@)?github\.com\/|git@github\.com:|ssh:\/\/git@github\.com\/)([^/]+)\/([^/]+?)(?:\.git)?\/?$/);
-  return match && { owner: match[1], name: match[2] };
-}
-
-// A repo named like username.github.io is the site at the root address;
-// any other repo is a folder under it.
-function pagesAddress({ owner, name }) {
-  const host = `${owner.toLowerCase()}.github.io`;
-  return name.toLowerCase() === host ? `https://${host}/` : `https://${host}/${name}/`;
-}
 
 // Why the last commit cannot be online yet, or null when it is on GitHub.
 function whyNotOnGitHub() {
@@ -69,18 +59,14 @@ async function fetchOnline(baseUrl, path) {
   return response.ok ? Buffer.from(await response.arrayBuffer()) : null;
 }
 
-// "live" when every file in site/ of the last commit is online unchanged,
-// "missing" when there is no home page online at all.
-async function onlineState(baseUrl, files) {
-  // The home page first: without it, nothing of the site is online.
-  const ordered = ["site/index.html", ...files.filter((path) => path !== "site/index.html")];
+// "live" when the site online was built from the last commit, "missing" when
+// there is no home page online at all.
+async function onlineState(baseUrl, commit) {
   try {
-    for (const path of ordered) {
-      const online = await fetchOnline(baseUrl, path.slice("site/".length));
-      if (!online) return path === "site/index.html" ? "missing" : "older";
-      if (!online.equals(git("show", `HEAD:${path}`).stdout)) return "older";
-    }
-    return "live";
+    // The home page first: without it, nothing of the site is online.
+    if (!(await fetchOnline(baseUrl, "index.html"))) return "missing";
+    const version = await fetchOnline(baseUrl, "version.txt");
+    return version?.toString("utf8").trim() === commit ? "live" : "older";
   } catch {
     return "unreachable";
   }
@@ -134,7 +120,7 @@ async function main() {
     );
     return;
   }
-  const address = pagesAddress(repo);
+  const address = customDomain(siteDir) ?? pagesAddress(repo);
   console.log(`Your site's address: ${address}`);
 
   const blocker = whyNotOnGitHub();
@@ -147,12 +133,12 @@ async function main() {
     console.log(`These changes are not committed yet, so they will not be online: ${changed.join(", ")}`);
   }
 
-  const files = gitPaths("ls-tree", "-r", "-z", "--name-only", "HEAD", "--", "site");
+  const commit = gitText("rev-parse", "HEAD");
   const baseUrl = process.env.PORTFOLIO_LIVE_URL || address;
   const wait = Number(process.env.PORTFOLIO_LIVE_WAIT || 120);
   const started = Date.now();
   for (;;) {
-    const state = await onlineState(baseUrl, files);
+    const state = await onlineState(baseUrl, commit);
     if (state === "live") {
       console.log(`Your site is live. Open ${address} in Chrome and share the link.`);
       return;

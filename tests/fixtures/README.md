@@ -9,10 +9,15 @@ ones in: this repo is public.
   the files that differ from the sample site in `site/`, plus a `fixture.json`:
   `expect` names the one Check item that must need attention, `finding` is
   text its report must contain, `remove` lists sample files to delete. The
-  tests lay the folder over a copy of `site/`. `photo-with-location/assets/me.jpg`
-  is a small JPEG made in Chrome with the hidden data a phone saves planted
-  into it by `tests/photos.js`: a camera name and the GPS position 0° N 0° E,
-  a place in the sea.
+  tests lay the folder over a copy of `site/`; the Check builds it, as
+  publishing does. `content-only-in-javascript` is a site whose content only
+  appears through JavaScript: its `assets/render.js` gives the build nothing
+  to put into the page, and its `assets/main.js` fills the page from
+  `content.json` in the browser. A visitor's Chrome shows the content; a
+  search engine or an AI agent, which runs no JavaScript, does not.
+  `photo-with-location/assets/me.jpg` is a small JPEG made in Chrome with the
+  hidden data a phone saves planted into it by `tests/photos.js`: a camera
+  name and the GPS position 0° N 0° E, a place in the sea.
 - `base` in any `fixture.json` names another fixture folder, relative to this
   one, that is laid over `site/` first. The Check's fixtures stand on
   `finished-privacy/`: the privacy page the Lawyer's template gives for Ada

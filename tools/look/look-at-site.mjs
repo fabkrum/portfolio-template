@@ -1,12 +1,12 @@
 // Looks at the site the way visitors see it: a screenshot of every page at
 // phone and wide width, in light and dark mode, plus how fast the home page
-// shows up on a phone and whether it jumps while it loads. Uses the
-// participant's own Chrome (headless) and only Node built-ins.
-import { existsSync } from "node:fs";
+// shows up on a phone and whether it jumps while it loads. Builds the site
+// first, as publishing does. Uses the participant's own Chrome (headless) and
+// only Node built-ins.
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { serveBuild } from "../build/serve-build.mjs";
 import { launchChrome, navigate, openTab } from "../check/chrome.mjs";
-import { serveSite } from "../check/serve-site.mjs";
 
 export const WIDTHS = { phone: 390, wide: 1280 };
 const SCHEMES = ["light", "dark"];
@@ -178,24 +178,25 @@ async function lookAtPage(cdp, url, page, outDir) {
   return { screenshots, layout };
 }
 
-// Looks at every page of the site; saves the screenshots into outDir.
+// Builds the site and looks at every page of it; saves the screenshots into
+// outDir. Throws a BuildError when the site cannot be built.
 export async function lookAtSite(siteDir, outDir, chromePath) {
-  const pages = ["index.html", "privacy.html"].filter((page) => existsSync(join(siteDir, page)));
-  await mkdir(outDir, { recursive: true });
-  const server = await serveSite(siteDir);
+  const site = await serveBuild(siteDir);
+  const pages = ["index.html", "privacy.html"].filter((page) => site.build.pages.includes(page));
   let chrome;
   try {
+    await mkdir(outDir, { recursive: true });
     chrome = await launchChrome(chromePath);
     const result = { screenshots: [], layout: [] };
     for (const page of pages) {
-      const { screenshots, layout } = await lookAtPage(chrome.cdp, `${server.origin}/${page}`, page, outDir);
+      const { screenshots, layout } = await lookAtPage(chrome.cdp, `${site.origin}/${page}`, page, outDir);
       result.screenshots.push(...screenshots);
       result.layout.push(...layout);
     }
-    result.performance = await measure(chrome.cdp, `${server.origin}/`);
+    result.performance = await measure(chrome.cdp, `${site.origin}/`);
     return result;
   } finally {
     await chrome?.close();
-    server.close();
+    await site.close();
   }
 }

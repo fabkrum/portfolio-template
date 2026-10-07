@@ -46,6 +46,8 @@ jobs:
       - name: Content file matches the schema
         shell: bash
         run: bash tests/validate-content.sh
+      - name: Build the sample site, as the deploy does
+        run: node tools/build.mjs
       - name: The Check on the sample site, as a participant sees it
         run: node tools/check.mjs
       # The one documented action, run the way a participant runs it: from the
@@ -57,7 +59,7 @@ jobs:
         shell: bash
         run: |
           node tools/check.mjs | tee checkpoint-check.log
-          grep -q "5 of 5 items pass" checkpoint-check.log
+          grep -q "6 of 6 items pass" checkpoint-check.log
 
   lint-install:
     if: github.repository == 'fabkrum/portfolio-template'

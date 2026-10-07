@@ -43,7 +43,17 @@ From your repo folder, run:
 node tools/preview.mjs
 ```
 
-It prints a local address such as `http://localhost:8000`. Open it in Chrome to see your site before you publish it. Press Ctrl+C to stop the preview.
+It builds your site and prints a local address such as `http://localhost:8000`. Open it in Chrome to see your site before you publish it. After a change, reload the page: the preview builds your site again first. Press Ctrl+C to stop the preview.
+
+## Build your site
+
+The preview, the Check, look and publishing build your site by themselves, so you rarely need this. To see the finished files, run from your repo folder:
+
+```
+node tools/build.mjs
+```
+
+It puts your content from `site/content.json` into the pages and writes the finished site into the folder `_site/`: each page with its title, description and link preview, and `robots.txt`, `llms.txt` and `sitemap.xml` for search engines and AI agents. The sitemap needs your site's address, which the build takes from your repo on GitHub. Your content is in the pages themselves, so they show it without JavaScript. It uses only what comes with Node: no npm packages.
 
 ## Check your site
 
@@ -53,7 +63,7 @@ From your repo folder, run:
 node tools/check.mjs
 ```
 
-It looks at your site in your own Chrome and reports each item as PASS or NEEDS ATTENTION: the content file matches the schema, accessibility (the axe rules behind Lighthouse's accessibility score), no errors in the browser console, a privacy page written for your site, and no phone number, postal address or photo that still holds where it was taken anywhere in the site. The privacy page needs attention until the Lawyer role has written it. It only reports; it never stops you from publishing. It needs Node 22 or newer and Google Chrome.
+It builds your site, looks at it in your own Chrome and reports each item as PASS or NEEDS ATTENTION: the content file matches the schema, accessibility (the axe rules behind Lighthouse's accessibility score), no errors in the browser console, what an agent sees (your name, headline and projects in the page itself, for search engines and AI agents that run no JavaScript), a privacy page written for your site, and no phone number, postal address or photo that still holds where it was taken anywhere in the site. The privacy page needs attention until the Lawyer role has written it. It only reports; it never stops you from publishing. It needs Node 22 or newer and Google Chrome.
 
 ## Look at your site
 
@@ -63,7 +73,7 @@ From your repo folder, run:
 node tools/look.mjs
 ```
 
-It saves screenshots of every page at phone and wide width, in light and dark mode, into the folder `qa/`, and tells you how fast the home page shows up on a phone with a slow connection (LCP) and whether it jumps while it loads (CLS). The QA role uses it; you can open the screenshots too.
+It builds your site and saves screenshots of every page at phone and wide width, in light and dark mode, into the folder `qa/`, and tells you how fast the home page shows up on a phone with a slow connection (LCP) and whether it jumps while it loads (CLS). The QA role uses it; you can open the screenshots too.
 
 ## Chrome DevTools for agents
 
@@ -71,7 +81,7 @@ Chrome DevTools for agents is a set of tools from the Chrome team that lets your
 
 ## Publish your site
 
-Every push to `main` publishes the site through GitHub Actions. The Ops role does it for you. To see whether the newest version is online, run from your repo folder:
+Every push to `main` builds your site and publishes it through GitHub Actions. The Ops role does it for you. It also runs once a day, so what depends on the date, such as which of your events are coming up, stays right. To see whether the newest version is online, run from your repo folder:
 
 ```
 node tools/live.mjs
@@ -100,7 +110,9 @@ Once your site is live, you can add Optional modules: a section for YouTube vide
 - `docs/spec.md` – a short spec of your site: who it is for and what a visitor should do. The Analyst role writes it, with your content file.
 - `design/brief.md` – your design brief: colours, fonts, shapes and layout. It starts as a plain default design; the Designer role replaces it with yours from Stitch.
 - `design/default-brief.md` – that default design, kept so you can always go back to it.
-- `site/` – the site itself: plain HTML, CSS and JavaScript, no build step.
+- `site/` – the site itself: plain HTML, CSS and JavaScript.
+- `tools/build.mjs` – the build: puts your content into the pages and writes the finished site into `_site/`.
+- `_site/` – the finished site, built from `site/`: what the preview shows. It is not in Git; the build makes it again every time, also on GitHub before it publishes.
 - `tools/preview.mjs` – the preview.
 - `tools/look.mjs` – screenshots and load speed, for QA.
 - `tools/live.mjs` – your site's address, and whether the newest version is online.
@@ -117,7 +129,7 @@ Once your site is live, you can add Optional modules: a section for YouTube vide
 - `install.sh`, `install.ps1` – the Install script for macOS/Linux and for Windows.
 - `AGENTS.md` – the rules your agent follows.
 
-Every push to `main` publishes the site again.
+Every push to `main` builds and publishes the site again.
 
 ## Privacy
 
