@@ -53,7 +53,7 @@ From your repo folder, run:
 node tools/check.mjs
 ```
 
-It looks at your site in your own Chrome and reports each item as PASS or NEEDS ATTENTION: the content file matches the schema, accessibility (the axe rules behind Lighthouse's accessibility score), no errors in the browser console, a privacy page written for your site, and no phone number or postal address anywhere in the site. The privacy page needs attention until the Lawyer role has written it. It only reports; it never stops you from publishing. It needs Node 22 or newer and Google Chrome.
+It looks at your site in your own Chrome and reports each item as PASS or NEEDS ATTENTION: the content file matches the schema, accessibility (the axe rules behind Lighthouse's accessibility score), no errors in the browser console, a privacy page written for your site, and no phone number, postal address or photo that still holds where it was taken anywhere in the site. The privacy page needs attention until the Lawyer role has written it. It only reports; it never stops you from publishing. It needs Node 22 or newer and Google Chrome.
 
 ## Look at your site
 
@@ -107,6 +107,7 @@ Once your site is live, you can add Optional modules: a section for YouTube vide
 - `tools/check.mjs` – the Check.
 - `tools/check-content.mjs` – checks the content file: does it match the schema, and is there no phone number or postal address in it.
 - `tools/check-brief.mjs` – checks the design brief: every section there, every colour readable on its background.
+- `tools/photo.mjs` – makes a small square copy of your photo for the site, without the hidden data a phone saves in a photo: `node tools/photo.mjs my-photo.jpg`.
 - `tools/checkpoint.mjs` – jumps to a checkpoint.
 - `tools/where.mjs` – which roles are done and which comes next. Ask your agent "Where am I?" and it runs it for you.
 - `checkpoints/` – one checkpoint per block of the workshop: the repo at the end of that block. `checkpoints/README.md` explains them.
