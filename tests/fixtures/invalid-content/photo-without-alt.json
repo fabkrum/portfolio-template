@@ -1,0 +1,10 @@
+{
+  "name": "Sam Fixture",
+  "headline": "Test person",
+  "bio": [
+    "Fictional test data."
+  ],
+  "photo": {
+    "src": "assets/photo.webp"
+  }
+}

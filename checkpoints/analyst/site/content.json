@@ -3,6 +3,26 @@
   "language": "en",
   "name": "Ada Example",
   "headline": "Frontend developer who likes fast, accessible web pages",
+  "photo": {
+    "src": "assets/avatar.svg",
+    "alt": "Ada Example's avatar: a simple drawing of a head and shoulders in two shades of grey"
+  },
+  "pitch": "I build small, fast websites that everyone can use, and I explain every choice in plain words.",
+  "highlights": [
+    { "text": "Every page I look after scores 100 for accessibility in Lighthouse" },
+    { "text": "Five years of teaching maths: I make technical choices easy to follow" },
+    { "text": "Two open-source projects on GitHub", "url": "https://github.com/octocat" }
+  ],
+  "availability": {
+    "text": "Open to junior frontend roles from January 2027.",
+    "actionLabel": "Write to me",
+    "actionUrl": "mailto:ada@example.com"
+  },
+  "location": { "city": "Milan", "country": "Italy", "timeZone": "Europe/Rome" },
+  "languages": [
+    { "name": "English", "level": "native" },
+    { "name": "Italian", "level": "B2" }
+  ],
   "bio": [
     "I build small, fast websites and the tools around them. Before I wrote code, I taught maths, so I still enjoy explaining things simply.",
     "This is a sample portfolio of a fictional person. Replace it with your own story."
@@ -55,5 +75,6 @@
       }
     ],
     "skills": ["HTML", "CSS", "JavaScript", "Accessibility", "Git"]
-  }
+  },
+  "builtAt": { "event": "DevFest Milano", "date": "2026-10-10" }
 }

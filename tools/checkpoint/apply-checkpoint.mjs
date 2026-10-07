@@ -4,7 +4,8 @@
 import { existsSync } from "node:fs";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
-import { briefColours, briefFonts, checkBrief, TOKENS } from "../brief/check-brief.mjs";
+import { briefColours, briefFonts, checkBrief, firstFont, kindOfFont, TOKENS } from "../brief/check-brief.mjs";
+import { bundledFonts, familyOf, fontFaceRules } from "../fonts/bundled-fonts.mjs";
 import { findPrivateDataInContent } from "../check/private-data.mjs";
 import { privacyPageProblems } from "../check/run-check.mjs";
 
@@ -72,7 +73,8 @@ export const nonEmpty = (value) => (typeof value === "string" && value.trim() ? 
 
 // What the Lawyer fills into the blanks of the privacy page, from the content
 // file. The page is in English, so its language is English too. A value the
-// content file does not give stays a blank.
+// content file does not give stays a blank; "photo" says whether the page
+// has the section about the person's photo.
 function privacyBlanks(content) {
   const mailto = Array.isArray(content.links)
     ? content.links.map((link) => nonEmpty(link?.url)).find((url) => url?.startsWith("mailto:"))
@@ -83,10 +85,23 @@ function privacyBlanks(content) {
     EMAIL: nonEmpty(mailto?.slice("mailto:".length).split("?")[0]),
     LANGUAGE: language.startsWith("en") ? language : "en",
     DATE: writtenOut(new Date()),
+    photo: Boolean(nonEmpty(content.photo?.src)),
   };
 }
 
-const fillBlanks = (page, blanks) => page.replace(/\[\[([A-Z_]+)\]\]/g, (blank, key) => (blanks[key] ? escapeHtml(blanks[key]) : blank));
+// The privacy page's section about the person's photo, word for word as the
+// Lawyer's skill gives it for the blank [[PHOTO]]: it goes in where the
+// content file has a photo; elsewhere the blank's line goes.
+export const PHOTO_SECTION = `      <section class="section">
+        <h2>My photo</h2>
+        <p>This site shows a photo of me. Like everything else on the site, it comes from this website, so showing it sends your data to no one else. It holds none of the hidden data a phone saves in a photo, such as where and when it was taken. Please do not use it anywhere else without asking me.</p>
+      </section>`;
+const PHOTO_BLANK = /^[ \t]*\[\[PHOTO\]\][ \t]*\r?\n(?:[ \t]*\r?\n)?/m;
+
+const fillBlanks = (page, blanks) =>
+  page
+    .replace(PHOTO_BLANK, blanks.photo ? `${PHOTO_SECTION}\n\n` : "")
+    .replace(/\[\[([A-Z_]+)\]\]/g, (blank, key) => (blanks[key] ? escapeHtml(blanks[key]) : blank));
 
 // A privacy page the Lawyer has written for the person in the content file is
 // theirs as well: it may be translated or changed by hand. While the content
@@ -116,27 +131,33 @@ function styledByBrief(css, brief) {
   }
   const fonts = briefFonts(brief);
   const unusableFonts = [];
-  for (const [property, role] of [["--font-heading", "headings"], ["--font-body", "body"]]) {
-    const stack = fontStack(fonts[role]);
+  // Dates and labels take the brief's details font, or its body font in a brief without one.
+  for (const [property, cell] of [["--font-heading", fonts.headings], ["--font-body", fonts.body], ["--font-details", fonts.details ?? fonts.body]]) {
+    const stack = fontStack(cell);
     if (stack) styled = styled.replace(new RegExp(`(${property}\\s*:\\s*)[^;]+`), (_, start) => `${start}${stack}`);
-    else unusableFonts.push(fonts[role]);
+    else unusableFonts.push(cell);
   }
   return { css: styled, unusableFonts: [...new Set(unusableFonts)] };
 }
 
-// Fonts every computer has, and the generic families. Any other font first in
-// a stack is a web font: it shows only once the Developer adds its files.
-const SYSTEM_FONTS = new Set([
-  "system-ui", "ui-sans-serif", "ui-serif", "ui-monospace", "ui-rounded", "sans-serif", "serif", "monospace",
-  "cursive", "fantasy", "-apple-system", "blinkmacsystemfont", "segoe ui", "helvetica", "helvetica neue", "arial",
-  "arial rounded mt bold", "verdana", "tahoma", "trebuchet ms", "georgia", "times new roman", "times",
-  "courier new", "courier", "menlo", "monaco", "consolas",
-]);
-const firstFont = (stack) => stack.split(",")[0].trim().replace(/^["']|["']$/g, "");
-
-function webFontsIn(brief) {
-  const firsts = Object.values(briefFonts(brief)).map(fontStack).filter(Boolean).map(firstFont);
-  return [...new Set(firsts)].filter((font) => font && !SYSTEM_FONTS.has(font.toLowerCase()));
+// The Developer's stylesheet: in the colours and fonts of a brief that is
+// ready, otherwise the default design. On top come the @font-face rules of the
+// bundled fonts in fonts/ that its font stacks start with, as node
+// tools/fonts.mjs gives them to the Developer; the site needs their files too.
+// webFonts: the other fonts its stacks start with that no computer has.
+async function developersStylesheet(repoDir, css, brief) {
+  const styled = brief ? styledByBrief(css, brief) : { css, unusableFonts: [] };
+  const bundled = await bundledFonts(repoDir);
+  // The first font of each font stack, in the stylesheet's order: headings, body, details.
+  const firstFonts = [...new Set([...styled.css.matchAll(/--font-[\w-]+\s*:\s*([^;]+);/g)].map(([, stack]) => firstFont(stack)))];
+  const families = [...new Set(firstFonts.map((font) => familyOf(font, bundled)).filter(Boolean))];
+  const eol = styled.css.includes("\r\n") ? "\r\n" : "\n";
+  return {
+    css: families.length > 0 ? `${fontFaceRules(families, eol)}${eol}${eol}${styled.css}` : styled.css,
+    families,
+    unusableFonts: styled.unusableFonts,
+    webFonts: firstFonts.filter((font) => font && kindOfFont(font, bundled.map(({ name }) => name)) === "web"),
+  };
 }
 
 // Brings the repo in repoDir to the end of this block, and says what it kept,
@@ -169,16 +190,19 @@ export async function applyCheckpoint(repoDir, block) {
   const styledByOwnBrief = reached(block, "developer") && briefProblems.length === 0;
   const privacy = reached(block, "lawyer") ? privacyBlanks(content) : null;
 
-  let unusableFonts = [];
+  // From the Developer's block on, the stylesheet's fonts come along, each with its licence.
+  const stylesheet = reached(block, "developer")
+    ? await developersStylesheet(repoDir, await readFile(sources.get("site/assets/styles.css"), "utf8"), styledByOwnBrief ? brief : null)
+    : null;
+  for (const family of stylesheet?.families ?? []) {
+    for (const file of family.files) sources.set(`site/assets/fonts/${family.folder}/${file}`, join(family.dir, file));
+  }
+
   const changed = [];
   for (const [file, source] of sources) {
     let bytes = await readFile(source);
     if (file === "site/privacy.html" && privacy) bytes = Buffer.from(fillBlanks(bytes.toString("utf8"), privacy));
-    if (file === "site/assets/styles.css" && styledByOwnBrief) {
-      const styled = styledByBrief(bytes.toString("utf8"), brief);
-      bytes = Buffer.from(styled.css);
-      unusableFonts = styled.unusableFonts;
-    }
+    if (file === "site/assets/styles.css" && stylesheet) bytes = Buffer.from(stylesheet.css);
     const target = join(repoDir, file);
     if (existsSync(target) && (await readFile(target)).equals(bytes)) continue;
     await mkdir(dirname(target), { recursive: true });
@@ -198,7 +222,12 @@ export async function applyCheckpoint(repoDir, block) {
     // How the Developer's stylesheet looks, from the Developer's block on: in
     // the colours and fonts of the brief, unless it is not ready.
     stylesheet: reached(block, "developer")
-      ? { fromBrief: styledByOwnBrief, ownBrief: Boolean(ownBrief) && !ownBrief.sample, unusableFonts, webFonts: styledByOwnBrief ? webFontsIn(brief) : [] }
+      ? {
+          fromBrief: styledByOwnBrief,
+          ownBrief: Boolean(ownBrief) && !ownBrief.sample,
+          unusableFonts: stylesheet.unusableFonts,
+          webFonts: styledByOwnBrief ? stylesheet.webFonts : [],
+        }
       : null,
     privacy,
     privateData: reached(block, "lawyer") && !unreadable ? findPrivateDataInContent(content) : [],

@@ -13,7 +13,7 @@ What it does:
 - It brings the files in `site/` to the end of that block.
 - It never overwrites your own files: `site/content.json`, `design/brief.md`, `docs/spec.md`, and a privacy page the Lawyer has written for you. If you have no content file, design brief or spec, it puts in the sample person, Ada Example, the default design brief and the sample spec.
 - From the Developer's checkpoint on, the site takes the colours and fonts of your design brief once the brief is finished. The rest is the default design.
-- The Lawyer's checkpoint writes the privacy page with the name and the email address from your content file, in English.
+- The Lawyer's checkpoint writes the privacy page with the name and the email address from your content file, and a section about your photo if you have one, in English.
 - Files you added to `site/` yourself, such as fonts or a photo, stay as they are.
 - It says in plain words what it kept, what it changed and which role comes next.
 

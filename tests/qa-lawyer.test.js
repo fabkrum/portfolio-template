@@ -1,11 +1,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { readdir, readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { TOKENS } from "../tools/brief/check-brief.mjs";
+import { PHOTO_SECTION } from "../tools/checkpoint/apply-checkpoint.mjs";
 import { runCheck } from "../tools/check/run-check.mjs";
-import { buildFixtureSite, sampleSite } from "./fixture-site.js";
+import { buildFixtureSite } from "./fixture-site.js";
+import { withRepo } from "./participant-repo.js";
 import { assertWideLayout } from "./page-layout.js";
 import { lightDarkTokens, loadsFromElsewhere } from "./site-files.js";
 
@@ -53,7 +56,7 @@ test("the Lawyer writes the privacy page from the template and searches for priv
   }
   // Every blank in the template is explained in the skill.
   const blanks = [...new Set((await privacyTemplate()).match(/\[\[[A-Z_]+\]\]/g))];
-  assert.deepEqual(blanks.sort(), ["[[DATE]]", "[[EMAIL]]", "[[LANGUAGE]]", "[[NAME]]"]);
+  assert.deepEqual(blanks.sort(), ["[[DATE]]", "[[EMAIL]]", "[[LANGUAGE]]", "[[NAME]]", "[[PHOTO]]"]);
   for (const blank of blanks) assert.ok(skill.includes(blank), blank);
 });
 
@@ -143,12 +146,13 @@ test("the Lawyer took out the phone number and the birth date, and nothing else"
   const { siteDir, remove } = await buildFixtureSite(fixturesDir, "lawyer-runs/after");
   try {
     const content = await readJson(join(siteDir, "content.json"));
-    const sample = await readJson(join(sampleSite, "content.json"));
+    // The content file the Lawyer was given: the sample person of that day, with the planted paragraph.
+    const given = await readJson(join(fixturesDir, "lawyer-runs", "before", "content.json"));
     const text = JSON.stringify(content);
     assert.doesNotMatch(text, /000 000 0000/);
     assert.doesNotMatch(text, /born|1 April 2000/i);
-    for (const paragraph of sample.bio) assert.ok(content.bio.includes(paragraph), paragraph);
-    assert.deepEqual({ ...content, bio: [] }, { ...sample, bio: [] });
+    for (const paragraph of given.bio.filter((paragraph) => !/born/.test(paragraph))) assert.ok(content.bio.includes(paragraph), paragraph);
+    assert.deepEqual({ ...content, bio: [] }, { ...given, bio: [] });
   } finally {
     await remove();
   }
@@ -165,4 +169,65 @@ test("the Lawyer's privacy page names Ada Example, the email address and the dat
   } finally {
     await remove();
   }
+});
+
+// The lines of a piece of HTML without their indentation.
+const unindented = (html) => html.trim().split("\n").map((line) => line.trim());
+
+test("the Lawyer's photo section for the privacy page is word for word the one the Lawyer's checkpoint writes", async () => {
+  const skill = await lawyerSkill();
+  const section = skill.slice(skill.indexOf("`[[PHOTO]]`")).match(/```html\n([\s\S]*?)```/)[1];
+  assert.deepEqual(unindented(section), unindented(PHOTO_SECTION));
+  assert.match(skill, /`\[\[PHOTO\]\]`: if `site\/content\.json` has a `photo`, replace the whole line with this section; if it has none, delete the line/);
+});
+
+test("the Lawyer checks that the photo went through the photo tool and has alt text", async () => {
+  const photo = (await lawyerSkill()).split(/^### /m).find((part) => part.startsWith("The photo"));
+  assert.ok(photo, "no section about the photo");
+  for (const needed of ["node tools/photo.mjs", "`assets/photo.webp`", "the Check names no photo", "hidden data", "alt text", "`alt`", "ask the person what the photo shows"]) {
+    assert.ok(photo.includes(needed), needed);
+  }
+});
+
+test("for a site that wins clients, the Lawyer explains the EU address, the Partita IVA and the Impressum, the two options, and adds no address", async () => {
+  const sells = (await lawyerSkill()).split(/^## /m).find((part) => part.startsWith("3. A site that sells"));
+  assert.ok(sells, "no step for a site that sells");
+  for (const needed of [
+    "`## Goal` names freelance clients",
+    "offers services or prices",
+    "This is not legal advice",
+    "geographic address",
+    "E-Commerce Directive, Article 5",
+    "In Italy, your Partita IVA must be on the home page",
+    "In Germany, the site needs an Impressum",
+    "your home address must never go into it",
+    "coworking space",
+    "Keep the site non-commercial",
+    "I add no address and no VAT number to your site",
+    "Add no address and no VAT number yourself, also when the person gives you one",
+  ]) {
+    assert.ok(sells.includes(needed), needed);
+  }
+});
+
+// The Lawyer's checkpoint, run the way a participant runs it.
+const jumpToLawyer = (dir) => spawnSync(process.execPath, [join(dir, "tools", "checkpoint.mjs"), "lawyer"], { cwd: dir, encoding: "utf8" });
+
+test("the Lawyer's checkpoint writes the photo section for a person with a photo, and leaves it out for one without", async () => {
+  await withRepo(async (dir) => {
+    assert.equal(jumpToLawyer(dir).status, 0);
+    const page = await readFile(join(dir, "site", "privacy.html"), "utf8");
+    assert.ok(page.includes("<h2>My photo</h2>"), "the sample person has a photo");
+    assert.ok(!page.includes("[[PHOTO]]"));
+  });
+  await withRepo({ "site/content.json": "tests/fixtures/analyst-runs/cv/site/content.json" }, async (dir) => {
+    assert.equal(jumpToLawyer(dir).status, 0);
+    const page = await readFile(join(dir, "site", "privacy.html"), "utf8");
+    assert.ok(!page.includes("My photo"), "Giulia has no photo");
+    assert.ok(!page.includes("[[PHOTO]]"));
+    // Without the section the page is the template's, blank line for blank line.
+    assert.match(page.replaceAll("\r\n", "\n"), /<\/section>\n\n {6}<section class="section">\n {8}<h2>Hosting on GitHub Pages<\/h2>/);
+    const items = Object.fromEntries((await runCheck(join(dir, "site"))).map((item) => [item.id, item]));
+    assert.equal(items.privacy.pass, true, items.privacy.details.join("\n"));
+  });
 });

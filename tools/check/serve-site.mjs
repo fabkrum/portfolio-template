@@ -1,5 +1,7 @@
-// Serves the site folder on a local port: the Check's own server, and the
-// participant's preview (tools/preview.mjs). Port 0 picks a free one.
+// Serves a folder on a local port: the built site for the Check, look and
+// the participant's preview (tools/preview.mjs). Port 0 picks a free one.
+// beforePage, if given, runs before every page is served, as the preview
+// builds the site again there; when it returns HTML, that is served instead.
 import { readFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, join, normalize, resolve, sep } from "node:path";
@@ -26,11 +28,18 @@ const CONTENT_TYPES = {
   ".txt": "text/plain; charset=utf-8",
 };
 
-export function serveSite(siteDir, port = 0) {
+export function serveSite(siteDir, port = 0, { beforePage } = {}) {
   const root = resolve(siteDir);
   const server = createServer(async (request, response) => {
     try {
       const urlPath = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
+      if (beforePage && /(\/|\.html)$/.test(urlPath)) {
+        const instead = await beforePage();
+        if (instead) {
+          response.writeHead(500, { "content-type": CONTENT_TYPES[".html"], "cache-control": "no-cache" }).end(instead);
+          return;
+        }
+      }
       let filePath = normalize(join(root, urlPath));
       if (urlPath.endsWith("/")) filePath = join(filePath, "index.html");
       if (filePath !== root && !filePath.startsWith(root + sep)) {
@@ -39,7 +48,8 @@ export function serveSite(siteDir, port = 0) {
       }
       const body = await readFile(filePath);
       const type = CONTENT_TYPES[extname(filePath).toLowerCase()] ?? "application/octet-stream";
-      response.writeHead(200, { "content-type": type }).end(body);
+      // Always the newest version, also of a stylesheet that changed.
+      response.writeHead(200, { "content-type": type, "cache-control": "no-cache" }).end(body);
     } catch {
       response.writeHead(404, { "content-type": "text/plain" }).end("Not found");
     }

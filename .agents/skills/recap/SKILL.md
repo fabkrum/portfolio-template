@@ -27,7 +27,7 @@ Start with a title and one line: whose portfolio it is, and today's date. Then o
 
 - **Analyst**: `docs/spec.md`. Who the site is for, what a visitor should do, the language, the sections, and what was left out on purpose and why.
 - **Designer**: `design/brief.md`. Where the design came from (Stitch or the default), the mood, the colours and the fonts.
-- **Developer**: `site/assets/styles.css` in the colours and fonts of the brief, and the rules for the site in `AGENTS.md`: plain HTML, CSS and JavaScript, nothing loaded from other servers, and why.
+- **Developer**: `site/assets/styles.css` in the colours and fonts of the brief, and the rules for the site in `AGENTS.md`: plain HTML, CSS and JavaScript, the content built into the pages so search engines and AI agents can read them, nothing loaded from other servers, and why.
 - **QA**: what it checks (the look, accessibility, speed on a phone), and its screenshots in `qa/` if there are any.
 - **Lawyer**: `site/privacy.html` and what it promises: no cookies, no tracking, nothing from other servers.
 - **Ops**: the commits in the log, with their dates and files.

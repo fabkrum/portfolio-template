@@ -1,0 +1,14 @@
+{
+  "name": "Sam Fixture",
+  "headline": "Test person",
+  "bio": [
+    "Fictional test data."
+  ],
+  "events": [
+    {
+      "name": "Example Conf",
+      "date": "2026-11-20",
+      "role": "host"
+    }
+  ]
+}

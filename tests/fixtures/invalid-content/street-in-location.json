@@ -1,0 +1,10 @@
+{
+  "name": "Sam Fixture",
+  "headline": "Test person",
+  "bio": [
+    "Fictional test data."
+  ],
+  "location": {
+    "city": "Via Esempio 0, 00000 Nowhere"
+  }
+}

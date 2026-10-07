@@ -1,7 +1,7 @@
 // Finds text in the content file and in the site's other text files that
-// looks like a phone number or a postal address. The repo is public, so these
-// must never be in it. A heuristic: it reports what looks suspicious; the
-// person decides.
+// looks like a phone number or a postal address, and photos that still hold
+// where they were taken. The repo is public, so these must never be in it. A
+// heuristic: it reports what looks suspicious; the person decides.
 import { readdir, readFile } from "node:fs/promises";
 import { extname, join, relative } from "node:path";
 
@@ -43,6 +43,24 @@ function looksLikePhone(candidate, textBefore) {
 const isPlainWebLink = (text) =>
   /^https?:\/\//.test(text) && !/^https?:\/\/(wa\.me|api\.whatsapp\.com)\//.test(text);
 
+// A link that dials a phone number, however short: tel:+00 000 000 0000, tel:000.
+const PHONE_LINK = /\btel:(?:\+?[\d\s().\/-]*\d|[^\s"'<>]*)/gi;
+
+// Where a person lives is a city, never more: words that name a street, in
+// the languages of the workshop, and the digits of a house number or postcode.
+// "St. Gallen" or "Largo" alone are cities, so the street word needs a name.
+const STREET_WORD =
+  /(?<!\p{L})(?:Via|Viale|Corso|Piazza|Piazzale|Vicolo|Largo|Rue|Calle|Avenida|Rua)\s+\p{L}|\p{L}\s+(?:Street|Road|Avenue|Lane|Drive|Boulevard)(?!\p{L})|\p{L}(?:straße|strasse|gasse|allee|weg|platz)(?!\p{L})/iu;
+
+function findInPlace(text) {
+  if (/\d/.test(text)) return [`"${text}" looks like a postcode or a house number: give the city only.`];
+  if (STREET_WORD.test(text)) return [`"${text}" looks like a street: give the city only.`];
+  return [];
+}
+
+// Fields that hold a place: the city of the location or of an event, and its country.
+const isPlace = (path) => ["city", "country"].includes(path.at(-1)) && (path[0] === "location" || path[0] === "events");
+
 function* textValues(value, path = []) {
   if (typeof value === "string") yield { path, text: value };
   else if (Array.isArray(value)) {
@@ -53,8 +71,11 @@ function* textValues(value, path = []) {
 }
 
 // What in one piece of text looks like a phone number or a postal address.
-function findInText(text) {
+function findInText(fullText) {
   const found = [];
+  // A phone link is named once, as a link, not again as a number.
+  for (const [link] of fullText.matchAll(PHONE_LINK)) found.push(`"${link.trim()}" is a phone link.`);
+  const text = fullText.replace(PHONE_LINK, (link) => " ".repeat(link.length));
   for (const match of text.matchAll(PHONE_CANDIDATE)) {
     const candidate = match[0];
     if (looksLikePhone(candidate, text.slice(0, match.index))) {
@@ -67,12 +88,16 @@ function findInText(text) {
   return found;
 }
 
+// A certification's credential ID is often a long run of digits, never a phone number.
+const isCredentialId = (path) => path.at(-1) === "credentialId";
+
 export function findPrivateDataInContent(content) {
   const findings = [];
   for (const { path, text } of textValues(content)) {
-    if (isPlainWebLink(text)) continue;
+    if (isPlainWebLink(text) || isCredentialId(path)) continue;
     const where = ["content.json", ...path].join(" > ");
-    for (const finding of findInText(text)) findings.push(`${where}: ${finding}`);
+    const found = findInText(text);
+    for (const finding of found.length === 0 && isPlace(path) ? findInPlace(text) : found) findings.push(`${where}: ${finding}`);
   }
   return findings;
 }
@@ -90,15 +115,60 @@ const blankOut = (text) => text.replace(CODE_IN_HTML, (code) => code.replace(/[^
 // Web links, except the ones that carry a phone number by design.
 const WEB_LINK = /https?:\/\/(?!wa\.me\/|api\.whatsapp\.com\/)[^\s"'<>)]+/g;
 
-// The same search in every text file of the site but content.json, line by line.
+// Photos as a phone or camera saves them, which may hold where they were taken.
+const PICTURES = new Set([".jpg", ".jpeg", ".png", ".webp", ".avif", ".heic", ".heif", ".tif", ".tiff"]);
+
+// Whether the EXIF data at this point, a TIFF structure, holds a GPS
+// position: a GPS directory with a latitude or a longitude in it.
+function exifHasPosition(bytes, start) {
+  const order = bytes.toString("latin1", start, start + 2);
+  if (order !== "II" && order !== "MM") return false;
+  const u16 = (at) => (order === "II" ? bytes.readUInt16LE(start + at) : bytes.readUInt16BE(start + at));
+  const u32 = (at) => (order === "II" ? bytes.readUInt32LE(start + at) : bytes.readUInt32BE(start + at));
+  const tags = (directory) =>
+    Array.from({ length: u16(directory) }, (_, index) => ({ tag: u16(directory + 2 + index * 12), value: u32(directory + 10 + index * 12) }));
+  try {
+    if (u16(2) !== 42) return false;
+    const gps = tags(u32(4)).find(({ tag }) => tag === 0x8825);
+    return Boolean(gps) && tags(gps.value).some(({ tag }) => tag === 2 || tag === 4);
+  } catch {
+    return false; // Not a whole TIFF structure: no position in it.
+  }
+}
+
+// Where EXIF data may start: after "Exif\0\0" (JPEG, HEIC, AVIF), in a PNG's
+// eXIf chunk, or in a WebP's EXIF chunk.
+function exifStarts(bytes) {
+  const starts = [];
+  const each = (marker, skip) => {
+    for (let at = bytes.indexOf(marker); at >= 0; at = bytes.indexOf(marker, at + 1)) starts.push(at + skip);
+  };
+  each("Exif\0\0", 6);
+  each("eXIf", 4);
+  each("EXIF", 8);
+  return starts;
+}
+
+// Whether a picture holds where it was taken, in its EXIF or its XMP data.
+export const holdsPosition = (bytes) =>
+  bytes.includes("GPSLatitude") || bytes.includes("GPSLongitude") || exifStarts(bytes).some((start) => exifHasPosition(bytes, start));
+
+// The same search in every text file of the site but content.json, line by
+// line; and in every photo, for the place where it was taken.
 export async function findPrivateDataInSiteFiles(siteDir) {
   const findings = [];
   const entries = await readdir(siteDir, { recursive: true, withFileTypes: true });
   for (const entry of entries) {
-    if (!entry.isFile() || !TEXT_FILES.has(extname(entry.name).toLowerCase())) continue;
+    if (!entry.isFile()) continue;
     const path = join(entry.parentPath, entry.name);
     const where = relative(siteDir, path).replaceAll("\\", "/");
-    if (where === "content.json") continue;
+    if (PICTURES.has(extname(entry.name).toLowerCase())) {
+      if (holdsPosition(await readFile(path))) {
+        findings.push(`${where}: this photo holds where it was taken, as GPS data. Make a copy without it with node tools/photo.mjs, and delete this file.`);
+      }
+      continue;
+    }
+    if (!TEXT_FILES.has(extname(entry.name).toLowerCase()) || where === "content.json") continue;
     const text = await readFile(path, "utf8");
     const lines = (/\.html?$/i.test(path) ? blankOut(text) : text).split("\n");
     for (const [index, line] of lines.entries()) {

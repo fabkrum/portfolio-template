@@ -27,12 +27,12 @@ const checkOf = async (dir) => Object.fromEntries((await runCheck(join(dir, "sit
 
 // The six colours of design/default-brief.md.
 const DEFAULT_COLOURS = {
-  background: { Light: "#ffffff", Dark: "#121216" },
-  surface: { Light: "#f4f4f6", Dark: "#1c1c22" },
-  text: { Light: "#1b1b1f", Dark: "#ececf1" },
-  muted: { Light: "#5a5a66", Dark: "#a8a8b3" },
-  accent: { Light: "#1a56db", Dark: "#8fb2ff" },
-  "on-accent": { Light: "#ffffff", Dark: "#121216" },
+  background: { Light: "#f7f3ec", Dark: "#1b1714" },
+  surface: { Light: "#eee7dc", Dark: "#26201c" },
+  text: { Light: "#231e1a", Dark: "#eee6dc" },
+  muted: { Light: "#675c52", Dark: "#b3a698" },
+  accent: { Light: "#a8402f", Dark: "#f0937d" },
+  "on-accent": { Light: "#ffffff", Dark: "#1b1714" },
 };
 
 // One checkpoint per block, in the order of the blocks. The privacy page is
@@ -584,8 +584,8 @@ test("a font list that is not one keeps the default fonts, and the command says 
     const { stdout } = jumpTo(dir, "developer");
     const css = await readFile(join(dir, "site", "assets", "styles.css"), "utf8");
     assert.deepEqual(lightDarkTokens(css), STITCH_COLOURS);
-    assert.ok(css.includes("--font-heading: system-ui, sans-serif;"));
-    assert.doesNotMatch(css, /display: none/);
+    assert.ok(css.includes('--font-heading: "Newsreader", Georgia, "Times New Roman", serif;'));
+    assert.doesNotMatch(css, /body \{ display: none/);
     assert.doesNotMatch(stdout, /colours and fonts of your design brief/);
     assert.match(stdout, /default fonts/);
   });

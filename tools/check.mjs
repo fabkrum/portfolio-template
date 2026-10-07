@@ -2,8 +2,9 @@
 //
 //   node tools/check.mjs
 //
-// It looks at your site and tells you, item by item, what passes and what
-// needs attention. It only reports: it never stops you from publishing.
+// It builds your site, looks at it and tells you, item by item, what passes
+// and what needs attention. It only reports: it never stops you from
+// publishing.
 // Add a folder name to check another site folder: node tools/check.mjs my-site
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";

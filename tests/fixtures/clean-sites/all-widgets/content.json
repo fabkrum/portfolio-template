@@ -1,0 +1,146 @@
+{
+  "$schema": "./content.schema.json",
+  "language": "en",
+  "name": "Ada Example",
+  "headline": "Frontend developer who likes fast, accessible web pages",
+  "photo": {
+    "src": "assets/avatar.svg",
+    "alt": "Ada Example's avatar: a simple drawing of a head and shoulders in two shades of grey"
+  },
+  "pitch": "I build small, fast websites that everyone can use, and I explain every choice in plain words.",
+  "highlights": [
+    { "text": "Every page I look after scores 100 for accessibility in Lighthouse" },
+    { "text": "Five years of teaching maths: I make technical choices easy to follow" },
+    { "text": "Two open-source projects on GitHub", "url": "https://github.com/octocat" }
+  ],
+  "availability": {
+    "text": "Open to junior frontend roles from January 2027.",
+    "actionLabel": "Write to me",
+    "actionUrl": "mailto:ada@example.com"
+  },
+  "location": { "city": "Milan", "country": "Italy", "timeZone": "Europe/Rome" },
+  "languages": [
+    { "name": "English", "level": "native" },
+    { "name": "Italian", "level": "B2" }
+  ],
+  "bio": [
+    "I build small, fast websites and the tools around them. Before I wrote code, I taught maths, so I still enjoy explaining things simply.",
+    "This is a sample portfolio of a fictional person. Replace it with your own story."
+  ],
+  "projects": [
+    {
+      "title": "Tide Tables",
+      "description": "A tiny web app that shows today's tides for a chosen harbour, built with plain HTML, CSS and JavaScript.",
+      "github": "https://github.com/octocat/Hello-World",
+      "problem": "Sailors in a small harbour had to read tides from a printed table.",
+      "role": "I designed and built it alone, in three weekends.",
+      "outcome": "The harbour club links to it; it loads in under a second on a phone.",
+      "stack": "HTML, CSS and JavaScript, no framework",
+      "image": { "src": "assets/tide-tables.svg", "alt": "Tide Tables: a blue curve of the tide over a day" },
+      "aiNote": "An AI agent wrote the first chart code; I checked every line and made it accessible."
+    },
+    {
+      "title": "Reading Log",
+      "description": "A static site that lists the books I read, generated from one JSON file.",
+      "github": "https://github.com/octocat/Spoon-Knife",
+      "url": "https://octocat.github.io/Spoon-Knife/"
+    }
+  ],
+  "links": [
+    { "label": "GitHub", "url": "https://github.com/octocat" },
+    { "label": "LinkedIn", "url": "https://www.linkedin.com/in/ada-example" },
+    { "label": "Email", "url": "mailto:ada@example.com" }
+  ],
+  "cv": {
+    "experience": [
+      {
+        "role": "Junior Frontend Developer",
+        "organization": "Example Studio",
+        "start": "2024",
+        "end": "present",
+        "summary": "Build and maintain marketing sites; brought every page to a Lighthouse accessibility score of 100."
+      },
+      {
+        "role": "Maths Teacher",
+        "organization": "Example Secondary School",
+        "start": "2019",
+        "end": "2024",
+        "summary": "Taught maths to students aged 11 to 16 and ran the after-school coding club."
+      }
+    ],
+    "education": [
+      {
+        "title": "Web Development Bootcamp",
+        "organization": "Example Academy",
+        "year": "2023"
+      },
+      {
+        "title": "BSc Mathematics",
+        "organization": "Example University",
+        "year": "2018"
+      }
+    ],
+    "skills": ["HTML", "CSS", "JavaScript", "Accessibility", "Git"]
+  },
+  "builtAt": { "event": "DevFest Milano", "date": "2026-10-10" },
+  "stats": [
+    { "value": "2", "label": "projects shipped" },
+    { "value": 5, "label": "years of teaching" },
+    { "value": "100", "label": "accessibility score on every page I look after" }
+  ],
+  "now": {
+    "updated": "2026-10",
+    "items": ["Building my portfolio with AI agents", "Learning view transitions", "Looking for a junior frontend role"]
+  },
+  "events": [
+    {
+      "name": "DevFest Milano",
+      "date": "2026-10-10",
+      "city": "Milan",
+      "role": "attendee",
+      "sessions": [{ "type": "workshop", "title": "AI-Native Web Development, Hands-On" }]
+    },
+    {
+      "name": "Example Conf",
+      "date": "2026-11-20",
+      "endDate": "2026-11-21",
+      "city": "Turin",
+      "url": "https://example.com/conf",
+      "role": "speaker",
+      "sessions": [
+        {
+          "type": "talk",
+          "title": "Accessible Forms Without Tears",
+          "url": "https://example.com/conf/forms",
+          "slides": "https://example.com/slides/forms",
+          "video": "https://www.youtube.com/watch?v=EXAMPLE0004"
+        }
+      ]
+    },
+    { "name": "Placeholder Meetup", "date": "2025-05", "online": true, "role": "organizer" },
+    {
+      "name": "Frontend Example Days",
+      "date": "2025-10-18",
+      "city": "Bologna",
+      "role": "speaker",
+      "sessions": [
+        { "type": "talk", "title": "CSS That Holds Up" },
+        { "type": "panel", "title": "The Future of Design Systems" }
+      ]
+    }
+  ],
+  "certifications": [
+    {
+      "name": "Example Certified Frontend Developer",
+      "issuer": "Example Academy",
+      "kind": "exam",
+      "issued": "2026-03",
+      "expires": "2029-03",
+      "credentialId": "EX-0000-0000",
+      "url": "https://example.com/verify/EX-0000-0000"
+    },
+    { "name": "Example Cloud Associate", "issuer": "Example Cloud", "kind": "exam", "issued": "2021-02", "expires": "2024-02" },
+    { "name": "Accessibility Fundamentals", "issuer": "Example University", "kind": "course", "issued": "2025-06", "url": "https://example.com/certificate/0000" },
+    { "name": "Design Systems Workshop", "issuer": "Example Studio", "kind": "workshop", "issued": "2024-11-14" }
+  ]
+}

@@ -15,7 +15,10 @@ export function lightDarkTokens(css) {
 
 // Every place a site's HTML, CSS or JavaScript would load something from another server.
 const LOADS_FROM_ELSEWHERE = [
-  /<(?:link|script|img|source|iframe|video|audio)\b[^>]*\b(?:href|src)\s*=\s*["']?(?:https?:)?\/\//i,
+  /<(?:script|img|source|iframe|video|audio)\b[^>]*\b(?:href|src)\s*=\s*["']?(?:https?:)?\/\//i,
+  // A <link> loads what it points to, such as a stylesheet, an icon or a font,
+  // unless it only names an address, as the canonical link does.
+  /<link\b(?![^>]*\brel\s*=\s*(["']?)(?:canonical|me|author)\1[\s/>])[^>]*\bhref\s*=\s*["']?(?:https?:)?\/\//i,
   /\bsrcset\s*=\s*["'][^"']*(?:https?:)?\/\//i,
   /url\(\s*["']?(?:https?:)?\/\//i,
   /@import\s+(?:url\()?\s*["']?(?:https?:)?\/\//i,

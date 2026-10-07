@@ -4,7 +4,6 @@
 // accessibility audits. Uses only Node built-ins: no npm packages.
 import { readFile } from "node:fs/promises";
 import { launchChrome, navigate, openTab } from "./chrome.mjs";
-import { serveSite } from "./serve-site.mjs";
 
 export { findChrome } from "./chrome.mjs";
 
@@ -77,22 +76,21 @@ async function inspectPage(cdp, url, axeSource) {
   }
 }
 
-// Opens each page (paths relative to the site folder) and returns, per page,
-// its console errors and accessibility violations.
-export async function inspectSite(siteDir, pagePaths, chromePath) {
+// Opens each page of the site served at origin (paths relative to the site
+// folder) and returns, per page, its console errors and accessibility
+// violations.
+export async function inspectSite(origin, pagePaths, chromePath) {
   const axeSource = await readFile(AXE_PATH, "utf8");
-  const server = await serveSite(siteDir);
   let chrome;
   try {
     chrome = await launchChrome(chromePath);
     const pages = [];
     for (const pagePath of pagePaths) {
-      const page = await inspectPage(chrome.cdp, `${server.origin}/${pagePath}`, axeSource);
+      const page = await inspectPage(chrome.cdp, `${origin}/${pagePath}`, axeSource);
       pages.push({ ...page, path: pagePath });
     }
     return pages;
   } finally {
     await chrome?.close();
-    server.close();
   }
 }

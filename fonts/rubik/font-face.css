@@ -1,0 +1,8 @@
+/* Rubik 2.300, SIL Open Font License 1.1: fonts/rubik/OFL.txt */
+@font-face {
+  font-family: "Rubik";
+  font-style: normal;
+  font-weight: 300 900;
+  font-display: swap;
+  src: url("fonts/rubik/rubik-latin-wght-normal.woff2") format("woff2");
+}

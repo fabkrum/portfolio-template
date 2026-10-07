@@ -11,8 +11,11 @@ import { templateDir, withRepo } from "./participant-repo.js";
 const whereIn = (dir, cwd = dir) => spawnSync(process.execPath, [join(dir, "tools", "where.mjs")], { cwd, encoding: "utf8" });
 const jumpTo = (dir, block) => spawnSync(process.execPath, [join(dir, "tools", "checkpoint.mjs"), block], { cwd: dir, encoding: "utf8" });
 
+// No automatic upkeep in the background: it writes and deletes files in .git
+// while a test reads every file of the repo.
 const git = (cwd, ...args) => {
-  const result = spawnSync("git", ["-c", "user.name=Ada Example", "-c", "user.email=ada@example.com", ...args], { cwd, encoding: "utf8" });
+  const settings = ["user.name=Ada Example", "user.email=ada@example.com", "gc.auto=0", "maintenance.auto=false"];
+  const result = spawnSync("git", [...settings.flatMap((setting) => ["-c", setting]), ...args], { cwd, encoding: "utf8" });
   assert.equal(result.status, 0, result.stderr);
   return result.stdout;
 };

@@ -45,10 +45,11 @@ const PUT_IN = {
 // What each file of a checkpoint is, in the list of files it changed.
 const FILE_NOTES = {
   "site/index.html": "the page itself, with a place for each section",
-  "site/assets/main.js": "loads your content file into the page",
-  "site/assets/render.js": "turns your content file into the sections of the page",
+  "site/assets/main.js": "the place for small extras in JavaScript; your content is in the page without it",
+  "site/assets/render.js": "turns your content file into the sections of the page when the site is built",
   "site/assets/styles.css": "the plain starting styles of the template",
   "site/assets/favicon.svg": "the small icon in the browser tab",
+  "site/assets/avatar.svg": "the drawing that stands in for the sample person's photo",
   "site/content.schema.json": "what your content file may contain",
   "site/privacy.html": "the placeholder: the Lawyer writes the real page",
   "design/default-brief.md": "the default design brief, kept so you can always go back to it",
@@ -56,6 +57,9 @@ const FILE_NOTES = {
 
 function changedNote(file, result) {
   const { stylesheet, privacy } = result;
+  if (file.startsWith("site/assets/fonts/")) {
+    return file.endsWith("/OFL.txt") ? "the licence of the font beside it" : "a font of the design, served from your own site";
+  }
   if (file === "site/assets/styles.css" && stylesheet) {
     if (!stylesheet.fromBrief) return "the Developer's stylesheet, in the default colours and fonts";
     if (!stylesheet.ownBrief) return "the Developer's stylesheet, in the default design";
