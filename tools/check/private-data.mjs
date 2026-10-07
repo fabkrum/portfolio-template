@@ -43,6 +43,24 @@ function looksLikePhone(candidate, textBefore) {
 const isPlainWebLink = (text) =>
   /^https?:\/\//.test(text) && !/^https?:\/\/(wa\.me|api\.whatsapp\.com)\//.test(text);
 
+// A link that dials a phone number, however short: tel:+00 000 000 0000, tel:000.
+const PHONE_LINK = /\btel:(?:\+?[\d\s().\/-]*\d|[^\s"'<>]*)/gi;
+
+// Where a person lives is a city, never more: words that name a street, in
+// the languages of the workshop, and the digits of a house number or postcode.
+// "St. Gallen" or "Largo" alone are cities, so the street word needs a name.
+const STREET_WORD =
+  /(?<!\p{L})(?:Via|Viale|Corso|Piazza|Piazzale|Vicolo|Largo|Rue|Calle|Avenida|Rua)\s+\p{L}|\p{L}\s+(?:Street|Road|Avenue|Lane|Drive|Boulevard)(?!\p{L})|\p{L}(?:straße|strasse|gasse|allee|weg|platz)(?!\p{L})/iu;
+
+function findInPlace(text) {
+  if (/\d/.test(text)) return [`"${text}" looks like a postcode or a house number: give the city only.`];
+  if (STREET_WORD.test(text)) return [`"${text}" looks like a street: give the city only.`];
+  return [];
+}
+
+// Fields that hold a place: the city of the location or of an event, and its country.
+const isPlace = (path) => ["city", "country"].includes(path.at(-1)) && (path[0] === "location" || path[0] === "events");
+
 function* textValues(value, path = []) {
   if (typeof value === "string") yield { path, text: value };
   else if (Array.isArray(value)) {
@@ -53,8 +71,11 @@ function* textValues(value, path = []) {
 }
 
 // What in one piece of text looks like a phone number or a postal address.
-function findInText(text) {
+function findInText(fullText) {
   const found = [];
+  // A phone link is named once, as a link, not again as a number.
+  for (const [link] of fullText.matchAll(PHONE_LINK)) found.push(`"${link.trim()}" is a phone link.`);
+  const text = fullText.replace(PHONE_LINK, (link) => " ".repeat(link.length));
   for (const match of text.matchAll(PHONE_CANDIDATE)) {
     const candidate = match[0];
     if (looksLikePhone(candidate, text.slice(0, match.index))) {
@@ -72,7 +93,8 @@ export function findPrivateDataInContent(content) {
   for (const { path, text } of textValues(content)) {
     if (isPlainWebLink(text)) continue;
     const where = ["content.json", ...path].join(" > ");
-    for (const finding of findInText(text)) findings.push(`${where}: ${finding}`);
+    const found = findInText(text);
+    for (const finding of found.length === 0 && isPlace(path) ? findInPlace(text) : found) findings.push(`${where}: ${finding}`);
   }
   return findings;
 }
