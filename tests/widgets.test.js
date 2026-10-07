@@ -312,3 +312,13 @@ for (const [name, { key, sections }] of Object.entries(RECIPES)) {
     for (const label of labels) assert.ok(label in marked, label);
   });
 }
+
+test("a list written as something else by mistake leaves its part out, so the build still runs and the Check names it", () => {
+  const slips = { highlights: "Fast pages", languages: { name: "English" }, stats: "3 projects", now: { updated: "2026-10", items: "Learning" }, events: { name: "Example Conf" }, certifications: "AWS" };
+  const sections = renderSections({ ...sample, ...slips, events: [{ ...widgets.events[0], sessions: "a talk" }] }, { today: TODAY });
+  assert.ok(sections.bio.includes(sample.name));
+  assert.ok(!sections.bio.includes("highlights") && !sections.bio.includes('class="languages"'));
+  for (const widget of ["stats", "now", "certifications", "courses"]) assert.equal(sections[widget], "", widget);
+  assert.ok(sections.events.includes("DevFest Milano") && !sections.events.includes("sessions"));
+  assert.ok(validateContent(schema, { ...sample, ...slips }).length >= Object.keys(slips).length);
+});

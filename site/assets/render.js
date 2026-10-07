@@ -72,6 +72,10 @@ const renderEach = (items, renderItem) =>
 // Text with something in it, or undefined: optional fields may be left empty.
 const filled = (value) => (typeof value === "string" && value.trim() ? value : undefined);
 
+// The entries of a list in the content file; none when it is not a list, so
+// a slip in the file leaves a part out and the Check names it.
+const entriesOf = (value) => (Array.isArray(value) ? value : []);
+
 // A link around already escaped HTML, or that HTML alone when there is no address.
 const linked = (url, html) => (filled(url) ? `<a href="${escapeHtml(url)}">${html}</a>` : html);
 
@@ -170,7 +174,7 @@ function renderPhoto(photo) {
 // What a visitor gets from the person, each with its proof link if it has one.
 function renderHighlights(highlights) {
   const items = renderEach(
-    highlights?.filter((highlight) => filled(highlight?.text)),
+    entriesOf(highlights).filter((highlight) => filled(highlight?.text)),
     (highlight) => `<li>${linked(highlight.url, escapeHtml(highlight.text))}</li>`,
   );
   return items && `
@@ -198,7 +202,7 @@ function renderFacts(content, labels, locale) {
     const zone = filled(timeZone) && timeZoneName(timeZone, locale);
     facts.push(fact("location", labels.basedIn, zone ? `${place} (${zone})` : place));
   }
-  const spoken = (content.languages ?? [])
+  const spoken = entriesOf(content.languages)
     .filter((language) => filled(language?.name))
     .map(({ name, level }) => (filled(level) ? `${name} (${level === "native" ? labels.native : level})` : name));
   if (spoken.length > 0) facts.push(fact("languages", labels.speaks, listOf(spoken, locale)));
@@ -235,7 +239,7 @@ function renderColophon(content, labels, locale) {
 // Up to four honest numbers, each with what it counts.
 function renderStats(content, labels) {
   const items = renderEach(
-    (content.stats ?? []).filter((stat) => filled(String(stat?.value ?? "")) && filled(stat?.label)).slice(0, 4),
+    entriesOf(content.stats).filter((stat) => filled(String(stat?.value ?? "")) && filled(stat?.label)).slice(0, 4),
     ({ value, label }) => `<li class="stat"><span class="stat-value">${escapeHtml(value)}</span> <span class="stat-label">${escapeHtml(label)}</span></li>`,
   );
   return listWithHeading(`<h2>${escapeHtml(labels.stats)}</h2>`, "stats", items);
@@ -243,7 +247,7 @@ function renderStats(content, labels) {
 
 // What the person is doing now, up to three things, and when they wrote it.
 function renderNow(content, labels, locale) {
-  const items = renderEach((content.now?.items ?? []).filter(filled).slice(0, 3), (item) => `<li>${escapeHtml(item)}</li>`);
+  const items = renderEach(entriesOf(content.now?.items).filter(filled).slice(0, 3), (item) => `<li>${escapeHtml(item)}</li>`);
   if (!items) return "";
   const updated = filled(content.now.updated) ? `<p class="period">${escapeHtml(labels.updated)} ${timeElement(content.now.updated, locale)}</p>` : "";
   return `<h2>${escapeHtml(labels.now)}</h2>${updated}<ul class="now">${items}</ul>`;
@@ -270,7 +274,7 @@ function renderSession(session, labels) {
 function renderEvent(event, labels, locale) {
   const role = filled(event.role) ? ` <span class="role">${wordFor(event.role, ROLES, labels)}</span>` : "";
   const place = [filled(event.city), event.online === true && labels.online].filter(Boolean).map(escapeHtml).join(" · ");
-  const sessions = renderEach(event.sessions?.filter((session) => filled(session?.title)), (session) => renderSession(session, labels));
+  const sessions = renderEach(entriesOf(event.sessions).filter((session) => filled(session?.title)), (session) => renderSession(session, labels));
   return `
       <li class="event">
         <h4 class="event-badge">${linked(event.url, escapeHtml(event.name))}${role}</h4>
@@ -282,7 +286,7 @@ function renderEvent(event, labels, locale) {
 // Events still to come first, as Up next, the soonest first; then past
 // ones, the latest first. An event is still to come up to its last day.
 function renderEvents(content, labels, locale, today) {
-  const events = (content.events ?? []).filter((event) => filled(event?.name) && filled(event?.date));
+  const events = entriesOf(content.events).filter((event) => filled(event?.name) && filled(event?.date));
   const ahead = (event) => lastDayOf(filled(event.endDate) ?? event.date) >= today;
   const upcoming = events.filter(ahead).sort((a, b) => a.date.localeCompare(b.date));
   const past = events.filter((event) => !ahead(event)).sort((a, b) => b.date.localeCompare(a.date));
@@ -315,7 +319,7 @@ function renderCredentials(entries, heading, labels, locale) {
 // Certifications from an exam under their own heading, courses and
 // workshops under another; expired ones are left out. The latest first.
 function renderCertifications(content, labels, locale, today) {
-  const valid = (content.certifications ?? [])
+  const valid = entriesOf(content.certifications)
     .filter((entry) => filled(entry?.name) && filled(entry?.issuer) && filled(entry?.issued))
     .filter((entry) => !filled(entry.expires) || lastDayOf(entry.expires) >= today)
     .sort((a, b) => b.issued.localeCompare(a.issued));
