@@ -144,22 +144,22 @@ Replace all of `site/content.json`. Nothing from the sample person, Ada Example,
 - Leave out any part you have nothing for, instead of writing an empty text. Without an email address, `availability` has no action: leave out `actionLabel` and `actionUrl`.
 - Write every date as year-month-day, for example `2025-10-18`, or as year-month when the day is unknown, `2025-10`. The values of `kind`, `role` and `type` stay in English, exactly as above: the page writes them in the site language from `labels`.
 
-**On a workshop day, add the workshop without asking.** Check today's date. If you do not know it, run this command, the same on every operating system:
-
-```
-node -e "console.log(new Date().toDateString())"
-```
-
-If it is 10 October 2026, the person builds this site at DevFest Milano; if it is 24 October 2026, at DevFest Venezia. Then add two things for that event and day. `builtAt` writes a line at the bottom of the page: built with AI agents at that event. And the workshop goes into `events`, as one event with the workshop as its one session; add it to the events from their text, if there are any. For DevFest Milano:
+**At a workshop, add the workshop without asking.** Look for the file `workshop.json` in the repo folder, next to `README.md`. The Install script wrote it if the person set up their laptop with the line from a workshop's guide. It names the event, its date and its city, for example:
 
 ```json
-"builtAt": { "event": "DevFest Milano", "date": "2026-10-10" },
+{ "event": "Example Fest 2026", "date": "2026-05-16", "city": "Turin" }
+```
+
+If the file is there, add two things for its event. `builtAt` writes a line at the bottom of the page: built with AI agents at that event. And the workshop goes into `events`, as one event with the workshop as its one session; add it to the events from their text, if there are any. For the file above:
+
+```json
+"builtAt": { "event": "Example Fest 2026", "date": "2026-05-16" },
 "events": [
-  { "name": "DevFest Milano", "date": "2026-10-10", "city": "Milan", "role": "attendee", "sessions": [{ "type": "workshop", "title": "AI-Native Web Development, Hands-On" }] }
+  { "name": "Example Fest 2026", "date": "2026-05-16", "city": "Turin", "role": "attendee", "sessions": [{ "type": "workshop", "title": "AI-Native Web Development, Hands-On" }] }
 ]
 ```
 
-For DevFest Venezia, the event is `DevFest Venezia`, the date `2026-10-24` and the city `Venice`. Write the city in the site language, for example `Milano` on an Italian site; keep the event's name and the workshop's title as they are. Never list the workshop under `certifications`: it is an event. On any other day, leave `builtAt` and the workshop out.
+Take the event's name and its date from `workshop.json` exactly as they are there, and keep the workshop's title as it is. Write the city in the site language, for example `Torino` on an Italian site; leave it out if the file names none. Without a date in the file, add only `builtAt`: an event needs its date. Never list the workshop under `certifications`: it is an event. Without `workshop.json`, leave `builtAt` and the workshop out.
 
 **If the site language is not English**, also add `"labels"`: the page's own words, translated into the site language. Translate each of these English words and keep the names on the left exactly as they are:
 

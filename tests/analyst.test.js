@@ -131,19 +131,30 @@ test("the Analyst asks the site's goal and writes it into the spec", async () =>
   assert.match(specTemplate(skill), /^## Goal$/m);
 });
 
-test("on a workshop day the Analyst adds the colophon's event and the workshop without asking, and on no other day", async () => {
+test("with the Install script's workshop.json, the Analyst adds the colophon's event and the workshop without asking; without it, neither", async () => {
   const skill = await analystSkill();
-  for (const needed of [/without asking/, /10 October 2026/, /DevFest Milano/, /"date": "2026-10-10"/, /24 October 2026/, /DevFest Venezia/, /2026-10-24/, /On any other day, leave `builtAt` and the workshop out/]) {
-    assert.match(skill, needed);
-  }
+  for (const needed of [/without asking/, /Without `workshop\.json`, leave `builtAt` and the workshop out/]) assert.match(skill, needed);
+  // The file as the skill shows it, and what the Analyst adds for it.
+  const workshop = JSON.parse(jsonBlocks(skill).find((block) => block.startsWith('{ "event"')));
+  const added = JSON.parse(`{${jsonBlocks(skill).find((block) => block.includes('"builtAt"'))}}`);
   const schema = JSON.parse(await read("../site/content.schema.json"));
-  const workshopDay = JSON.parse(`{${jsonBlocks(skill).find((block) => block.includes('"builtAt"'))}}`);
-  assert.deepEqual(validateContent(schema, { ...sample, ...workshopDay }), []);
-  // The workshop is one event, DevFest as the attendee, with the workshop as its one session.
-  assert.deepEqual(workshopDay.events, [
-    { name: "DevFest Milano", date: "2026-10-10", city: "Milan", role: "attendee", sessions: [{ type: "workshop", title: "AI-Native Web Development, Hands-On" }] },
+  assert.deepEqual(validateContent(schema, { ...sample, ...added }), []);
+  assert.deepEqual(added.builtAt, { event: workshop.event, date: workshop.date });
+  // The workshop is one event, the person as an attendee, with the workshop as its one session.
+  assert.deepEqual(added.events, [
+    { name: workshop.event, date: workshop.date, city: workshop.city, role: "attendee", sessions: [{ type: "workshop", title: "AI-Native Web Development, Hands-On" }] },
   ]);
   assert.match(skill, /Never list the workshop under `certifications`: it is an event/);
+});
+
+// The event comes from the guide's install command, so a new workshop needs
+// no change to the skill.
+test("the Analyst names workshop.json and holds no fixed workshop date", async () => {
+  const skill = await analystSkill();
+  assert.match(skill, /`workshop\.json`/);
+  for (const fixed of [/2026-10-(10|24)/, /\b(10|24) October\b/, /\bOctober (10|24)\b/, /DevFest (Milano|Venezia)/, /today's date/, /new Date\(/]) {
+    assert.doesNotMatch(skill, fixed);
+  }
 });
 
 test("the Analyst takes certifications and events from LinkedIn's sections, without a question of their own", async () => {
