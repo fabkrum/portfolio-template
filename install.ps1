@@ -10,6 +10,12 @@
 # It asks for your GitHub username. PORTFOLIO_GITHUB_USER and PORTFOLIO_REPO
 # answer that up front (the automated tests use them).
 #
+# In a workshop, the guide's line also names the event, before irm:
+# WORKSHOP_EVENT, WORKSHOP_DATE (YYYY-MM-DD) and WORKSHOP_CITY. The script
+# saves them in workshop.json in your repo, where the Analyst finds them:
+#
+#   $env:WORKSHOP_EVENT="DevFest Milano 2026"; $env:WORKSHOP_DATE="2026-10-10"; $env:WORKSHOP_CITY="Milan"; irm ... | iex
+#
 # Everything runs inside one script block, so nothing is left behind in your
 # PowerShell window, and it never closes that window.
 
@@ -380,6 +386,27 @@
         }
     }
 
+    # ------------------------------------------------------------ workshop
+
+    # The event this laptop is set up for, as the guide's line names it, saved
+    # in workshop.json in the repo: the Analyst adds it to the site. Written
+    # again on every run; without WORKSHOP_EVENT, nothing is written.
+    function Save-Workshop($repo) {
+        if (-not $env:WORKSHOP_EVENT -or -not (Test-LooksLikeTemplate $repo.Dir)) { return }
+        $workshop = [ordered]@{ event = $env:WORKSHOP_EVENT }
+        if ($env:WORKSHOP_DATE) { $workshop.date = $env:WORKSHOP_DATE }
+        if ($env:WORKSHOP_CITY) { $workshop.city = $env:WORKSHOP_CITY }
+        try {
+            # ConvertTo-Json escapes what JSON needs. The file is UTF-8 without
+            # a byte order mark: Set-Content in Windows PowerShell would write
+            # an accent in the event's name in another encoding.
+            [IO.File]::WriteAllText((Join-Path $repo.Dir 'workshop.json'), ($workshop | ConvertTo-Json))
+            Write-Ok "Saved your workshop in workshop.json: $($env:WORKSHOP_EVENT)."
+        } catch {
+            Write-Info 'Your workshop could not be saved in workshop.json. That is fine: the Analyst works without it.'
+        }
+    }
+
     # ---------------------------------------------------------------- main
 
     Write-Host 'Setting up your laptop for the portfolio workshop.'
@@ -397,6 +424,7 @@
 
     Write-Heading 'Your repo'
     Get-Repo $repo
+    Save-Workshop $repo
     Open-InIde $repo
 
     Write-Heading 'Summary'

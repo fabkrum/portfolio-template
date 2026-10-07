@@ -11,6 +11,12 @@
 #
 # It asks for your GitHub username. PORTFOLIO_GITHUB_USER and PORTFOLIO_REPO
 # answer that up front (the automated tests use them).
+#
+# In a workshop, the guide's line also names the event, in front of sh:
+# WORKSHOP_EVENT, WORKSHOP_DATE (YYYY-MM-DD) and WORKSHOP_CITY. The script
+# saves them in workshop.json in your repo, where the Analyst finds them:
+#
+#   ... | WORKSHOP_EVENT="DevFest Milano 2026" WORKSHOP_DATE=2026-10-10 WORKSHOP_CITY=Milan sh
 
 set -u
 
@@ -432,6 +438,53 @@ open_in_ide() {
   fi
 }
 
+# ---------------------------------------------------------------- workshop
+
+# A text as a JSON string, in double quotes. A backslash or a double quote
+# gets a backslash in front, a line break and the other control characters
+# are written as \n and \u0001 to \u001f, and everything else, such as an
+# apostrophe or an accent, stays as it is. One character at a time, so no
+# awk has to agree on backslashes in a replacement.
+json_string() {
+  printf '%s\n' "$1" | awk '
+    BEGIN {
+      for (i = 1; i < 32; i++) escaped[sprintf("%c", i)] = sprintf("\\u%04x", i)
+      escaped["\\"] = "\\\\"
+      escaped["\""] = "\\\""
+      printf "%s", "\""
+    }
+    NR > 1 { printf "%s", "\\n" }
+    {
+      for (i = 1; i <= length($0); i++) {
+        c = substr($0, i, 1)
+        if (c in escaped) c = escaped[c]
+        printf "%s", c
+      }
+    }
+    END { printf "%s", "\"" }'
+}
+
+# The content of workshop.json: the event, and its date and city if the line
+# names them.
+workshop_json() {
+  printf '{\n  "event": %s' "$(json_string "$WORKSHOP_EVENT")"
+  if [ -n "${WORKSHOP_DATE:-}" ]; then printf ',\n  "date": %s' "$(json_string "$WORKSHOP_DATE")"; fi
+  if [ -n "${WORKSHOP_CITY:-}" ]; then printf ',\n  "city": %s' "$(json_string "$WORKSHOP_CITY")"; fi
+  printf '\n}\n'
+}
+
+# The event this laptop is set up for, as the guide's line names it, saved in
+# workshop.json in the repo: the Analyst adds it to the site. Written again on
+# every run; without WORKSHOP_EVENT, nothing is written.
+write_workshop() {
+  if [ -z "${WORKSHOP_EVENT:-}" ] || ! looks_like_the_template "$REPO_DIR"; then return 0; fi
+  if workshop_json 2>/dev/null >"$REPO_DIR/workshop.json"; then
+    ok "Saved your workshop in workshop.json: $WORKSHOP_EVENT."
+  else
+    info "Your workshop could not be saved in workshop.json. That is fine: the Analyst works without it."
+  fi
+}
+
 # -------------------------------------------------------------------- main
 
 printf 'Setting up your laptop for the portfolio workshop.\n'
@@ -458,6 +511,7 @@ prepare_devtools
 
 heading "Your repo"
 get_repo
+write_workshop
 open_in_ide
 
 heading "Summary"
