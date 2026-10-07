@@ -144,7 +144,7 @@ Replace all of `site/content.json`. Nothing from the sample person, Ada Example,
 - Leave out any part you have nothing for, instead of writing an empty text. Without an email address, `availability` has no action: leave out `actionLabel` and `actionUrl`.
 - Write every date as year-month-day, for example `2025-10-18`, or as year-month when the day is unknown, `2025-10`. The values of `kind`, `role` and `type` stay in English, exactly as above: the page writes them in the site language from `labels`.
 
-**At a workshop, add the workshop without asking.** Look for the file `workshop.json` in the repo folder, next to `README.md`. The Install script wrote it if the person set up their laptop with the line from a workshop's guide. It names the event, its date and its city, for example:
+**At a workshop, add the workshop without asking.** Open the file `workshop.json` in the repo folder, next to `README.md`, by its name: Git ignores it, so a search may not show it. The Install script wrote it if the person set up their laptop with the line from a workshop's guide. It names the event, its date and its city, for example:
 
 ```json
 { "event": "Example Fest 2026", "date": "2026-05-16", "city": "Turin" }
