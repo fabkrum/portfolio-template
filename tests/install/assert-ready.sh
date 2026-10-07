@@ -5,6 +5,9 @@
 # Usage: bash tests/install/assert-ready.sh <repo-folder> <origin-url> [--without-git]
 #   --without-git  the repo was downloaded because Git was missing: expect the
 #                  files, but no Git connection yet.
+# WORKSHOP_EVENT, WORKSHOP_DATE and WORKSHOP_CITY, as the guide's line sets
+# them: expect them in workshop.json in the repo. Without WORKSHOP_EVENT,
+# expect no workshop.json.
 set -u
 
 repo_dir=$1
@@ -47,9 +50,16 @@ else
   if printf '%s' "$git_version" | grep -q '^git version'; then pass "$git_version in a fresh terminal"; else fail "Git in a fresh terminal"; fi
   actual_origin=$(git -C "$repo_dir" remote get-url origin 2>/dev/null)
   if [ "$actual_origin" = "$origin" ]; then pass "origin is $origin"; else fail "origin is $origin (got '$actual_origin')"; fi
-  changes=$(git -C "$repo_dir" status --porcelain 2>&1)
+  # workshop.json is the Install script's own file, checked below. A repo made
+  # from an older template does not ignore it yet.
+  changes=$(git -C "$repo_dir" status --porcelain -- . ':!workshop.json' 2>&1)
   if [ -z "$changes" ]; then pass "working tree matches the repo"; else fail "working tree matches the repo: $changes"; fi
 fi
+
+# The Node of a fresh terminal reads workshop.json; the variables reach it
+# from this shell.
+node_path=$(in_fresh_terminal 'command -v node')
+if workshop=$("${node_path:-node}" "$(dirname "$0")/workshop-json.mjs" "$repo_dir" 2>&1); then pass "$workshop"; else fail "$workshop"; fi
 
 # Antigravity IDE starts Chrome DevTools for agents with npx, the version in
 # .agents/mcp_config.json. The Install script put it in the npm cache, so it

@@ -75,6 +75,5 @@
       }
     ],
     "skills": ["HTML", "CSS", "JavaScript", "Accessibility", "Git"]
-  },
-  "builtAt": { "event": "DevFest Milano", "date": "2026-10-10" }
+  }
 }

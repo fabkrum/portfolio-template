@@ -130,6 +130,7 @@ Once your site is live, you can add Optional modules: a section for YouTube vide
 - `.agents/skills/modern-web-guidance/` – Modern Web Guidance by the Chrome team: current best practices the Developer reads before building. Stored in the repo, so nothing is downloaded.
 - `.agents/mcp_config.json` – switches on Chrome DevTools for agents for your agent in Antigravity IDE.
 - `install.sh`, `install.ps1` – the Install script for macOS/Linux and for Windows.
+- `workshop.json` – the event of your workshop, if you set up your laptop with the line from the workshop guide: the Install script saves it, and the Analyst adds the event to your site. It stays on your laptop: it is not in Git.
 - `AGENTS.md` – the rules your agent follows.
 
 Every push to `main` builds and publishes the site again.

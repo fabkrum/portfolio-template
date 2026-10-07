@@ -4,6 +4,9 @@
 # Usage: pwsh tests/install/assert-ready.ps1 -RepoDir <folder> -Origin <url> [-WithoutGit]
 #   -WithoutGit  the repo was downloaded because Git was missing: expect the
 #                files, but no Git connection yet.
+# $env:WORKSHOP_EVENT, WORKSHOP_DATE and WORKSHOP_CITY, as the guide's line
+# sets them: expect them in workshop.json in the repo. Without
+# WORKSHOP_EVENT, expect no workshop.json.
 param(
     [Parameter(Mandatory)] [string] $RepoDir,
     [Parameter(Mandatory)] [string] $Origin,
@@ -38,9 +41,20 @@ if ($WithoutGit) {
     if (Get-Command git -ErrorAction SilentlyContinue) { Write-Pass "$(& git --version) in a fresh terminal" } else { Write-Failure 'Git in a fresh terminal' }
     $actualOrigin = (& git -C $RepoDir remote get-url origin 2>$null)
     if ($actualOrigin -eq $Origin) { Write-Pass "origin is $Origin" } else { Write-Failure "origin is $Origin (got '$actualOrigin')" }
-    $changes = (& git -C $RepoDir status --porcelain 2>&1) -join "`n"
+    # workshop.json is the Install script's own file, checked below. A repo
+    # made from an older template does not ignore it yet.
+    $changes = (& git -C $RepoDir status --porcelain -- . ':!workshop.json' 2>&1) -join "`n"
     if (-not $changes) { Write-Pass 'working tree matches the repo' } else { Write-Failure "working tree matches the repo: $changes" }
 }
+
+# Node reads workshop.json; the variables reach it from this window.
+$workshop = 'workshop.json read with Node (there is no Node)'
+$workshopExitCode = 1
+if (Get-Command node -ErrorAction SilentlyContinue) {
+    $workshop = (& node (Join-Path $PSScriptRoot 'workshop-json.mjs') $RepoDir 2>&1) -join "`n"
+    $workshopExitCode = $LASTEXITCODE
+}
+if ($workshopExitCode -eq 0) { Write-Pass $workshop } else { Write-Failure $workshop }
 
 # Antigravity IDE starts Chrome DevTools for agents with npx, the version in
 # .agents/mcp_config.json. The Install script put it in the npm cache, so it
