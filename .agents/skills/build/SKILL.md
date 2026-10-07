@@ -84,9 +84,10 @@ Then style the page the way the brief describes it:
 
 ## 5. The markup
 
-The build fills the page from the content file: `site/index.html` holds an empty section for the bio, projects, links and CV, and `node tools/build.mjs` fills each one with the markup `site/assets/render.js` makes from `site/content.json`. So the content is in the page itself: it shows without JavaScript, and search engines and AI agents read it. This is the markup it produces:
+The build fills the page from the content file: `site/index.html` holds an empty section for each part of the page, top to bottom `bio`, `stats`, `now`, `projects`, `events`, `certifications`, `courses`, `links` and `cv`, and an empty `<div id="colophon">` in the footer. `node tools/build.mjs` fills each one with the markup `site/assets/render.js` makes from `site/content.json`, and hides a section the content file has nothing for. So the content is in the page itself: it shows without JavaScript, and search engines and AI agents read it. This is the markup it produces:
 
 - `<header id="bio">`: an `h1` with the name, `p.headline`, then one `p` per bio paragraph.
+- The photo, pitch, highlights, availability and facts of the first screen, the colophon line in the footer and the widgets have their markup and class names in `.agents/skills/build/widgets.md`. Read it before you style them.
 - `<section id="projects">`: an `h2`, then `ul.projects` with one card per project, `li.project`, holding an `h3`, a `p` and `p.project-links`.
 - `<section id="links">`: an `h2`, then `ul.links` with one link per `li`.
 - `<section id="cv">`: an `h2`, then for experience and education an `h3` and `ul.cv-list` (each `li` holds an `h4`, `p.period` and maybe a `p`), and for skills an `h3` and `ul.skills` with one tag per `li`.

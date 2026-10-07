@@ -73,7 +73,8 @@ export const nonEmpty = (value) => (typeof value === "string" && value.trim() ? 
 
 // What the Lawyer fills into the blanks of the privacy page, from the content
 // file. The page is in English, so its language is English too. A value the
-// content file does not give stays a blank.
+// content file does not give stays a blank; "photo" says whether the page
+// has the section about the person's photo.
 function privacyBlanks(content) {
   const mailto = Array.isArray(content.links)
     ? content.links.map((link) => nonEmpty(link?.url)).find((url) => url?.startsWith("mailto:"))
@@ -84,10 +85,23 @@ function privacyBlanks(content) {
     EMAIL: nonEmpty(mailto?.slice("mailto:".length).split("?")[0]),
     LANGUAGE: language.startsWith("en") ? language : "en",
     DATE: writtenOut(new Date()),
+    photo: Boolean(nonEmpty(content.photo?.src)),
   };
 }
 
-const fillBlanks = (page, blanks) => page.replace(/\[\[([A-Z_]+)\]\]/g, (blank, key) => (blanks[key] ? escapeHtml(blanks[key]) : blank));
+// The privacy page's section about the person's photo, word for word as the
+// Lawyer's skill gives it for the blank [[PHOTO]]: it goes in where the
+// content file has a photo; elsewhere the blank's line goes.
+export const PHOTO_SECTION = `      <section class="section">
+        <h2>My photo</h2>
+        <p>This site shows a photo of me. Like everything else on the site, it comes from this website, so showing it sends your data to no one else. It holds none of the hidden data a phone saves in a photo, such as where and when it was taken. Please do not use it anywhere else without asking me.</p>
+      </section>`;
+const PHOTO_BLANK = /^[ \t]*\[\[PHOTO\]\][ \t]*\r?\n(?:[ \t]*\r?\n)?/m;
+
+const fillBlanks = (page, blanks) =>
+  page
+    .replace(PHOTO_BLANK, blanks.photo ? `${PHOTO_SECTION}\n\n` : "")
+    .replace(/\[\[([A-Z_]+)\]\]/g, (blank, key) => (blanks[key] ? escapeHtml(blanks[key]) : blank));
 
 // A privacy page the Lawyer has written for the person in the content file is
 // theirs as well: it may be translated or changed by hand. While the content

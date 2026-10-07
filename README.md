@@ -63,7 +63,7 @@ From your repo folder, run:
 node tools/check.mjs
 ```
 
-It builds your site, looks at it in your own Chrome and reports each item as PASS or NEEDS ATTENTION: the content file matches the schema, accessibility (the axe rules behind Lighthouse's accessibility score), no errors in the browser console, what an agent sees (your name, headline and projects in the page itself, for search engines and AI agents that run no JavaScript), a privacy page written for your site, and no phone number or postal address anywhere in the site. The privacy page needs attention until the Lawyer role has written it. It only reports; it never stops you from publishing. It needs Node 22 or newer and Google Chrome.
+It builds your site, looks at it in your own Chrome and reports each item as PASS or NEEDS ATTENTION: the content file matches the schema, accessibility (the axe rules behind Lighthouse's accessibility score), no errors in the browser console, what an agent sees (your name, headline and projects in the page itself, for search engines and AI agents that run no JavaScript), a privacy page written for your site, and no phone number, postal address or photo that still holds where it was taken anywhere in the site. The privacy page needs attention until the Lawyer role has written it. It only reports; it never stops you from publishing. It needs Node 22 or newer and Google Chrome.
 
 ## Look at your site
 
@@ -101,7 +101,7 @@ Use the block that has just ended, not the one that starts now. It brings your s
 
 ## Add more sections
 
-Once your site is live, you can add Optional modules: a section for YouTube videos, podcasts, a blog, resources or project ideas. Start a fresh chat and ask to add one; the `portfolio-add-module` skill asks you for the entries and writes them into `site/content.json`. The section shows up below your CV.
+Once your site is live, you can add Optional modules: a section for YouTube videos, podcasts, a blog, resources or project ideas. Start a fresh chat and ask to add one; the `portfolio-add-module` skill asks you for the entries and writes them into `site/content.json`. The section shows up below your CV. The same skill adds widgets: events with your talks, certifications, a Now list, numbers, or a project told as a case study. Each shows up in its own place on the page.
 
 ## What is where
 
@@ -122,6 +122,7 @@ Once your site is live, you can add Optional modules: a section for YouTube vide
 - `tools/check-brief.mjs` – checks the design brief: every section there, every colour readable on its background.
 - `tools/contrast.mjs` – says whether a colour is readable as text on a background.
 - `tools/fonts.mjs` – copies the fonts your design brief names from `fonts/` into your site.
+- `tools/photo.mjs` – makes a small square copy of your photo for the site, without the hidden data a phone saves in a photo: `node tools/photo.mjs my-photo.jpg`.
 - `tools/checkpoint.mjs` – jumps to a checkpoint.
 - `tools/where.mjs` – which roles are done and which comes next. Ask your agent "Where am I?" and it runs it for you.
 - `checkpoints/` – one checkpoint per block of the workshop: the repo at the end of that block. `checkpoints/README.md` explains them.

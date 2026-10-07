@@ -5,6 +5,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { pageLabels } from "../site/assets/render.js";
 import { runCheck } from "../tools/check/run-check.mjs";
 import { findPrivateDataInContent } from "../tools/check/private-data.mjs";
 import { validateContent } from "../tools/check/schema.mjs";
@@ -111,6 +112,54 @@ test("the Analyst keeps phone numbers and postal addresses out", async () => {
   assert.match(skill, /postal address/);
 });
 
+// The JSON blocks of a skill, as text, and the spec template the Analyst fills in.
+const jsonBlocks = (skill) => [...skill.matchAll(/```json\n([\s\S]*?)```/g)].map((match) => match[1]);
+const specTemplate = (skill) => skill.match(/```markdown\n([\s\S]*?)```/)[1];
+
+test("the content file the Analyst skill shows matches the schema, the fields of the first screen too", async () => {
+  const shape = JSON.parse(jsonBlocks(await analystSkill()).find((block) => block.includes('"$schema"')));
+  const schema = JSON.parse(await read("../site/content.schema.json"));
+  assert.deepEqual(validateContent(schema, shape), []);
+  for (const field of ["pitch", "highlights", "availability", "location", "languages"]) assert.ok(field in shape, field);
+});
+
+test("the Analyst asks the site's goal and writes it into the spec", async () => {
+  const skill = await analystSkill();
+  const interview = skill.split(/^## /m).find((section) => section.startsWith("3"));
+  const goal = interview.match(/^\d+\. \*\*Goal\*\*: (.*)$/m)?.[1] ?? "";
+  for (const kind of [/job/, /freelance clients/, /speaking invitations/, /community/]) assert.match(goal, kind);
+  assert.match(specTemplate(skill), /^## Goal$/m);
+});
+
+test("on a workshop day the Analyst adds the colophon's event and the workshop without asking, and on no other day", async () => {
+  const skill = await analystSkill();
+  for (const needed of [/without asking/, /10 October 2026/, /DevFest Milano/, /"date": "2026-10-10"/, /24 October 2026/, /DevFest Venezia/, /2026-10-24/, /On any other day, leave `builtAt` and the workshop out/]) {
+    assert.match(skill, needed);
+  }
+  const schema = JSON.parse(await read("../site/content.schema.json"));
+  const workshopDay = JSON.parse(`{${jsonBlocks(skill).find((block) => block.includes('"builtAt"'))}}`);
+  assert.deepEqual(validateContent(schema, { ...sample, ...workshopDay }), []);
+  // The workshop is one event, DevFest as the attendee, with the workshop as its one session.
+  assert.deepEqual(workshopDay.events, [
+    { name: "DevFest Milano", date: "2026-10-10", city: "Milan", role: "attendee", sessions: [{ type: "workshop", title: "AI-Native Web Development, Hands-On" }] },
+  ]);
+  assert.match(skill, /Never list the workshop under `certifications`: it is an event/);
+});
+
+test("the Analyst takes certifications and events from LinkedIn's sections, without a question of their own", async () => {
+  const skill = await analystSkill();
+  for (const needed of ["Licenses & certifications", "Volunteering", '"kind": "exam"', '"issued": "2025-03"', "There is no question about skills, highlights, certifications or events"]) {
+    assert.ok(skill.includes(needed), needed);
+  }
+});
+
+test("the Analyst explains how to add a photo: into the repo folder, then the photo tool, with alt text", async () => {
+  const skill = await analystSkill();
+  for (const needed of ["Copy the photo into your repo folder", "node tools/photo.mjs", '"src": "assets/photo.webp"', '"alt"', "not one made by AI", "delete the original photo"]) {
+    assert.ok(skill.includes(needed), needed);
+  }
+});
+
 // Proxy runs: a fresh agent on Claude Haiku 4.5 played the Analyst on fake
 // LinkedIn text, a fake CV as a PDF, and an interview with nothing to start
 // from, while the person's answers came from answers.md. Each run folder holds
@@ -213,4 +262,21 @@ test("CV run: it asked only about the gaps, and the site is in Italian, its head
   assert.notEqual(content.labels.projects, "Projects");
   assert.ok(content.links.some((link) => link.url === "mailto:giulia@example.com"));
   assert.deepEqual(content.projects.map((project) => project.github), ["https://github.com/octocat/Hello-World"]);
+});
+
+// The Designer interviews the person first and writes their Stitch prompt,
+// so the hand-off must not send them to Stitch on their own.
+test("the Analyst hands over to the Designer in a fresh chat, without sending the person to Stitch first", async () => {
+  const handOff = (await analystSkill()).match(/^"The Analyst is done\. (.*)"$/m)?.[1] ?? "";
+  assert.match(handOff, /^Start a fresh chat and ask for the Designer: it asks you a few questions about your style/);
+  assert.doesNotMatch(handOff, /Stitch design|open Stitch|go to Stitch/i);
+});
+
+// A widget added later is in the site's language at once: the Analyst's
+// labels already hold all the page's own words.
+test("the Analyst's labels hold every word the page writes", async () => {
+  const block = (await analystSkill()).match(/"labels": \{([\s\S]*?)\}/)[1];
+  const names = [...block.matchAll(/"(\w+)":/g)].map((match) => match[1]);
+  const modules = ["videos", "podcasts", "posts", "resources", "ideas"];
+  assert.deepEqual(names.sort(), Object.keys(pageLabels({})).filter((name) => !modules.includes(name)).sort());
 });

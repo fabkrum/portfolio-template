@@ -49,6 +49,7 @@ const FILE_NOTES = {
   "site/assets/render.js": "turns your content file into the sections of the page when the site is built",
   "site/assets/styles.css": "the plain starting styles of the template",
   "site/assets/favicon.svg": "the small icon in the browser tab",
+  "site/assets/avatar.svg": "the drawing that stands in for the sample person's photo",
   "site/content.schema.json": "what your content file may contain",
   "site/privacy.html": "the placeholder: the Lawyer writes the real page",
   "design/default-brief.md": "the default design brief, kept so you can always go back to it",

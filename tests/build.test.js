@@ -114,7 +114,9 @@ test("with JavaScript off, Chrome shows every section of the sample content file
 });
 
 test("the built home page carries the real title, the description, the language, the canonical link and the link preview tags", async () => {
-  await withBuilt({}, async (outDir) => {
+  // The sample person without a pitch and a photo: the headline describes the page.
+  const { pitch, photo, ...withoutPitchOrPhoto } = sample;
+  await withBuilt({ change: writeContent(withoutPitchOrPhoto) }, async (outDir) => {
     const tags = headTags(await read(outDir, "index.html"));
     assert.equal(tags.title, "Ada Example · Portfolio");
     assert.equal(tags.description, sample.headline);
@@ -125,7 +127,7 @@ test("the built home page carries the real title, the description, the language,
     assert.equal(tags["og:description"], sample.headline);
     assert.equal(tags["og:url"], ADDRESS);
     assert.equal(tags["twitter:card"], "summary");
-    // No photo in the sample: no image in the preview.
+    // No photo: no image in the preview.
     assert.equal(tags["og:image"], undefined);
   });
 });
@@ -152,7 +154,14 @@ test("the home page's structured data is a ProfilePage about the person, mapped 
     assert.deepEqual(page.mainEntity, {
       "@type": "Person",
       name: "Ada Example",
-      description: sample.headline,
+      // The sample person's pitch, photo, languages and city.
+      description: sample.pitch,
+      image: `${ADDRESS}assets/avatar.svg`,
+      knowsLanguage: [
+        { "@type": "Language", name: "English" },
+        { "@type": "Language", name: "Italian" },
+      ],
+      homeLocation: { "@type": "Place", name: "Milan" },
       jobTitle: "Junior Frontend Developer",
       url: ADDRESS,
       // https links only: the email address is not a profile.

@@ -32,7 +32,40 @@
         "podcasts": { "$ref": "#/$defs/label" },
         "posts": { "$ref": "#/$defs/label" },
         "resources": { "$ref": "#/$defs/label" },
-        "ideas": { "$ref": "#/$defs/label" }
+        "ideas": { "$ref": "#/$defs/label" },
+        "basedIn": { "$ref": "#/$defs/label" },
+        "speaks": { "$ref": "#/$defs/label" },
+        "native": { "$ref": "#/$defs/label" },
+        "builtWith": { "$ref": "#/$defs/label" },
+        "noTrackers": { "$ref": "#/$defs/label" },
+        "stats": { "$ref": "#/$defs/label" },
+        "now": { "$ref": "#/$defs/label" },
+        "updated": { "$ref": "#/$defs/label" },
+        "events": { "$ref": "#/$defs/label" },
+        "upcoming": { "$ref": "#/$defs/label" },
+        "past": { "$ref": "#/$defs/label" },
+        "online": { "$ref": "#/$defs/label" },
+        "slides": { "$ref": "#/$defs/label" },
+        "video": { "$ref": "#/$defs/label" },
+        "attendee": { "$ref": "#/$defs/label" },
+        "speaker": { "$ref": "#/$defs/label" },
+        "organizer": { "$ref": "#/$defs/label" },
+        "volunteer": { "$ref": "#/$defs/label" },
+        "mentor": { "$ref": "#/$defs/label" },
+        "talk": { "$ref": "#/$defs/label" },
+        "workshop": { "$ref": "#/$defs/label" },
+        "keynote": { "$ref": "#/$defs/label" },
+        "panel": { "$ref": "#/$defs/label" },
+        "codelab": { "$ref": "#/$defs/label" },
+        "certifications": { "$ref": "#/$defs/label" },
+        "courses": { "$ref": "#/$defs/label" },
+        "verify": { "$ref": "#/$defs/label" },
+        "credentialId": { "$ref": "#/$defs/label" },
+        "problem": { "$ref": "#/$defs/label" },
+        "role": { "$ref": "#/$defs/label" },
+        "outcome": { "$ref": "#/$defs/label" },
+        "stack": { "$ref": "#/$defs/label" },
+        "aiNote": { "$ref": "#/$defs/label" }
       }
     },
     "name": { "type": "string", "minLength": 1 },
@@ -40,6 +73,74 @@
       "description": "One line under your name: what you do.",
       "type": "string",
       "minLength": 1
+    },
+    "photo": {
+      "description": "Optional photo of you, made with node tools/photo.mjs. src is the file under assets/, alt describes the photo in a few words for people who cannot see it.",
+      "$ref": "#/$defs/image"
+    },
+    "pitch": {
+      "description": "One sentence: what you offer, concrete. At most 160 characters.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "highlights": {
+      "description": "Up to three things a visitor gets from you, each with an optional link that proves it.",
+      "type": "array",
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["text"],
+        "properties": {
+          "text": { "type": "string", "minLength": 1 },
+          "url": { "description": "A link that proves it, for example to a project or an article.", "$ref": "#/$defs/webUrl" }
+        }
+      }
+    },
+    "availability": {
+      "description": "Whether you are available, in words with a date, and an optional action: a link a visitor clicks, with its text. Email is fine; phone numbers are not.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text"],
+      "dependentRequired": { "actionLabel": ["actionUrl"], "actionUrl": ["actionLabel"] },
+      "properties": {
+        "text": { "type": "string", "minLength": 1 },
+        "actionLabel": { "description": "The text of the action's link, for example Write to me.", "type": "string", "minLength": 1 },
+        "actionUrl": {
+          "description": "Where the action's link goes: an address starting with https:// or an email link starting with mailto:.",
+          "type": "string",
+          "pattern": "^(https://|mailto:)"
+        }
+      }
+    },
+    "location": {
+      "description": "Where you are based: the city only, never a street, a house number or a postcode.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["city"],
+      "properties": {
+        "city": { "$ref": "#/$defs/place" },
+        "country": { "$ref": "#/$defs/place" },
+        "timeZone": {
+          "description": "Your time zone as its IANA name, for example Europe/Rome.",
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_+-]*(/[A-Za-z0-9_+-]+)*$"
+        }
+      }
+    },
+    "languages": {
+      "description": "The languages you speak, each with its level: A1 to C2 as in the Common European Framework, or native.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "level"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "level": { "enum": ["A1", "A2", "B1", "B2", "C1", "C2", "native"] }
+        }
+      }
     },
     "bio": {
       "description": "Short paragraphs about you.",
@@ -61,7 +162,13 @@
             "type": "string",
             "pattern": "^https://github\\.com/"
           },
-          "url": { "$ref": "#/$defs/webUrl" }
+          "url": { "$ref": "#/$defs/webUrl" },
+          "problem": { "description": "Case study: the problem the project solves.", "type": "string", "minLength": 1 },
+          "role": { "description": "Case study: what you did in it.", "type": "string", "minLength": 1 },
+          "outcome": { "description": "Case study: what came out of it, best with a number.", "type": "string", "minLength": 1 },
+          "stack": { "description": "Case study: what it is built with, for example HTML, CSS and JavaScript.", "type": "string", "minLength": 1 },
+          "image": { "description": "Case study: a screenshot or photo of the project, in assets/, with its alt text.", "$ref": "#/$defs/image" },
+          "aiNote": { "description": "Case study: what the AI agent did, and what you did.", "type": "string", "minLength": 1 }
         }
       }
     },
@@ -194,10 +301,130 @@
           "url": { "description": "Optional link, for example to an issue where you collect notes.", "$ref": "#/$defs/webUrl" }
         }
       }
+    },
+    "builtAt": {
+      "description": "The event where you built this site with AI agents. It writes the line at the bottom of the page.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event"],
+      "properties": {
+        "event": { "type": "string", "minLength": 1 },
+        "url": { "$ref": "#/$defs/webUrl" },
+        "date": { "$ref": "#/$defs/date" }
+      }
+    },
+    "stats": {
+      "description": "Widget: up to four honest numbers, each with what it counts, for example 2 projects shipped.",
+      "type": "array",
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["value", "label"],
+        "properties": {
+          "value": { "type": ["string", "number"], "minLength": 1 },
+          "label": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "now": {
+      "description": "Widget: what you are doing now, up to three things, with the month you wrote it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["updated", "items"],
+      "properties": {
+        "updated": { "$ref": "#/$defs/date" },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "events": {
+      "description": "Widget: events you attended, spoke at, organised, volunteered or mentored at, each with what you gave there as sessions. Upcoming ones show first.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "date", "role"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "date": { "$ref": "#/$defs/date" },
+          "endDate": { "description": "The last day of an event of more than one day.", "$ref": "#/$defs/date" },
+          "city": { "$ref": "#/$defs/place" },
+          "online": { "description": "true for an event online.", "type": "boolean" },
+          "url": { "$ref": "#/$defs/webUrl" },
+          "role": { "enum": ["attendee", "speaker", "organizer", "volunteer", "mentor"] },
+          "sessions": {
+            "description": "What you gave or took part in at the event: talks, workshops, keynotes, panels or codelabs.",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["type", "title"],
+              "properties": {
+                "type": { "enum": ["talk", "workshop", "keynote", "panel", "codelab"] },
+                "title": { "type": "string", "minLength": 1 },
+                "url": { "$ref": "#/$defs/webUrl" },
+                "slides": { "$ref": "#/$defs/webUrl" },
+                "video": { "$ref": "#/$defs/webUrl" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "certifications": {
+      "description": "Widget: certifications you passed an exam for (kind exam), and courses and workshops you finished (kind course or workshop). Expired ones are left out of the page.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "issuer", "kind", "issued"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "issuer": { "type": "string", "minLength": 1 },
+          "kind": { "enum": ["exam", "course", "workshop"] },
+          "issued": { "$ref": "#/$defs/date" },
+          "expires": { "$ref": "#/$defs/date" },
+          "credentialId": { "type": "string", "minLength": 1 },
+          "url": { "description": "The link that verifies it, for example on Credly.", "$ref": "#/$defs/webUrl" }
+        }
+      }
     }
   },
   "$defs": {
     "webUrl": { "type": "string", "pattern": "^https://" },
-    "label": { "type": "string", "minLength": 1 }
+    "label": { "type": "string", "minLength": 1 },
+    "date": {
+      "description": "A date as year-month-day, for example 2026-10-10, or year-month, for example 2026-10.",
+      "type": "string",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])(-(0[1-9]|[12][0-9]|3[01]))?$"
+    },
+    "place": {
+      "description": "A city or a country only: no street, no house number, no postcode.",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[^0-9]+$"
+    },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["src", "alt"],
+      "properties": {
+        "src": {
+          "description": "A picture in the folder assets/: a .webp, .jpg, .png, .avif or .svg file, for example assets/photo.webp.",
+          "type": "string",
+          "pattern": "^assets/([A-Za-z0-9_-][A-Za-z0-9._-]*/)*[A-Za-z0-9_-][A-Za-z0-9._-]*\\.(webp|jpg|jpeg|png|avif|svg)$"
+        },
+        "alt": {
+          "description": "What the picture shows, in a few words, for people who cannot see it.",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
   }
 }
