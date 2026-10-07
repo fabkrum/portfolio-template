@@ -1,20 +1,20 @@
 // Where the project cards and the sections of a fixture site sit in Chrome.
 import assert from "node:assert/strict";
+import { serveBuild } from "../tools/build/serve-build.mjs";
 import { findChrome, launchChrome, openTab } from "../tools/check/chrome.mjs";
-import { serveSite } from "../tools/check/serve-site.mjs";
 import { buildFixtureSite } from "./fixture-site.js";
 
 // Where the project cards and the sections sit on the page in Chrome at the given window width.
 export async function pageLayout(siteDir, width) {
-  const server = await serveSite(siteDir);
+  const site = await serveBuild(siteDir);
   let chrome;
   try {
     chrome = await launchChrome(findChrome());
     const { cdp } = chrome;
     const { sessionId } = await openTab(cdp);
     await cdp.send("Emulation.setDeviceMetricsOverride", { width, height: 900, deviceScaleFactor: 1, mobile: false }, sessionId);
-    await cdp.send("Page.navigate", { url: `${server.origin}/` }, sessionId);
-    // main.js fills the page from the content file after load; wait until the cards are there and the fonts are in.
+    await cdp.send("Page.navigate", { url: `${site.origin}/` }, sessionId);
+    // Wait until the page has loaded its cards and its fonts.
     const expression = `(async () => {
       for (let tries = 0; tries < 100 && !document.querySelector(".project"); tries++) await new Promise((done) => setTimeout(done, 50));
       await document.fonts.ready;
@@ -31,7 +31,7 @@ export async function pageLayout(siteDir, width) {
     return result.value;
   } finally {
     await chrome?.close();
-    server.close();
+    await site.close();
   }
 }
 
