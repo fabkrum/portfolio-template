@@ -2,41 +2,14 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join, relative, sep } from "node:path";
-import { fileURLToPath } from "node:url";
+import { dirname, join, relative } from "node:path";
 import { runCheck } from "../tools/check/run-check.mjs";
 import { inChrome } from "./in-chrome.js";
+import { participantRepo, templateDir, withRepo } from "./participant-repo.js";
 import { toolCallsIn, turnsIn } from "./proxy-report.js";
 import { lightDarkTokens } from "./site-files.js";
-
-const templateDir = fileURLToPath(new URL("..", import.meta.url));
-
-// A participant's repo: the template as it lands on their laptop. No .git, as
-// after the Install script's ZIP download, and no tests. "own" lays files of
-// their own over it: { "site/content.json": "tests/fixtures/…", … }.
-async function participantRepo(own = {}) {
-  const dir = await mkdtemp(join(tmpdir(), "checkpoint-"));
-  const skip = new Set([".git", "tests", "qa", "node_modules"]);
-  await cp(templateDir, dir, {
-    recursive: true,
-    filter: (source) => !skip.has(relative(templateDir, source).split(sep)[0]),
-  });
-  for (const [file, from] of Object.entries(own)) await cp(join(templateDir, from), join(dir, file));
-  return { dir, remove: () => rm(dir, { recursive: true, force: true }) };
-}
-
-// Runs use(dir) on a fresh participant's repo, and removes it afterwards.
-async function withRepo(...args) {
-  const use = args.pop();
-  const { dir, remove } = await participantRepo(...args);
-  try {
-    return await use(dir);
-  } finally {
-    await remove();
-  }
-}
 
 // A participant's own files: the Italian content file and the spec of the
 // Analyst's CV run, and the brief the Designer wrote from Stitch's HTML.
