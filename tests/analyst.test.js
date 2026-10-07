@@ -5,6 +5,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { pageLabels } from "../site/assets/render.js";
 import { runCheck } from "../tools/check/run-check.mjs";
 import { findPrivateDataInContent } from "../tools/check/private-data.mjs";
 import { validateContent } from "../tools/check/schema.mjs";
@@ -130,14 +131,26 @@ test("the Analyst asks the site's goal and writes it into the spec", async () =>
   assert.match(specTemplate(skill), /^## Goal$/m);
 });
 
-test("on a workshop day the Analyst adds the colophon's event without asking, and on no other day", async () => {
+test("on a workshop day the Analyst adds the colophon's event and the workshop without asking, and on no other day", async () => {
   const skill = await analystSkill();
-  for (const needed of [/without asking/, /10 October 2026/, /DevFest Milano/, /"date": "2026-10-10"/, /24 October 2026/, /DevFest Venezia/, /2026-10-24/, /On any other day, leave `builtAt` out/]) {
+  for (const needed of [/without asking/, /10 October 2026/, /DevFest Milano/, /"date": "2026-10-10"/, /24 October 2026/, /DevFest Venezia/, /2026-10-24/, /On any other day, leave `builtAt` and the workshop out/]) {
     assert.match(skill, needed);
   }
   const schema = JSON.parse(await read("../site/content.schema.json"));
-  const builtAt = JSON.parse(`{${jsonBlocks(skill).find((block) => block.includes('"builtAt"'))}}`);
-  assert.deepEqual(validateContent(schema, { ...sample, ...builtAt }), []);
+  const workshopDay = JSON.parse(`{${jsonBlocks(skill).find((block) => block.includes('"builtAt"'))}}`);
+  assert.deepEqual(validateContent(schema, { ...sample, ...workshopDay }), []);
+  // The workshop is one event, DevFest as the attendee, with the workshop as its one session.
+  assert.deepEqual(workshopDay.events, [
+    { name: "DevFest Milano", date: "2026-10-10", city: "Milan", role: "attendee", sessions: [{ type: "workshop", title: "AI-Native Web Development, Hands-On" }] },
+  ]);
+  assert.match(skill, /Never list the workshop under `certifications`: it is an event/);
+});
+
+test("the Analyst takes certifications and events from LinkedIn's sections, without a question of their own", async () => {
+  const skill = await analystSkill();
+  for (const needed of ["Licenses & certifications", "Volunteering", '"kind": "exam"', '"issued": "2025-03"', "There is no question about skills, highlights, certifications or events"]) {
+    assert.ok(skill.includes(needed), needed);
+  }
 });
 
 test("the Analyst explains how to add a photo: into the repo folder, then the photo tool, with alt text", async () => {
@@ -257,4 +270,13 @@ test("the Analyst hands over to the Designer in a fresh chat, without sending th
   const handOff = (await analystSkill()).match(/^"The Analyst is done\. (.*)"$/m)?.[1] ?? "";
   assert.match(handOff, /^Start a fresh chat and ask for the Designer: it asks you a few questions about your style/);
   assert.doesNotMatch(handOff, /Stitch design|open Stitch|go to Stitch/i);
+});
+
+// A widget added later is in the site's language at once: the Analyst's
+// labels already hold all the page's own words.
+test("the Analyst's labels hold every word the page writes", async () => {
+  const block = (await analystSkill()).match(/"labels": \{([\s\S]*?)\}/)[1];
+  const names = [...block.matchAll(/"(\w+)":/g)].map((match) => match[1]);
+  const modules = ["videos", "podcasts", "posts", "resources", "ideas"];
+  assert.deepEqual(names.sort(), Object.keys(pageLabels({})).filter((name) => !modules.includes(name)).sort());
 });

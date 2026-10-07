@@ -61,8 +61,10 @@ Go through the text and note what it gives you for each part of the content file
 | `cv.experience` | jobs: role, organisation, start, end, one sentence |
 | `cv.education` | schools, studies and courses: title, organisation, year |
 | `cv.skills` | skills as short words |
+| `certifications` | LinkedIn's "Licenses & certifications" and the certificates in a CV: name, issuer, the month issued and the month it expires, the credential ID and the link that verifies it. Its `kind` is `exam` when the person passed an exam for it, `course` for a course and `workshop` for a workshop |
+| `events` | events the person spoke at, organised, volunteered or mentored at, or went to, often in LinkedIn's "Volunteering": name, date, city, their `role` (`speaker`, `organizer`, `volunteer`, `mentor` or `attendee`) and what they gave there as `sessions`: each a `talk`, `workshop`, `keynote`, `panel` or `codelab` with its title |
 
-LinkedIn shows the location under the name, for example "Milan, Lombardy, Italy": take the city and the country. Its language levels become: "Native or bilingual" `native`, "Full professional" `C1`, "Professional working" `B2`, "Limited working" `B1`, "Elementary" `A2`.
+LinkedIn shows the location under the name, for example "Milan, Lombardy, Italy": take the city and the country. Its language levels become: "Native or bilingual" `native`, "Full professional" `C1`, "Professional working" `B2`, "Limited working" `B1`, "Elementary" `A2`. Its dates become year-month: "Issued Mar 2025 · Expires Mar 2028" is `"issued": "2025-03"`, `"expires": "2028-03"`.
 
 Leave out everything the rules above forbid, and tell the person once, in one sentence, which kinds of data you left out, without repeating the data itself.
 
@@ -80,7 +82,7 @@ These are all the questions there are. Ask them in this order, each as a message
 6. **Links**: "Where can people find you online? For example GitHub, LinkedIn or a blog. And which email address may visitors see?"
 7. **Work and education**: "What work have you done so far, latest first: your role, the organisation, from when to when? And which schools, studies or courses should your site list: what, where, and the year?"
 
-There is no question about skills or highlights: take them from the person's text, projects and work, and they can change them when you read the file back. If their text has a sentence that says what they offer, that is the pitch: skip the pitch part of question 3.
+There is no question about skills, highlights, certifications or events: take them from the person's text, projects and work, and they can change them when you read the file back. They can add more later with the skill `portfolio-add-module`. If their text has a sentence that says what they offer, that is the pitch: skip the pitch part of question 3.
 
 After question 7, or after your 8th question in the whole chat, ask nothing more. Write the files with what you have.
 
@@ -122,7 +124,13 @@ Replace all of `site/content.json`. Nothing from the sample person, Ada Example,
     ],
     "education": [{ "title": "What it was", "organization": "Where", "year": "2021" }],
     "skills": ["HTML", "CSS"]
-  }
+  },
+  "certifications": [
+    { "name": "Name of the certification", "issuer": "Who gave it", "kind": "exam", "issued": "2025-03", "expires": "2028-03", "credentialId": "ABC-123", "url": "https://link-that-verifies-it" }
+  ],
+  "events": [
+    { "name": "Name of the event", "date": "2025-10-18", "city": "Bologna", "role": "speaker", "sessions": [{ "type": "talk", "title": "Title of the talk" }] }
+  ]
 }
 ```
 
@@ -130,6 +138,7 @@ Replace all of `site/content.json`. Nothing from the sample person, Ada Example,
 - Write all text in the site language, also when the LinkedIn text or the CV is in another one. Translate it, also the word `present` in an end date, for example `oggi` in Italian, and the names of the languages someone speaks.
 - Every link starts with `https://`, except the email, which starts with `mailto:`. Never a `tel:` link.
 - Leave out any part you have nothing for, instead of writing an empty text. Without an email address, `availability` has no action: leave out `actionLabel` and `actionUrl`.
+- Write every date as year-month-day, for example `2025-10-18`, or as year-month when the day is unknown, `2025-10`. The values of `kind`, `role` and `type` stay in English, exactly as above: the page writes them in the site language from `labels`.
 
 **On a workshop day, add the workshop without asking.** Check today's date. If you do not know it, run this command, the same on every operating system:
 
@@ -137,13 +146,16 @@ Replace all of `site/content.json`. Nothing from the sample person, Ada Example,
 node -e "console.log(new Date().toDateString())"
 ```
 
-If it is 10 October 2026, the person builds this site at DevFest Milano; if it is 24 October 2026, at DevFest Venezia. Then add `builtAt` with that event and day. It writes a line at the bottom of the page: built with AI agents at that event. For DevFest Milano:
+If it is 10 October 2026, the person builds this site at DevFest Milano; if it is 24 October 2026, at DevFest Venezia. Then add two things for that event and day. `builtAt` writes a line at the bottom of the page: built with AI agents at that event. And the workshop goes into `events`, as one event with the workshop as its one session; add it to the events from their text, if there are any. For DevFest Milano:
 
 ```json
-"builtAt": { "event": "DevFest Milano", "date": "2026-10-10" }
+"builtAt": { "event": "DevFest Milano", "date": "2026-10-10" },
+"events": [
+  { "name": "DevFest Milano", "date": "2026-10-10", "city": "Milan", "role": "attendee", "sessions": [{ "type": "workshop", "title": "AI-Native Web Development, Hands-On" }] }
+]
 ```
 
-For DevFest Venezia, the event is `DevFest Venezia` and the date `2026-10-24`. On any other day, leave `builtAt` out.
+For DevFest Venezia, the event is `DevFest Venezia`, the date `2026-10-24` and the city `Venice`. Write the city in the site language, for example `Milano` on an Italian site; keep the event's name and the workshop's title as they are. Never list the workshop under `certifications`: it is an event. On any other day, leave `builtAt` and the workshop out.
 
 **If the site language is not English**, also add `"labels"`: the page's own words, translated into the site language. Translate each of these English words and keep the names on the left exactly as they are:
 
@@ -232,6 +244,7 @@ The site language and its code, for example English (en).
 - Projects: how many, or none yet.
 - Links: which ones.
 - CV: experience, education and skills, or which of them are missing.
+- Certifications and events: how many of each, or none.
 
 ## Left out on purpose
 The kinds of private data you left out, for example a phone number. Never the data itself.
@@ -246,7 +259,7 @@ The goal is the person's answer to question 2. You did not ask who the site is f
 
 Send one message that explains both files in plain words, before the person accepts them. It must say:
 
-- `site/content.json`: the name and headline, the pitch, the highlights, availability, the city and the languages, the bio in one sentence, the projects, the links, what is in the CV, the site language, the line at the bottom of the page if you added `builtAt`, and which kinds of private data you left out and why
+- `site/content.json`: the name and headline, the pitch, the highlights, availability, the city and the languages, the bio in one sentence, the projects, the links, what is in the CV, the certifications and events, the site language, the workshop and the line at the bottom of the page if you added them, and which kinds of private data you left out and why
 - `docs/spec.md`: the goal, for whom, what a visitor should do (your guess), and the sections
 - what `node tools/check-content.mjs` said
 
