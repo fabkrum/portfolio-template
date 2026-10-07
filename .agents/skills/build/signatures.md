@@ -8,7 +8,7 @@ Every site gets exactly one signature move: the one in the brief's Signature sec
 - **Never hidden.** Content is never hidden: not by default, not while it waits for an animation, not in a browser that lacks the feature. Without the move, the page is complete.
 - **No faded text when the page loads.** The Check measures contrast as the page loads, and text that is still see-through then fails it. Move text with `translate` or `scale`; fade only decorations. Things that animate on scroll show their starting state in the full-page screenshots of `node tools/look.mjs`, so keep that state close to the final one.
 - **Keyboard and screen readers.** What happens on hover also happens on keyboard focus (`:focus-visible`, `:focus-within`). A button is a `<button>`. Decoration gets `aria-hidden="true"`, or lives in a pseudo-element.
-- **JavaScript only where the guide needs it**, in a small module of its own in `site/assets/`, loaded with `<script type="module">` in the `<head>`, like `main.js`. Words it shows come from the page itself, so they stay in the site's language.
+- **JavaScript only where the guide needs it**, in `site/assets/main.js`, the page's place for extras. It never writes content into the page: what it adds is made from the page itself, such as links from the section headings, so it stays in the site's language.
 - **Nothing stored.** The site sets no cookies and stores nothing on the visitor's device; the privacy page says so.
 
 ## Theme switch as an opening circle

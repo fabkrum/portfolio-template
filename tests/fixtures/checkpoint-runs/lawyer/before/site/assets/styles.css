@@ -103,17 +103,6 @@ main {
   padding-block-start: 4rem;
 }
 
-/* Until the content is drawn, the page holds a screen's height, so the footer
-   does not jump down when the content arrives. */
-main:has(> #bio:empty) {
-  min-height: 100svh;
-}
-
-/* A section takes no room until it has content, so nothing jumps when it arrives. */
-.section:empty {
-  display: none;
-}
-
 /* Sections: 4rem apart, with a hairline between them */
 .section + .section {
   margin-block-start: 2.25rem;

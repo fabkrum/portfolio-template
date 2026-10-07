@@ -15,7 +15,6 @@ The brief's Style section names one of five styles, or two. Build the page with 
   - the accent colour: nothing to build, it is in the tokens.
 - **Sections**: the brief's Sections list gives their order, top to bottom. Put the empty sections of `site/index.html` in that order. A section the list names that `index.html` lacks gets an empty `<section id="ID" class="section"></section>` at its place.
 - **What look checks**, so each style must keep it: every section is one below the other, with at least 2rem of margin between them, outside any line at a section's top; each section's heading sits above its content, never beside it; the lists and paragraphs of a section are as wide as the section; nothing is wider than a phone screen. A split screen goes inside a section, below its heading.
-- **Nothing jumps while the page loads**, which look measures too. A section that is still empty must take no room, or it jumps when its content arrives: `.section:empty { display: none; }`.
 
 ## The AI look: never by default
 
