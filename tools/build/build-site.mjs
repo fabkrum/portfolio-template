@@ -103,10 +103,10 @@ async function loadRenderer(siteDir) {
   try {
     renderer = await import(url);
   } catch (error) {
-    throw new BuildError(`assets/render.js has a mistake, so the page could not be built: ${firstLine(error)}`);
+    throw new BuildError(`assets/render.js has a mistake: ${firstLine(error)}`);
   }
   if (typeof renderer.renderSections !== "function") {
-    throw new BuildError("assets/render.js has no function renderSections, so the page could not be built.");
+    throw new BuildError("assets/render.js has no function renderSections, which turns content.json into the page.");
   }
   return renderer;
 }

@@ -360,6 +360,17 @@ test("tags the Developer wrote into the head themselves are replaced, never doub
   });
 });
 
+test("a page whose <head> has no end tag gets its tags in front of <body>", async () => {
+  const index = (await readFile(join(sampleSite, "index.html"), "utf8")).replace("  </head>\n", "");
+  await withBuilt({ change: writeFiles({ "index.html": index }) }, async (outDir, { warnings }) => {
+    const html = await read(outDir, "index.html");
+    assert.deepEqual(warnings, []);
+    assert.equal(headTags(html).title, "Ada Example · Portfolio");
+    assert.ok(html.indexOf("application/ld+json") < html.indexOf("<body>"));
+    assert.ok(html.indexOf('rel="canonical"') < html.indexOf("<body>"));
+  });
+});
+
 test("render.js gets today's date, as YYYY-MM-DD, in the person's own time zone when the content file names one", async () => {
   const recorder = "export const renderSections = (content, options) => ({ bio: `<p>${options.today}</p>` });\n";
   await withBuilt({ today: undefined, change: writeFiles({ "assets/render.js": recorder }) }, async (outDir, { today }) => {

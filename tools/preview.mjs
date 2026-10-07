@@ -6,6 +6,7 @@
 // in your own browser, the way it will look once published. Whenever you load
 // a page and something in site/ has changed, it builds the site again first,
 // so a reload shows your change. It keeps running until you press Ctrl+C.
+import { existsSync } from "node:fs";
 import { readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -54,7 +55,7 @@ function rebuild() {
     }
     if (!now) {
       built = { snapshot: null, problem: `There is no site folder at ${siteDir}.` };
-    } else if (now !== built?.snapshot) {
+    } else if (now !== built?.snapshot || !existsSync(join(outDir, "index.html"))) {
       const before = built;
       const { warnings, problem } = await buildInWorker(siteDir, outDir, { address });
       built = { snapshot: now, problem };

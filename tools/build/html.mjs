@@ -115,10 +115,13 @@ export function withAttribute(startTag, name, value) {
   return tag.replace(/\s*(\/?)>$/, ` ${attribute}$1>`);
 }
 
-// Where the page's <head> is, or null when it has none.
+// Where the page's <head> is, or null when it has none. Without its end
+// tag, </head>, it ends where <body> starts.
 export function headOf(html) {
   const head = findElement(html, (tag) => tag.name === "head");
-  return head?.contentEnd == null ? null : head;
+  if (!head || head.contentEnd != null) return head;
+  const body = findElement(html, (tag) => tag.name === "body");
+  return body ? { ...head, contentEnd: body.tag.start, end: body.tag.start } : null;
 }
 
 // The first element in the <head> that matches, or null.
