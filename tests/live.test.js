@@ -10,8 +10,12 @@ import { sampleSite } from "./fixture-site.js";
 
 const liveTool = fileURLToPath(new URL("../tools/live.mjs", import.meta.url));
 
+// No background maintenance: Git may pack a repo's objects after a commit
+// while a test still reads or deletes them.
+const QUIET_GIT = ["-c", "user.name=Ada Example", "-c", "user.email=ada@example.com", "-c", "gc.auto=0", "-c", "maintenance.auto=false"];
+
 const git = (cwd, ...args) => {
-  const result = spawnSync("git", ["-c", "user.name=Ada Example", "-c", "user.email=ada@example.com", ...args], { cwd, encoding: "utf8" });
+  const result = spawnSync("git", [...QUIET_GIT, ...args], { cwd, encoding: "utf8" });
   assert.equal(result.status, 0, result.stderr);
   return result.stdout.trim();
 };
