@@ -98,8 +98,9 @@ Once your site is live, you can add Optional modules: a section for YouTube vide
 - `site/content.json` – all your content. Edit this file, not the HTML.
 - `site/content.schema.json` – what the content file may contain.
 - `docs/spec.md` – a short spec of your site: who it is for and what a visitor should do. The Analyst role writes it, with your content file.
-- `design/brief.md` – your design brief: colours, fonts, shapes and layout. It starts as a plain default design; the Designer role replaces it with yours from Stitch.
+- `design/brief.md` – your design brief: style, colours, fonts, shapes, layout, the one signature move and the order of the sections. It starts as the default design, in the Classic style; the Designer role interviews you and replaces it with yours from Stitch.
 - `design/default-brief.md` – that default design, kept so you can always go back to it.
+- `fonts/` – two openly licensed fonts for each of the five styles, with their licences. Only the ones your design uses go into your site.
 - `site/` – the site itself: plain HTML, CSS and JavaScript, no build step.
 - `tools/preview.mjs` – the preview.
 - `tools/look.mjs` – screenshots and load speed, for QA.
@@ -107,6 +108,8 @@ Once your site is live, you can add Optional modules: a section for YouTube vide
 - `tools/check.mjs` – the Check.
 - `tools/check-content.mjs` – checks the content file: does it match the schema, and is there no phone number or postal address in it.
 - `tools/check-brief.mjs` – checks the design brief: every section there, every colour readable on its background.
+- `tools/contrast.mjs` – says whether a colour is readable as text on a background.
+- `tools/fonts.mjs` – copies the fonts your design brief names from `fonts/` into your site.
 - `tools/checkpoint.mjs` – jumps to a checkpoint.
 - `tools/where.mjs` – which roles are done and which comes next. Ask your agent "Where am I?" and it runs it for you.
 - `checkpoints/` – one checkpoint per block of the workshop: the repo at the end of that block. `checkpoints/README.md` explains them.

@@ -22,6 +22,10 @@ const defaultBrief = await read("../design/brief.md");
 const withoutSection = (heading) =>
   defaultBrief.replace(new RegExp(`## ${heading}\\n[\\s\\S]*?(?=\\n## |$)`), "");
 
+// The default brief with one colour token's Light or Dark value replaced.
+const withColour = (brief, token, { light, dark }) =>
+  brief.replace(new RegExp(`^\\| ${token} \\| ([^|]*) \\| ([^|]*) \\|`, "m"), (_, oldLight, oldDark) => `| ${token} | ${light ?? oldLight} | ${dark ?? oldDark} |`);
+
 test("the default design brief is complete and readable", () => {
   assert.deepEqual(checkBrief(defaultBrief), []);
 });
@@ -48,14 +52,14 @@ test("a brief without one of the six colour tokens names the missing token", () 
 
 test("text too light to read on its background is named with its contrast", () => {
   // #777777 on white is 4.48:1, just under the 4.5:1 that WCAG AA asks for.
-  const brief = defaultBrief.replace("| muted | #5a5a66 |", "| muted | #777777 |");
+  const brief = withColour(withColour(defaultBrief, "background", { light: "#ffffff" }), "muted", { light: "#777777" });
   const problems = checkBrief(brief);
   assert.equal(problems.length, 2, problems.join("\n")); // on background and on surface
   assert.ok(problems.some((problem) => /"muted" on "background" \(Light\).*4\.48:1/.test(problem)), problems.join("\n"));
 });
 
 test("text on an accent-coloured button must be readable too", () => {
-  const brief = defaultBrief.replace("| on-accent | #ffffff | #121216 |", "| on-accent | #ffffff | #ffffff |");
+  const brief = withColour(defaultBrief, "on-accent", { dark: "#ffffff" });
   const problems = checkBrief(brief);
   assert.ok(problems.some((problem) => problem.includes('"on-accent" on "accent" (Dark)')), problems.join("\n"));
 });
@@ -85,7 +89,7 @@ test("a type table without a headings row says so", () => {
 });
 
 test("a colour that is not a hex value is named with its mode", () => {
-  const brief = defaultBrief.replace("| surface | #f4f4f6 | #1c1c22 |", "| surface | #f4f4f6 | dark grey |");
+  const brief = withColour(defaultBrief, "surface", { dark: "dark grey" });
   const problems = checkBrief(brief);
   assert.ok(
     problems.some((problem) => problem.includes('"surface"') && problem.includes("Dark") && problem.includes("dark grey")),
@@ -103,7 +107,7 @@ test("the command lists every problem of a brief and still exits 0", async () =>
   const dir = await mkdtemp(join(tmpdir(), "brief-"));
   try {
     const path = join(dir, "brief.md");
-    await writeFile(path, withoutSection("Layout").replace("| muted | #5a5a66 |", "| muted | #777777 |"));
+    await writeFile(path, withColour(withoutSection("Layout"), "muted", { light: "#777777" }));
     const { stdout, status } = runCommand(path);
     assert.equal(status, 0);
     assert.match(stdout, /"Layout"/);

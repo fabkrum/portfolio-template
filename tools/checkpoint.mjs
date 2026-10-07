@@ -56,6 +56,9 @@ const FILE_NOTES = {
 
 function changedNote(file, result) {
   const { stylesheet, privacy } = result;
+  if (file.startsWith("site/assets/fonts/")) {
+    return file.endsWith("/OFL.txt") ? "the licence of the font beside it" : "a font of the design, served from your own site";
+  }
   if (file === "site/assets/styles.css" && stylesheet) {
     if (!stylesheet.fromBrief) return "the Developer's stylesheet, in the default colours and fonts";
     if (!stylesheet.ownBrief) return "the Developer's stylesheet, in the default design";

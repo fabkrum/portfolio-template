@@ -4,7 +4,8 @@
 import { existsSync } from "node:fs";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
-import { briefColours, briefFonts, checkBrief, TOKENS } from "../brief/check-brief.mjs";
+import { briefColours, briefFonts, checkBrief, firstFont, SYSTEM_FONTS, TOKENS } from "../brief/check-brief.mjs";
+import { bundledFonts } from "../fonts/bundled-fonts.mjs";
 import { findPrivateDataInContent } from "../check/private-data.mjs";
 import { privacyPageProblems } from "../check/run-check.mjs";
 
@@ -116,27 +117,33 @@ function styledByBrief(css, brief) {
   }
   const fonts = briefFonts(brief);
   const unusableFonts = [];
-  for (const [property, role] of [["--font-heading", "headings"], ["--font-body", "body"]]) {
-    const stack = fontStack(fonts[role]);
+  // Dates and labels take the brief's details font, or its body font in a brief without one.
+  for (const [property, cell] of [["--font-heading", fonts.headings], ["--font-body", fonts.body], ["--font-details", fonts.details ?? fonts.body]]) {
+    const stack = fontStack(cell);
     if (stack) styled = styled.replace(new RegExp(`(${property}\\s*:\\s*)[^;]+`), (_, start) => `${start}${stack}`);
-    else unusableFonts.push(fonts[role]);
+    else unusableFonts.push(cell);
   }
   return { css: styled, unusableFonts: [...new Set(unusableFonts)] };
 }
 
-// Fonts every computer has, and the generic families. Any other font first in
-// a stack is a web font: it shows only once the Developer adds its files.
-const SYSTEM_FONTS = new Set([
-  "system-ui", "ui-sans-serif", "ui-serif", "ui-monospace", "ui-rounded", "sans-serif", "serif", "monospace",
-  "cursive", "fantasy", "-apple-system", "blinkmacsystemfont", "segoe ui", "helvetica", "helvetica neue", "arial",
-  "arial rounded mt bold", "verdana", "tahoma", "trebuchet ms", "georgia", "times new roman", "times",
-  "courier new", "courier", "menlo", "monaco", "consolas",
-]);
-const firstFont = (stack) => stack.split(",")[0].trim().replace(/^["']|["']$/g, "");
-
-function webFontsIn(brief) {
-  const firsts = Object.values(briefFonts(brief)).map(fontStack).filter(Boolean).map(firstFont);
-  return [...new Set(firsts)].filter((font) => font && !SYSTEM_FONTS.has(font.toLowerCase()));
+// The Developer's stylesheet: in the colours and fonts of a brief that is
+// ready, otherwise the default design. On top come the @font-face rules of the
+// bundled fonts in fonts/ that its font stacks start with, as node
+// tools/fonts.mjs gives them to the Developer; the site needs their files too.
+// webFonts: the other fonts its stacks start with that no computer has.
+async function developersStylesheet(repoDir, css, brief) {
+  const styled = brief ? styledByBrief(css, brief) : { css, unusableFonts: [] };
+  const firsts = [...new Set([...styled.css.matchAll(/--font-[\w-]+\s*:\s*([^;]+);/g)].map(([, stack]) => firstFont(stack)))];
+  const families = (await bundledFonts(repoDir)).filter(({ name }) => firsts.some((font) => font.toLowerCase() === name.toLowerCase()));
+  const rules = families.map((family) => family.rules.trim());
+  return {
+    css: rules.length > 0 ? `${rules.join("\n\n")}\n\n${styled.css}` : styled.css,
+    families,
+    unusableFonts: styled.unusableFonts,
+    webFonts: firsts.filter(
+      (font) => font && !SYSTEM_FONTS.has(font.toLowerCase()) && !families.some(({ name }) => name.toLowerCase() === font.toLowerCase()),
+    ),
+  };
 }
 
 // Brings the repo in repoDir to the end of this block, and says what it kept,
@@ -169,16 +176,19 @@ export async function applyCheckpoint(repoDir, block) {
   const styledByOwnBrief = reached(block, "developer") && briefProblems.length === 0;
   const privacy = reached(block, "lawyer") ? privacyBlanks(content) : null;
 
-  let unusableFonts = [];
+  // From the Developer's block on, the stylesheet's fonts come along, each with its licence.
+  const stylesheet = reached(block, "developer")
+    ? await developersStylesheet(repoDir, await readFile(sources.get("site/assets/styles.css"), "utf8"), styledByOwnBrief ? brief : null)
+    : null;
+  for (const family of stylesheet?.families ?? []) {
+    for (const file of family.files) sources.set(`site/assets/fonts/${family.folder}/${file}`, join(family.dir, file));
+  }
+
   const changed = [];
   for (const [file, source] of sources) {
     let bytes = await readFile(source);
     if (file === "site/privacy.html" && privacy) bytes = Buffer.from(fillBlanks(bytes.toString("utf8"), privacy));
-    if (file === "site/assets/styles.css" && styledByOwnBrief) {
-      const styled = styledByBrief(bytes.toString("utf8"), brief);
-      bytes = Buffer.from(styled.css);
-      unusableFonts = styled.unusableFonts;
-    }
+    if (file === "site/assets/styles.css" && stylesheet) bytes = Buffer.from(stylesheet.css);
     const target = join(repoDir, file);
     if (existsSync(target) && (await readFile(target)).equals(bytes)) continue;
     await mkdir(dirname(target), { recursive: true });
@@ -198,7 +208,12 @@ export async function applyCheckpoint(repoDir, block) {
     // How the Developer's stylesheet looks, from the Developer's block on: in
     // the colours and fonts of the brief, unless it is not ready.
     stylesheet: reached(block, "developer")
-      ? { fromBrief: styledByOwnBrief, ownBrief: Boolean(ownBrief) && !ownBrief.sample, unusableFonts, webFonts: styledByOwnBrief ? webFontsIn(brief) : [] }
+      ? {
+          fromBrief: styledByOwnBrief,
+          ownBrief: Boolean(ownBrief) && !ownBrief.sample,
+          unusableFonts: stylesheet.unusableFonts,
+          webFonts: styledByOwnBrief ? stylesheet.webFonts : [],
+        }
       : null,
     privacy,
     privateData: reached(block, "lawyer") && !unreadable ? findPrivateDataInContent(content) : [],

@@ -1,6 +1,6 @@
 // What a site folder shows in Chrome: serves it, opens its home page (or the
 // page given) once the content file has been fetched and drawn, and
-// evaluates an expression there.
+// evaluates an expression there, waiting for it if it gives a promise.
 import { findChrome, launchChrome, navigate, openTab } from "../tools/check/chrome.mjs";
 import { serveSite } from "../tools/check/serve-site.mjs";
 
@@ -11,7 +11,7 @@ export async function inChrome(siteDir, expression, page = "") {
     chrome = await launchChrome(findChrome());
     const { sessionId } = await openTab(chrome.cdp);
     await navigate(chrome.cdp, sessionId, `${server.origin}/${page}`);
-    const { result } = await chrome.cdp.send("Runtime.evaluate", { expression, returnByValue: true }, sessionId);
+    const { result } = await chrome.cdp.send("Runtime.evaluate", { expression, returnByValue: true, awaitPromise: true }, sessionId);
     return result.value;
   } finally {
     await chrome?.close();

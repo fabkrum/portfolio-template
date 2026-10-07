@@ -1,14 +1,19 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { briefColours, SIGNATURE_GUIDES, STYLES, TOKENS } from "../tools/brief/check-brief.mjs";
+import { findChrome } from "../tools/check/chrome.mjs";
 import { runCheck } from "../tools/check/run-check.mjs";
+import { lookAtSite } from "../tools/look/look-at-site.mjs";
 import { buildFixtureSite, fixtureNames, sampleSite } from "./fixture-site.js";
+import { inChrome } from "./in-chrome.js";
 import { assertWideLayout } from "./page-layout.js";
+import { withRepo } from "./participant-repo.js";
 import { lightDarkTokens, loadsFromElsewhere } from "./site-files.js";
 
 // Git on Windows may check files out with CRLF line endings.
@@ -207,4 +212,33 @@ test("the Developer skill builds the style and the one signature move, and takes
   for (const needed of ["`styles.md`", "`signatures.md`", "node tools/fonts.mjs", "font-size-adjust: from-font"]) assert.ok(skill.includes(needed), needed);
   // No download in the room.
   assert.doesNotMatch(skill, /fonts\.google\.com|Download all/);
+});
+
+// The Developer's checkpoint is the site the Developer builds from the default brief.
+test("the Developer's checkpoint, built from the default brief, is in the Classic style and passes look: no layout mistake, fast, no jumps", async () => {
+  await withRepo(async (dir) => {
+    const run = spawnSync(process.execPath, [join(dir, "tools", "checkpoint.mjs"), "developer"], { cwd: dir, encoding: "utf8" });
+    assert.equal(run.status, 0, run.stdout);
+    const page = await inChrome(join(dir, "site"), `document.fonts.ready.then(() => ({
+      heading: getComputedStyle(document.querySelector("h1")).fontFamily,
+      text: getComputedStyle(document.querySelector("#bio p:not(.headline)")).fontFamily,
+      headline: getComputedStyle(document.querySelector(".headline")).fontStyle,
+      column: getComputedStyle(document.querySelector("main")).maxWidth,
+      cardRadius: getComputedStyle(document.querySelector(".project")).borderRadius,
+    }))`);
+    assert.match(page.heading, /^"?Newsreader"?,/);
+    assert.match(page.text, /^"?Literata"?,/);
+    assert.equal(page.headline, "italic");
+    assert.equal(page.column, "608px"); // 38rem: one narrow reading column
+    assert.equal(page.cardRadius, "0px"); // no cards
+    const outDir = await mkdtemp(join(tmpdir(), "look-"));
+    try {
+      const { layout, performance } = await lookAtSite(join(dir, "site"), outDir, findChrome());
+      assert.deepEqual(layout, []);
+      assert.ok(performance.lcp > 0 && performance.lcp < 2500, `LCP ${performance.lcp}`);
+      assert.ok(performance.cls < 0.1, `CLS ${performance.cls}`);
+    } finally {
+      await rm(outDir, { recursive: true, force: true });
+    }
+  });
 });

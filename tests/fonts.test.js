@@ -6,6 +6,7 @@ import { readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { bundledFonts } from "../tools/fonts/bundled-fonts.mjs";
+import { inChrome } from "./in-chrome.js";
 import { templateDir, withRepo } from "./participant-repo.js";
 
 const fontsDir = join(templateDir, "fonts");
@@ -145,5 +146,53 @@ test("the command works on its own repo, from whichever folder it is run, and sa
     const empty = fontsCommand(dir);
     assert.equal(empty.status, 0);
     assert.match(empty.stdout, /names no fonts/);
+  });
+});
+
+// The Developer's checkpoint, run the way a participant runs it.
+const jumpTo = (dir, block) => spawnSync(process.execPath, [join(dir, "tools", "checkpoint.mjs"), block], { cwd: dir, encoding: "utf8" });
+
+// Which of these fonts the page in the site folder has loaded, once its fonts are in.
+const loadedIn = (dir, families) =>
+  inChrome(join(dir, "site"), `document.fonts.ready.then(() => ${JSON.stringify(families)}.filter((family) => document.fonts.check(\`1rem "\${family}"\`) && [...document.fonts].some((face) => face.family.replaceAll('"', "") === family && face.status === "loaded")))`);
+
+test("the Developer's checkpoint serves and loads the fonts of the default design, and says nothing about fonts", async () => {
+  await withRepo(async (dir) => {
+    const { status, stdout } = jumpTo(dir, "developer");
+    assert.equal(status, 0, stdout);
+    assert.deepEqual(await siteFonts(dir), [
+      "literata/OFL.txt", "literata/literata-latin-wght-italic.woff2", "literata/literata-latin-wght-normal.woff2",
+      "newsreader/OFL.txt", "newsreader/newsreader-latin-wght-italic.woff2", "newsreader/newsreader-latin-wght-normal.woff2",
+    ]);
+    assert.match(stdout, /site\/assets\/fonts\/newsreader\/OFL\.txt – the licence of the font beside it/);
+    assert.match(stdout, /site\/assets\/fonts\/newsreader\/newsreader-latin-wght-normal\.woff2 – a font of the design, served from your own site/);
+    assert.doesNotMatch(stdout, /names the font/);
+    assert.deepEqual(await loadedIn(dir, ["Newsreader", "Literata"]), ["Newsreader", "Literata"]);
+  });
+});
+
+test("with a brief in the Bold style, the Developer's checkpoint serves and loads its bundled fonts, the details font too", async () => {
+  await withRepo(async (dir) => {
+    await briefWithFonts(dir, {
+      headings: '"Anton", Impact, "Arial Narrow", sans-serif',
+      body: '"Work Sans", system-ui, sans-serif',
+      details: '"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace',
+    });
+    const { status, stdout } = jumpTo(dir, "developer");
+    assert.equal(status, 0, stdout);
+    assert.deepEqual(await siteFonts(dir), [
+      "anton/OFL.txt", "anton/anton-latin-400-normal.woff2",
+      "jetbrains-mono/OFL.txt", "jetbrains-mono/jetbrains-mono-latin-wght-normal.woff2",
+      "work-sans/OFL.txt", "work-sans/work-sans-latin-wght-normal.woff2",
+    ]);
+    const css = await readText(join(dir, "site", "assets", "styles.css"));
+    assert.ok(css.includes('--font-details: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;'));
+    // Only the rules of the fonts it uses: not the default design's.
+    assert.doesNotMatch(css, /font-family: "(Newsreader|Literata)"/);
+    assert.match(stdout, /colours and fonts of your design brief/);
+    assert.doesNotMatch(stdout, /names the font/);
+    assert.deepEqual(await loadedIn(dir, ["Anton", "Work Sans", "JetBrains Mono"]), ["Anton", "Work Sans", "JetBrains Mono"]);
+    // Applied again, nothing changes.
+    assert.match(jumpTo(dir, "developer").stdout, /Nothing to change/);
   });
 });

@@ -27,7 +27,9 @@ ones in: this repo is public.
   AGENTS.md and the skills. Each folder holds the files the run changed in
   `site/`, laid over the sample site, and a `fixture.json` whose `brief` names
   the brief it built from. `default-brief` is the sample content with the
-  default brief; `stitch-web-font` used the brief from
+  default brief of that day, kept as `design/old-default-brief.md` (the
+  default brief is in the Classic style since 2026-10-07); `stitch-web-font`
+  used the brief from
   `tests/fixtures/design/briefs/from-stitch-html.md`, with the Plus Jakarta Sans files a
   participant downloads from Google Fonts already in `assets/fonts/` (SIL Open
   Font License, `OFL.txt` beside them). Each must pass the Check, define the
@@ -87,7 +89,11 @@ ones in: this repo is public.
   `report.md` the chat and every tool call the agent made. The agent had the
   text of AGENTS.md loaded as its rules, as Antigravity loads it. Both runs
   are the ninth round, on the final wording; `report.md` notes what the
-  earlier rounds changed.
+  earlier rounds changed. On 2026-10-07 the Developer's checkpoint moved to
+  the Classic default design with its fonts, so the files the command writes
+  were brought along: Giulia's stylesheet in `developer/after/`, and Luca's
+  starting point, the Developer's checkpoint with the default brief's fonts,
+  in `lawyer/before/`. What the command says in both runs is unchanged.
 - `deploy-run/` – the Ops skill in a proxy run on 2026-10-04. The repo was the
   template, committed and pushed once, with the Developer's and the Lawyer's
   work not committed yet and a stray `My CV.pdf` in `docs/`, next to the spec. Its GitHub
