@@ -32,6 +32,9 @@ ones in: this repo is public.
   participant downloads from Google Fonts already in `assets/fonts/` (SIL Open
   Font License, `OFL.txt` beside them). Each must pass the Check, define the
   brief's six colours with `light-dark()` and load nothing from other servers.
+  The `index.html` of `default-brief` is the template's with the run's one
+  change, a colour-scheme meta tag, so it follows the template's `index.html`:
+  since 2026-10-07 it has the empty colophon line in the footer.
 - `look-sites/` – sites for `tools/look.mjs`, each laid over the
   `default-brief` built site: one that jumps while it loads, one wider than a
   phone screen, and three layout mistakes the Check cannot see. The grid on
@@ -72,7 +75,9 @@ ones in: this repo is public.
   handle: an `http://` link, a request to embed the YouTube player, a phone
   number in a podcast answer, dates written out in words, and an Italian site
   whose new heading and entries must be in Italian. In each run the content
-  file was the only file the agent changed. All five are the third round, on
+  file was the only file the agent changed. `sample-content.json` is the
+  sample person's content file of the day of the runs, which four of them
+  started from; the sample has grown since. All five are the third round, on
   the final wording; `report.md` notes what the earlier rounds changed.
 - `checkpoint-runs/` – the checkpoint skill in proxy runs on 2026-10-04, the
   same way as the Analyst runs: a person who fell behind asks the agent to
@@ -85,7 +90,11 @@ ones in: this repo is public.
   role in the same chat. `before/` holds what their repo held on top of the
   template, `after/` every file that differed once the run was over, and
   `report.md` the chat and every tool call the agent made. The agent had the
-  text of AGENTS.md loaded as its rules, as Antigravity loads it. Both runs
+  text of AGENTS.md loaded as its rules, as Antigravity loads it. The files
+  the Developer's checkpoint writes, `index.html` and `assets/styles.css` in
+  `developer/after/site/` and `lawyer/before/site/`, follow that checkpoint:
+  they were made again with the command itself on 2026-10-07, when the
+  checkpoint got the round photo and the colophon line. Both runs
   are the ninth round, on the final wording; `report.md` notes what the
   earlier rounds changed.
 - `deploy-run/` – the Ops skill in a proxy run on 2026-10-04. The repo was the

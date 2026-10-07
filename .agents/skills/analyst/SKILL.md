@@ -126,7 +126,12 @@ Replace all of `site/content.json`. Nothing from the sample person, Ada Example,
   "skills": "Skills",
   "code": "Code on GitHub",
   "live": "Live",
-  "privacy": "Privacy"
+  "privacy": "Privacy",
+  "basedIn": "Based in",
+  "speaks": "Speaks",
+  "native": "native",
+  "builtWith": "Built with AI agents at",
+  "noTrackers": "No trackers. Fonts served from this site."
 }
 ```
 

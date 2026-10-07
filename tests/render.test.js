@@ -53,7 +53,7 @@ test("a changed value in the content file changes the page", () => {
 test("content is escaped, never injected as markup", () => {
   const hostile = { ...sample, name: '<img src=x onerror="alert(1)">' };
   const { bio } = renderSections(hostile);
-  assert.ok(!bio.includes("<img"));
+  assert.ok(!bio.includes("<img src=x"));
   assert.ok(bio.includes("&lt;img"));
 });
 

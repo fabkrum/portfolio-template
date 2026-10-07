@@ -230,3 +230,8 @@ header p {
   margin: 0;
   padding: 0;
 }
+
+/* Photo: round, at the size its width and height give it */
+.photo {
+  border-radius: 50%;
+}

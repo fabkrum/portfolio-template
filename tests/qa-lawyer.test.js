@@ -5,7 +5,7 @@ import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { TOKENS } from "../tools/brief/check-brief.mjs";
 import { runCheck } from "../tools/check/run-check.mjs";
-import { buildFixtureSite, sampleSite } from "./fixture-site.js";
+import { buildFixtureSite } from "./fixture-site.js";
 import { assertWideLayout } from "./page-layout.js";
 import { lightDarkTokens, loadsFromElsewhere } from "./site-files.js";
 
@@ -143,12 +143,13 @@ test("the Lawyer took out the phone number and the birth date, and nothing else"
   const { siteDir, remove } = await buildFixtureSite(fixturesDir, "lawyer-runs/after");
   try {
     const content = await readJson(join(siteDir, "content.json"));
-    const sample = await readJson(join(sampleSite, "content.json"));
+    // The content file the Lawyer was given: the sample person of that day, with the planted paragraph.
+    const given = await readJson(join(fixturesDir, "lawyer-runs", "before", "content.json"));
     const text = JSON.stringify(content);
     assert.doesNotMatch(text, /000 000 0000/);
     assert.doesNotMatch(text, /born|1 April 2000/i);
-    for (const paragraph of sample.bio) assert.ok(content.bio.includes(paragraph), paragraph);
-    assert.deepEqual({ ...content, bio: [] }, { ...sample, bio: [] });
+    for (const paragraph of given.bio.filter((paragraph) => !/born/.test(paragraph))) assert.ok(content.bio.includes(paragraph), paragraph);
+    assert.deepEqual({ ...content, bio: [] }, { ...given, bio: [] });
   } finally {
     await remove();
   }

@@ -32,7 +32,12 @@
         "podcasts": { "$ref": "#/$defs/label" },
         "posts": { "$ref": "#/$defs/label" },
         "resources": { "$ref": "#/$defs/label" },
-        "ideas": { "$ref": "#/$defs/label" }
+        "ideas": { "$ref": "#/$defs/label" },
+        "basedIn": { "$ref": "#/$defs/label" },
+        "speaks": { "$ref": "#/$defs/label" },
+        "native": { "$ref": "#/$defs/label" },
+        "builtWith": { "$ref": "#/$defs/label" },
+        "noTrackers": { "$ref": "#/$defs/label" }
       }
     },
     "name": { "type": "string", "minLength": 1 },

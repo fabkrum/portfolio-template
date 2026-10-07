@@ -149,12 +149,14 @@ const fixturesDir = fileURLToPath(new URL("./fixtures", import.meta.url));
 const runContent = async (run) => JSON.parse(await read(`./fixtures/module-runs/${run}/site/content.json`));
 const schema = JSON.parse(await read("../site/content.schema.json"));
 
-// Each run, the content file it started from, and the module it added.
+// Each run, the content file it started from, and the module it added. The
+// sample person of the day of the runs is kept, as the sample has grown since.
+const DAY_SAMPLE = "./fixtures/module-runs/sample-content.json";
 const RUNS = {
-  youtube: { started: "../site/content.json", module: "videos" },
-  podcasts: { started: "../site/content.json", module: "podcasts" },
-  blog: { started: "../site/content.json", module: "posts" },
-  resources: { started: "../site/content.json", module: "resources" },
+  youtube: { started: DAY_SAMPLE, module: "videos" },
+  podcasts: { started: DAY_SAMPLE, module: "podcasts" },
+  blog: { started: DAY_SAMPLE, module: "posts" },
+  resources: { started: DAY_SAMPLE, module: "resources" },
   ideas: { started: "./fixtures/analyst-runs/cv/site/content.json", module: "ideas" },
 };
 
