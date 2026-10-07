@@ -511,3 +511,31 @@ test("node tools/build.mjs with a broken content file says what is wrong, fails,
     assert.equal(await read(join(dir, "_site"), "index.html"), built);
   });
 });
+
+// Git on Windows may check files out with CRLF line endings.
+const readText = async (path) => (await readFile(new URL(path, import.meta.url), "utf8")).replaceAll("\r\n", "\n");
+
+test("AGENTS.md names the one build tool, the same command on every system, with no npm; and JavaScript only for extras", async () => {
+  const rules = await readText("../AGENTS.md");
+  const site = rules.split(/^## /m).find((part) => part.startsWith("The site"));
+  const build = site.split("\n").find((line) => line.includes("`node tools/build.mjs`"));
+  assert.ok(build, "AGENTS.md does not name node tools/build.mjs");
+  for (const needed of [/One build tool/, /the same command on every system/, /never add npm packages, a `package\.json`/, /`_site\/`/]) assert.match(build, needed);
+  assert.match(site, /JavaScript is only for extras, never for content/);
+});
+
+test("the Developer's skill says the build fills the page, JavaScript is for extras only, and what an agent sees is the Developer's", async () => {
+  const skill = await readText("../.agents/skills/build/SKILL.md");
+  for (const needed of ["`node tools/build.mjs` fills each one", "JavaScript only for extras, never for content", "what an agent sees; those are yours", "the preview builds the site again first"]) {
+    assert.ok(skill.includes(needed), needed);
+  }
+});
+
+test("no rule, skill or README says any more that there is no build step, or that main.js fills the page", async () => {
+  const skills = (await readdir(new URL("../.agents/skills", import.meta.url))).filter((name) => name !== "modern-web-guidance");
+  for (const file of ["../AGENTS.md", "../README.md", ...skills.map((name) => `../.agents/skills/${name}/SKILL.md`)]) {
+    const text = await readText(file);
+    assert.doesNotMatch(text, /no build step/i, file);
+    assert.doesNotMatch(text, /main\.js`? (adds|fills|loads|renders)/, file);
+  }
+});
