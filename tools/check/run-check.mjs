@@ -66,8 +66,10 @@ async function schemaProblems(siteDir, content, unreadable) {
 // The template ships privacy.html as a placeholder, marked data-placeholder
 // and saying so; the Lawyer role writes the real page from a template with
 // [[BLANKS]]. No problems means the Lawyer has written the page.
+export const isPlaceholderPage = (page) => /\bdata-placeholder\b/.test(page) || page.includes("The Lawyer role replaces it");
+
 export function privacyPageProblems(page) {
-  if (/\bdata-placeholder\b/.test(page) || page.includes("The Lawyer role replaces it")) {
+  if (isPlaceholderPage(page)) {
     return ["privacy.html is still the placeholder from the template. The Lawyer role writes the real page."];
   }
   const blanks = [...new Set(page.match(/\[\[[A-Z_]+\]\]/g) ?? [])];

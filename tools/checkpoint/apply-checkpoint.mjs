@@ -37,7 +37,7 @@ async function filesOf(checkpointDir) {
 
 // Every file the checkpoint has, by repo path, from the folder of the latest
 // block that holds it.
-async function sourcesUpTo(repoDir, block) {
+export async function sourcesUpTo(repoDir, block) {
   const sources = new Map();
   for (const earlier of BLOCKS.slice(0, BLOCKS.indexOf(block) + 1)) {
     const checkpointDir = join(repoDir, "checkpoints", earlier);
@@ -47,7 +47,7 @@ async function sourcesUpTo(repoDir, block) {
   return sources;
 }
 
-async function readContent(path) {
+export async function readContent(path) {
   try {
     const content = JSON.parse(await readFile(path, "utf8"));
     return { content: content && typeof content === "object" ? content : {} };
@@ -68,7 +68,7 @@ const MONTHS = ["January", "February", "March", "April", "May", "June", "July", 
 const writtenOut = (date) => `${date.getDate()} ${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
 
 // A value from the content file, if it is text with something in it.
-const nonEmpty = (value) => (typeof value === "string" && value.trim() ? value : undefined);
+export const nonEmpty = (value) => (typeof value === "string" && value.trim() ? value : undefined);
 
 // What the Lawyer fills into the blanks of the privacy page, from the content
 // file. The page is in English, so its language is English too. A value the
@@ -91,7 +91,7 @@ const fillBlanks = (page, blanks) => page.replace(/\[\[([A-Z_]+)\]\]/g, (blank, 
 // A privacy page the Lawyer has written for the person in the content file is
 // theirs as well: it may be translated or changed by hand. While the content
 // file cannot be read, any written page counts as theirs.
-const writtenFor = (page, { name, unreadable }) =>
+export const writtenFor = (page, { name, unreadable }) =>
   privacyPageProblems(page).length === 0 && (unreadable || (Boolean(name) && (page.includes(name) || page.includes(escapeHtml(name)))));
 
 // A font stack from the brief's Type table, maybe written in backticks. It is
