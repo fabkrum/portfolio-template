@@ -5,7 +5,8 @@ import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { briefNotes, checkBrief } from "../tools/brief/check-brief.mjs";
+import { briefNotes, checkBrief, contrast, firstFont, SIGNATURE_GUIDES, STYLES } from "../tools/brief/check-brief.mjs";
+import { bundledFonts } from "../tools/fonts/bundled-fonts.mjs";
 
 // Git on Windows may check files out with CRLF line endings.
 const read = async (path) => (await readFile(new URL(path, import.meta.url), "utf8")).replaceAll("\r\n", "\n");
@@ -296,4 +297,137 @@ test("the command says the brief is ready, then what is good to know about its f
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
+});
+
+// The command the Designer runs for the person's colour on the page background.
+const contrastCommand = (...args) =>
+  spawnSync(process.execPath, ["tools/contrast.mjs", ...args], { cwd: repoDir, encoding: "utf8" });
+
+test("the contrast command says whether a colour is readable as text on a background, or belongs behind dark text", () => {
+  const bright = contrastCommand("FF6A2B", "FFF8EC");
+  assert.equal(bright.status, 0);
+  assert.match(bright.stdout, /2\.71:1/);
+  assert.match(bright.stdout, /behind dark text/);
+  // With the # as well, as the person may write it.
+  const ink = contrastCommand("#A8402F", "#f7f3ec");
+  assert.match(ink.stdout, /5\.52:1/);
+  assert.match(ink.stdout, /readable as text/i);
+  assert.doesNotMatch(ink.stdout, /behind dark text/);
+  // 4.48:1 is shown as such, never rounded up to 4.5.
+  assert.match(contrastCommand("777777", "ffffff").stdout, /4\.48:1.*too light/is);
+});
+
+test("the contrast command explains how to call it when a colour is missing or not a hex value", () => {
+  for (const args of [[], ["orange", "FFF8EC"], ["FF6A2B"]]) {
+    const run = contrastCommand(...args);
+    assert.equal(run.status, 0);
+    assert.match(run.stdout, /node tools\/contrast\.mjs FF6A2B FFF8EC/, args.join(" "));
+  }
+});
+
+// The Designer's phrase bank: one "## " part per style, each line "- Key: value".
+const phraseBank = await read("../.agents/skills/design/styles.md");
+const styleParts = Object.fromEntries(
+  phraseBank.split(/^## /m).slice(1).map((part) => [part.split("\n")[0].trim(), part]),
+);
+const lineIn = (part, key) => part.match(new RegExp(`^- ${key}:(.*)$`, "m"))?.[1].trim();
+const designerSkill = await read("../.agents/skills/design/SKILL.md");
+// The fenced blocks of a Markdown text, with their language.
+const blocksIn = (markdown) => [...markdown.matchAll(/^```(\w*)\n([\s\S]*?)^```$/gm)].map(([, language, body]) => ({ language, body }));
+
+test("the phrase bank has every line for each of the five styles", () => {
+  for (const style of STYLES) {
+    const part = styleParts[style];
+    assert.ok(part, `no part for ${style}`);
+    for (const key of ["Offer", "More examples", "Theme", "Touch", "Fonts", "Background", "Skills", "Photo", "Leave out", "Motion", "Signature"]) {
+      assert.ok(lineIn(part, key) !== undefined, `${style}: ${key}`);
+    }
+    assert.match(lineIn(part, "Offer"), /^\*\*\w+\*\*: .+\. Like [\w.-]+\.\w+\.$/, `${style}: one sentence and one example site`);
+    for (const role of ["headings", "body", "details"]) assert.match(part, new RegExp(`^  - ${role}: \`[^\`]+\`$`, "m"), `${style}: ${role}`);
+    // Never a URL in a phrase that goes into the prompt.
+    for (const key of ["Theme", "Touch", "Skills", "Photo", "Leave out"]) assert.doesNotMatch(lineIn(part, key), /https?:|www\.|\.(com|dev|me|nl|co|as)\b/, `${style}: ${key}`);
+  }
+});
+
+test("every font the phrase bank names is in the font folder, with its licence", async () => {
+  const bundled = await bundledFonts(repoDir);
+  for (const style of STYLES) {
+    const part = styleParts[style];
+    const stacks = [...part.matchAll(/^ {2}- (?:headings|body|details): `([^`]+)`$/gm)].map(([, stack]) => stack);
+    const named = [...lineIn(part, "Fonts").matchAll(/in ([A-Z][\w ]+?)(?=[,.]| and)/g)].map(([, font]) => font.trim());
+    assert.ok(named.length >= 2, `${style}: ${lineIn(part, "Fonts")}`);
+    for (const font of [...stacks.map(firstFont), ...named]) {
+      const family = bundled.find(({ name }) => name === font);
+      assert.ok(family, `${style}: ${font} is not in fonts/`);
+      assert.ok(family.files.includes("OFL.txt"), `${font} has no licence`);
+    }
+  }
+});
+
+test("the phrase bank marks exactly the default accents that are too light for text as fills behind dark text", () => {
+  for (const style of STYLES) {
+    const [background, accent] = [...lineIn(styleParts[style], "Background").matchAll(/#[0-9A-F]{6}/gi)].map(([hex]) => hex);
+    const tooLight = contrast(accent, background) < 4.5;
+    assert.equal(/fills behind dark text/.test(lineIn(styleParts[style], "Background")), tooLight, `${style}: ${accent} on ${background}`);
+  }
+});
+
+test("each style suggests signature moves from the menu, each with its guide", () => {
+  for (const style of STYLES) {
+    const moves = styleParts[style].split("- Signature:")[1].split("\n").filter((line) => line.startsWith("  - "));
+    assert.ok(moves.length >= 2, style);
+    for (const move of moves) assert.ok(SIGNATURE_GUIDES.some((guide) => move.endsWith(`\`${guide}\``)), `${style}: ${move}`);
+  }
+});
+
+test("the Designer offers the five styles, each in one sentence with one example site, and default for someone with no time", () => {
+  const opening = designerSkill.split("## 2. Ask for the style")[1].split("\n- ")[0];
+  for (const style of STYLES) {
+    const offer = opening.match(new RegExp(`^\\d\\. \\*\\*${style}\\*\\*: [^\\n]+$`, "m"))?.[0];
+    assert.ok(offer, style);
+    assert.equal(offer.replace(/^\d\. /, ""), lineIn(styleParts[style], "Offer"), `${style}: the offer and the phrase bank agree`);
+  }
+  assert.match(opening, /mix two/);
+  assert.match(opening, /\*\*default\*\*/);
+});
+
+test("the Designer interviews in at most five questions, one at a time, and asks once for a sharper word", () => {
+  for (const needed of [/\*\*At most five questions\*\*/, /\*\*One question at a time\.\*\*/, /sharper word/, /counts as a question/, /exactly one small detail/, /Never a whole theme/]) {
+    assert.match(designerSkill, needed);
+  }
+  // The goal comes from the spec, the content from the content file.
+  for (const needed of ["docs/spec.md", "site/content.json", "a job", "freelance clients", "speaking invitations", "community"]) {
+    assert.ok(designerSkill.includes(needed), needed);
+  }
+});
+
+test("the Stitch prompt follows Google's recipe, in English, with no web address and only bundled fonts", async () => {
+  const prompts = blocksIn(designerSkill).filter(({ body }) => body.startsWith("Idea: "));
+  assert.equal(prompts.length, 2, "the template and the example");
+  for (const { body } of prompts) {
+    assert.deepEqual(body.trim().split("\n").map((line) => line.split(":")[0]), ["Idea", "Theme", "Content", "Image", "Leave out"]);
+    assert.match(body, /Leave out: .*made-up numbers\.$/m);
+  }
+  const example = prompts[1].body;
+  assert.doesNotMatch(example, /https?:|www\.|\.(com|dev|me|io)\b/);
+  const bundled = (await bundledFonts(repoDir)).map(({ name }) => name);
+  for (const [, font] of example.matchAll(/(?:Headings|text|dates) in ([A-Z][\w ]+?)(?=[,.])/g)) assert.ok(bundled.includes(font), font);
+  for (const needed of [/in English/, /Never put a web address into the Stitch prompt/, /about 120 words/, /node tools\/contrast\.mjs/, /fills behind dark text/, /Motion stays out of the prompt/]) {
+    assert.match(designerSkill, needed);
+  }
+});
+
+test("the Designer tells the person how to use the prompt in Stitch", () => {
+  for (const needed of [/\*\*Web\*\*/, /\*\*Flash\*\* or \*\*Speed\*\*/, /Do \*\*not\*\* press \*\*Enhance prompt\*\*/, /one thing at a time/, /\*\*Edit Theme\*\*/, /\*\*Creative\*\*/, /Make it more STYLE/, /\*\*no Stitch\*\*/]) {
+    assert.match(designerSkill, needed);
+  }
+});
+
+test("the brief template in the Designer skill has the style, a third font, the signature move and the order of the sections", () => {
+  const template = blocksIn(designerSkill).find(({ language, body }) => language === "markdown" && body.startsWith("# Design brief"))?.body ?? "";
+  for (const heading of ["Style", "Colours", "Type", "Shapes", "Layout", "Components", "Signature", "Sections"]) {
+    assert.ok(template.includes(`\n## ${heading}\n`), heading);
+  }
+  assert.match(template, /^\| details \|/m);
+  for (const line of ["- Style:", "- Feel:", "- Personal detail:", "- Motion:", "- Move:", "- Guide:", "1. `bio`"]) assert.ok(template.includes(line), line);
 });

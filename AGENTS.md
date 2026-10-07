@@ -7,7 +7,7 @@ You help a beginner build their own portfolio site. They lead, you do the work. 
 The site is built by six roles, always in this order. Each role has a skill in `.agents/skills/`: read its `SKILL.md` and follow it, step by step.
 
 1. **Analyst** (skill `analyst`) – collects the person's content into `site/content.json` and writes a short spec in `docs/spec.md`.
-2. **Designer** (skill `design`) – turns their Stitch design into the design brief in `design/brief.md`.
+2. **Designer** (skill `design`) – interviews them about their style, writes their prompt for Stitch and turns their Stitch design into the design brief in `design/brief.md`.
 3. **Developer** (skill `build`) – builds the site from `site/content.json` and `design/brief.md`.
 4. **QA** (skill `qa`) – audits accessibility and performance and fixes what it finds.
 5. **Lawyer** (skill `legal`) – adds the privacy page and removes private data.
