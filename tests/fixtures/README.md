@@ -83,7 +83,10 @@ ones in: this repo is public.
   from an exam, one expired, a course and a workshop), and the first project
   as a case study with a made-up screenshot, `assets/tide-tables.svg`. Every
   event, issuer and `example.com` address is made up; the tests pass the day
-  as `today`, so the split into upcoming and past events stays the same.
+  as `today`, so the split into upcoming and past events stays the same. With
+  the workshop it has `builtAt`, the event of the colophon line, as the
+  Analyst adds both from `workshop.json`: the sample person was built at no
+  event, so the tests of the colophon line use this one.
 - `module-runs/` – the Optional-module skill in proxy runs on 2026-10-04, the
   same way as the Analyst runs: one folder per recipe, with `answers.md`,
   `report.md` and in `site/` the content file the agent wrote, laid over the

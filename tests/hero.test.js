@@ -3,10 +3,11 @@ import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { renderSections } from "../site/assets/render.js";
 import { findPrivateDataInContent, findPrivateDataInSiteFiles } from "../tools/check/private-data.mjs";
 import { validateContent } from "../tools/check/schema.mjs";
-import { sampleSite } from "./fixture-site.js";
+import { buildFixtureSite } from "./fixture-site.js";
 import { inChrome } from "./in-chrome.js";
 
 // Git on Windows may check files out with CRLF line endings.
@@ -15,14 +16,23 @@ const sample = JSON.parse(await read("../site/content.json"));
 const schema = JSON.parse(await read("../site/content.schema.json"));
 
 // The sample person without any of the fields of the first screen.
-const { photo, pitch, highlights, availability, location, languages, builtAt, ...plain } = sample;
+const { photo, pitch, highlights, availability, location, languages, ...plain } = sample;
+
+// The sample person was built at no event. The event of a site built at a
+// workshop, as the Analyst takes it from workshop.json, comes from a fixture:
+// the sample person with every widget and the workshop.
+const fixturesDir = fileURLToPath(new URL("./fixtures", import.meta.url));
+const atAWorkshop = JSON.parse(await read("./fixtures/clean-sites/all-widgets/content.json"));
+const { builtAt } = atAWorkshop;
 
 const problemsWith = (changes) => validateContent(schema, { ...sample, ...changes }).join("\n");
 
-test("the schema takes the sample person's photo, pitch, highlights, availability, location, languages and event", () => {
-  assert.ok(photo && pitch && highlights && availability && location && languages && builtAt, "the sample has every field");
+test("the schema takes the sample person's photo, pitch, highlights, availability, location and languages, and the event of a workshop", () => {
+  assert.ok(photo && pitch && highlights && availability && location && languages, "the sample has every field of the first screen");
+  assert.ok(builtAt, "the fixture has the event");
   assert.deepEqual(validateContent(schema, sample), []);
   assert.deepEqual(validateContent(schema, plain), []);
+  assert.deepEqual(validateContent(schema, { ...sample, builtAt }), []);
 });
 
 test("a photo without alt text is named, in plain words", () => {
@@ -137,19 +147,20 @@ test("each field of the first screen is left out on its own when it is missing",
   assert.ok(noAction.includes('<p class="availability">Available.</p>'));
 });
 
-test("the colophon line names the event and says the site has no trackers and serves its own fonts", () => {
-  const { colophon } = renderSections(sample);
+test("the colophon line names the event and says the site has no trackers and serves its own fonts; the sample person has none", () => {
+  const { colophon } = renderSections({ ...sample, builtAt });
   assert.equal(
     colophon,
     'Built with AI agents at DevFest Milano, <time datetime="2026-10-10">October 10, 2026</time>. No trackers. Fonts served from this site.',
   );
   const linked = renderSections({ ...sample, builtAt: { event: "DevFest Venezia", url: "https://example.com/devfest" } }).colophon;
   assert.equal(linked, 'Built with AI agents at <a href="https://example.com/devfest">DevFest Venezia</a>. No trackers. Fonts served from this site.');
+  assert.equal(renderSections(sample).colophon, "");
 });
 
 test("the page's new words come from labels, so a site in another language stays in it", () => {
   const labels = { basedIn: "Wohnt in", speaks: "Spricht", native: "Muttersprache", builtWith: "Mit KI-Agenten gebaut auf der", noTrackers: "Keine Tracker. Schriften von dieser Website." };
-  const { bio, colophon } = renderSections({ ...sample, language: "de", labels });
+  const { bio, colophon } = renderSections({ ...sample, builtAt, language: "de", labels });
   assert.ok(bio.includes("Wohnt in</span> Milan, Italy (Mitteleuropäische Zeit)"), bio);
   assert.ok(bio.includes("Spricht</span> English (Muttersprache) und Italian (B2)"), bio);
   assert.ok(colophon.startsWith("Mit KI-Agenten gebaut auf der DevFest Milano, "), colophon);
@@ -204,21 +215,26 @@ test("a tel: link in a page of the site is named, once, however short its number
   }
 });
 
-test("in Chrome, the sample site shows a round photo, the pitch, availability and the colophon line in the footer", async () => {
-  const shown = await inChrome(sampleSite, `(() => {
-    const photo = document.querySelector("#bio img.photo");
-    return {
-      photo: photo && { radius: getComputedStyle(photo).borderRadius, width: photo.getBoundingClientRect().width, height: photo.getBoundingClientRect().height },
-      pitch: document.querySelector("#bio .pitch")?.textContent,
-      availability: document.querySelector("#bio .availability a")?.getAttribute("href"),
-      colophon: document.querySelector("footer #colophon:not([hidden])")?.textContent,
-    };
-  })()`);
-  assert.equal(shown.photo?.radius, "50%");
-  assert.ok(shown.photo.width > 0 && shown.photo.width === shown.photo.height, JSON.stringify(shown.photo));
-  assert.equal(shown.pitch, pitch);
-  assert.equal(shown.availability, availability.actionUrl);
-  assert.match(shown.colophon, /^Built with AI agents at DevFest Milano/);
+test("in Chrome, the sample person's site from a workshop shows a round photo, the pitch, availability and the colophon line in the footer", async () => {
+  const { siteDir, remove } = await buildFixtureSite(fixturesDir, "clean-sites/all-widgets");
+  try {
+    const shown = await inChrome(siteDir, `(() => {
+      const photo = document.querySelector("#bio img.photo");
+      return {
+        photo: photo && { radius: getComputedStyle(photo).borderRadius, width: photo.getBoundingClientRect().width, height: photo.getBoundingClientRect().height },
+        pitch: document.querySelector("#bio .pitch")?.textContent,
+        availability: document.querySelector("#bio .availability a")?.getAttribute("href"),
+        colophon: document.querySelector("footer #colophon:not([hidden])")?.textContent,
+      };
+    })()`);
+    assert.equal(shown.photo?.radius, "50%");
+    assert.ok(shown.photo.width > 0 && shown.photo.width === shown.photo.height, JSON.stringify(shown.photo));
+    assert.equal(shown.pitch, atAWorkshop.pitch);
+    assert.equal(shown.availability, atAWorkshop.availability.actionUrl);
+    assert.match(shown.colophon, /^Built with AI agents at DevFest Milano/);
+  } finally {
+    await remove();
+  }
 });
 
 // Every class name the page gets from the content file, documented for the
