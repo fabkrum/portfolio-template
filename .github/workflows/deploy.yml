@@ -4,6 +4,10 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  # Once a day as well, so that what depends on the date, such as which
+  # events are coming up, stays right without a push.
+  schedule:
+    - cron: "17 2 * * *"
 
 permissions:
   contents: read
@@ -22,9 +26,16 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
       - uses: actions/configure-pages@v5
+      # The finished site, with the content in the pages, in _site/: the same
+      # build as the preview's, at the address GitHub publishes the repo at.
+      - name: Build the site
+        run: node tools/build.mjs
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: site
+          path: _site
       - id: deployment
         uses: actions/deploy-pages@v4

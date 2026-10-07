@@ -31,3 +31,31 @@ test("Every copy publishes: the Pages deploy runs in every repo", async () => {
   assert.ok(jobs.length > 0, "a deploy job");
   for (const job of jobs) assert.equal(job.condition, null, job.name);
 });
+
+// The steps of a workflow's job, in order, each as its own text.
+const stepsOf = (workflow, job) => {
+  const body = workflow.split(new RegExp(`^  ${job}:\\n`, "m"))[1]?.split(/^  \S/m)[0] ?? "";
+  return (body.split(/^ {4}steps:\n/m)[1] ?? "").split(/^ {6}- /m).slice(1);
+};
+
+test("Every copy publishes the built site: the deploy sets up Node, builds the site and uploads _site/", async () => {
+  const steps = stepsOf(await read("../.github/workflows/deploy.yml"), "deploy");
+  const at = (pattern) => steps.findIndex((step) => pattern.test(step));
+  const order = [/uses: actions\/checkout@/, /uses: actions\/setup-node@/, /run: node tools\/build\.mjs$/m, /uses: actions\/upload-pages-artifact@/, /uses: actions\/deploy-pages@/].map(at);
+  assert.ok(order.every((index) => index >= 0), JSON.stringify(order));
+  assert.deepEqual(order, [...order].sort((a, b) => a - b), "in this order");
+  assert.match(steps[at(/setup-node/)], /node-version: 22\b/);
+  assert.match(steps[at(/upload-pages-artifact/)], /^ +path: _site$/m);
+});
+
+test("The deploy also runs once a day, so what depends on the date stays right without a push", async () => {
+  const workflow = await read("../.github/workflows/deploy.yml");
+  const triggers = workflow.split(/^on:\n/m)[1].split(/^\S/m)[0];
+  assert.match(triggers, /^ {2}push:\n {4}branches: \[main\]$/m);
+  assert.match(triggers, /^ {2}schedule:\n {4}- cron: "\d+ \d+ \* \* \*"$/m);
+});
+
+test("CI builds the sample site as the deploy does, on every operating system", async () => {
+  const steps = stepsOf(await read("../.github/workflows/ci.yml"), "test");
+  assert.ok(steps.some((step) => /^ +run: node tools\/build\.mjs$/m.test(step)));
+});
