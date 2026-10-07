@@ -108,8 +108,9 @@ Once your site is live, you can add Optional modules: a section for YouTube vide
 - `tools/check-content.mjs` – checks the content file: does it match the schema, and is there no phone number or postal address in it.
 - `tools/check-brief.mjs` – checks the design brief: every section there, every colour readable on its background.
 - `tools/checkpoint.mjs` – jumps to a checkpoint.
+- `tools/where.mjs` – which roles are done and which comes next. Ask your agent "Where am I?" and it runs it for you.
 - `checkpoints/` – one checkpoint per block of the workshop: the repo at the end of that block. `checkpoints/README.md` explains them.
-- `.agents/skills/` – one skill per role, plus `portfolio-add-module` for Optional modules and `checkpoint` for catching up. Antigravity IDE finds them when you open the repo.
+- `.agents/skills/` – one skill per role, plus `portfolio-add-module` for Optional modules, `checkpoint` for catching up, and `help`, `explain` and `recap` for when you are stuck, want something explained, or want the story of your site written down. Antigravity IDE finds them when you open the repo.
 - `.agents/skills/modern-web-guidance/` – Modern Web Guidance by the Chrome team: current best practices the Developer reads before building. Stored in the repo, so nothing is downloaded.
 - `.agents/mcp_config.json` – switches on Chrome DevTools for agents for your agent in Antigravity IDE.
 - `install.sh`, `install.ps1` – the Install script for macOS/Linux and for Windows.

@@ -31,6 +31,12 @@ The command's output is the read-back: it says in plain words, file by file, wha
 
 A checkpoint is a chat of its own. After it, the person starts a fresh chat for the next role. If they ask you for that role, or any other, in the same chat, do not start it: tell them again to start a fresh chat.
 
+## Stuck, curious or done?
+
+- "Where am I?", "What's next?" or "I'm stuck": use the skill `help`.
+- "Explain … to me": use the skill `explain`.
+- "Write down what we did and why": use the skill `recap`.
+
 ## Read changes back before they are accepted
 
 Before the person accepts a change, explain in plain words what you changed and why, file by file. Never ask them to accept something you have not explained.
