@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { briefColours, SIGNATURE_GUIDES, SIGNATURE_MOVES, STYLES, TOKENS } from "../tools/brief/check-brief.mjs";
+import { serveBuild } from "../tools/build/serve-build.mjs";
 import { findChrome } from "../tools/check/chrome.mjs";
 import { runCheck } from "../tools/check/run-check.mjs";
 import { lookAtSite } from "../tools/look/look-at-site.mjs";
@@ -75,17 +76,25 @@ test("the finder of outside loads catches a Google font and a CDN script", async
     await writeFile(join(dir, "styles.css"), "@font-face { src: url(//fonts.gstatic.com/s/inter.woff2); }");
     await writeFile(join(dir, "main.js"), 'import confetti from "https://cdn.example.com/confetti.js";');
     await writeFile(join(dir, "photo.html"), '<img alt="" src="me.jpg" srcset="me.jpg 1x, https://cdn.example.com/me@2x.jpg 2x">');
+    // The canonical link and a link preview's image only name an address; the page loads neither.
+    await writeFile(join(dir, "head.html"), '<link rel="canonical" href="https://ada-example.github.io/portfolio/"><meta property="og:image" content="https://ada-example.github.io/portfolio/assets/me.webp">');
     assert.equal((await loadsFromElsewhere(dir)).length, 4);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
 });
 
-test("the sample site loads nothing from other servers", async () => {
+test("the sample site loads nothing from other servers, before the build and after it", async () => {
   assert.deepEqual(await loadsFromElsewhere(sampleSite), []);
+  const site = await serveBuild(sampleSite);
+  try {
+    assert.deepEqual(await loadsFromElsewhere(site.outDir), []);
+  } finally {
+    await site.close();
+  }
 });
 
-test("the site needs no Node and no npm: there is no package.json or node_modules", () => {
+test("the site and its tools need no npm: there is no package.json or node_modules", () => {
   for (const path of ["../package.json", "../node_modules", "../site/package.json", "../site/node_modules"]) {
     assert.equal(existsSync(fileURLToPath(new URL(path, import.meta.url))), false, path);
   }
@@ -137,9 +146,12 @@ for (const name of builtSiteNames) {
 
   test(`built site "${name}" loads nothing from other servers`, async () => {
     const { siteDir, remove } = await buildFixtureSite(builtSites, name);
+    const site = await serveBuild(siteDir);
     try {
       assert.deepEqual(await loadsFromElsewhere(siteDir), []);
+      assert.deepEqual(await loadsFromElsewhere(site.outDir), []);
     } finally {
+      await site.close();
       await remove();
     }
   });

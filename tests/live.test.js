@@ -1,14 +1,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { cp, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { buildSite } from "../tools/build/build-site.mjs";
 import { serveSite } from "../tools/check/serve-site.mjs";
 import { sampleSite } from "./fixture-site.js";
 
-const liveTool = fileURLToPath(new URL("../tools/live.mjs", import.meta.url));
+const toolsDir = fileURLToPath(new URL("../tools", import.meta.url));
 
 const git = (cwd, ...args) => {
   const result = spawnSync("git", ["-c", "user.name=Ada Example", "-c", "user.email=ada@example.com", ...args], { cwd, encoding: "utf8" });
@@ -22,9 +23,8 @@ const git = (cwd, ...args) => {
 async function participantRepo({ origin = "https://github.com/Ada-Example/portfolio.git", push = true } = {}) {
   const dir = await mkdtemp(join(tmpdir(), "live-"));
   const repo = join(dir, "portfolio");
-  await mkdir(join(repo, "tools"), { recursive: true });
   await cp(sampleSite, join(repo, "site"), { recursive: true });
-  await cp(liveTool, join(repo, "tools", "live.mjs"));
+  await cp(toolsDir, join(repo, "tools"), { recursive: true });
   git(repo, "init", "-q", "-b", "main");
   git(repo, "add", "-A");
   git(repo, "commit", "-q", "-m", "My portfolio");
@@ -52,18 +52,22 @@ function runLive(repo, { online, wait = 2 } = {}) {
   });
 }
 
-// Serves site/ of the repo's last commit, changed by "change", as the site
-// online. Like GitHub Pages, it serves what was committed: on Windows the
-// files on disk may have CRLF line endings where the commit has LF.
+// Serves the site as publishing on GitHub leaves it, changed by "change":
+// site/ of the repo's last commit, built, with that commit in version.txt.
+// Like GitHub, it builds what was committed: on Windows the files on disk may
+// have CRLF line endings where the commit has LF.
 async function onlineSite(repo, change = async () => {}) {
   const dir = await mkdtemp(join(tmpdir(), "online-"));
+  const committed = join(dir, "site");
   for (const path of git(repo, "ls-tree", "-r", "-z", "--name-only", "HEAD", "--", "site").split("\0").filter(Boolean)) {
-    const target = join(dir, path.slice("site/".length));
+    const target = join(committed, path.slice("site/".length));
     await mkdir(dirname(target), { recursive: true });
     await writeFile(target, spawnSync("git", ["show", `HEAD:${path}`], { cwd: repo }).stdout);
   }
-  await change(dir);
-  const server = await serveSite(dir);
+  const online = join(dir, "online");
+  await buildSite(committed, online, { address: "https://ada-example.github.io/portfolio/", commit: git(repo, "rev-parse", "HEAD") });
+  await change(online);
+  const server = await serveSite(online);
   return { url: `${server.origin}/`, close: async () => (server.close(), rm(dir, { recursive: true, force: true })) };
 }
 
@@ -103,12 +107,47 @@ test("a site that never shows up gets the one-time Pages setting explained, step
 
 test("while an older version is online, it says the new one is on its way and where to watch it", async () => {
   const { repo, remove } = await participantRepo();
-  const online = await onlineSite(repo, async (dir) => writeFile(join(dir, "content.json"), "{}"));
+  const online = await onlineSite(repo);
   try {
+    // A new commit, pushed, that GitHub has not published yet.
+    const path = join(repo, "site", "content.json");
+    await writeFile(path, (await readFile(path, "utf8")).replace("Frontend developer", "Web developer"));
+    git(repo, "commit", "-q", "-am", "A new headline");
+    git(repo, "push", "-q");
     const { stdout } = await runLive(repo, { online: online.url });
     assert.doesNotMatch(stdout, /is live/);
     assert.match(stdout, /older version/);
     assert.match(stdout, /https:\/\/github\.com\/Ada-Example\/portfolio\/actions/);
+  } finally {
+    await online.close();
+    await remove();
+  }
+});
+
+test("a site online from before the build wrote version.txt counts as an older version", async () => {
+  const { repo, remove } = await participantRepo();
+  const online = await onlineSite(repo, (dir) => rm(join(dir, "version.txt")));
+  try {
+    const { stdout } = await runLive(repo, { online: online.url });
+    assert.doesNotMatch(stdout, /is live/);
+    assert.match(stdout, /older version/);
+  } finally {
+    await online.close();
+    await remove();
+  }
+});
+
+test("with a CNAME file in site/, the address is the site's own domain", async () => {
+  const { repo, remove } = await participantRepo();
+  await writeFile(join(repo, "site", "CNAME"), "www.ada-example.dev\n");
+  git(repo, "add", "-A");
+  git(repo, "commit", "-q", "-m", "My own domain");
+  git(repo, "push", "-q");
+  const online = await onlineSite(repo);
+  try {
+    const { stdout } = await runLive(repo, { online: online.url });
+    assert.match(stdout, /Your site's address: https:\/\/www\.ada-example\.dev\/\n/);
+    assert.match(stdout, /is live/);
   } finally {
     await online.close();
     await remove();
@@ -215,8 +254,7 @@ test("a clone of an empty repo, with no commit yet, is told so in plain words", 
     const origin = "https://github.com/Ada-Example/portfolio.git";
     git(repo, "remote", "set-url", "origin", origin);
     git(repo, "config", `url.${pathToFileURL(bare).href}.insteadOf`, origin);
-    await mkdir(join(repo, "tools"));
-    await cp(liveTool, join(repo, "tools", "live.mjs"));
+    await cp(toolsDir, join(repo, "tools"), { recursive: true });
     const { stdout, status } = await runLive(repo);
     assert.equal(status, 0);
     assert.match(stdout, /no commit yet/);

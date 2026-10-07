@@ -45,8 +45,8 @@ const PUT_IN = {
 // What each file of a checkpoint is, in the list of files it changed.
 const FILE_NOTES = {
   "site/index.html": "the page itself, with a place for each section",
-  "site/assets/main.js": "loads your content file into the page",
-  "site/assets/render.js": "turns your content file into the sections of the page",
+  "site/assets/main.js": "the place for small extras in JavaScript; your content is in the page without it",
+  "site/assets/render.js": "turns your content file into the sections of the page when the site is built",
   "site/assets/styles.css": "the plain starting styles of the template",
   "site/assets/favicon.svg": "the small icon in the browser tab",
   "site/content.schema.json": "what your content file may contain",
