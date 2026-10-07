@@ -173,7 +173,7 @@ The site supports light and dark mode, so every token needs both values. If the 
 
 **Style.** The style, the person's three words, the one personal detail and the style's motion. After "no Stitch" or a design brought along, write what you know.
 
-**Signature.** Choose exactly one move for the site, from the style's **Signature** list in `styles.md` or from the whole menu in `.agents/skills/build/signatures.md`: the one that fits the person's three words best. Copy its name and its guide exactly.
+**Signature.** Choose exactly one move for the site, from the style's **Signature** list in `styles.md` or from the whole menu in `.agents/skills/build/signatures.md`: the one that fits the person's three words best. A move for the photo needs a `photo` in the content file, one for event badges needs `events`. Copy its name and its guide exactly.
 
 **Sections.** The order on the page, top to bottom. `bio` comes first. Then the lead section from the goal: `projects` for a job or freelance clients, `events` for speaking invitations or community. Then the other parts of the content file that have entries, in this order: `projects`, `events`, `links`, `cv`, then any other. Write only sections the content file has.
 

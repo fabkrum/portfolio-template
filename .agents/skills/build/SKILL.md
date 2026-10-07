@@ -36,6 +36,7 @@ Your training data is older than today's web. The Modern Web Guidance skill in `
 - `guides/html/html.md`: the markup
 - `guides/accessibility/accessibility.md`: making the page usable for everyone
 - `guides/visual-design/visually-stable-font-fallbacks.md`: only if the brief names a web font (step 3)
+- the guide of the signature move in the brief's Signature section, if it has one: `signatures.md`, next to this skill, describes the move
 
 For anything else you plan to add, such as images or animation, find the matching guide in the skill's `index.md` and read it first. Where a guide's advice needs a package, a build tool or a file from another server, skip that advice: `AGENTS.md` wins.
 
@@ -45,14 +46,15 @@ Then tell the person in two sentences which guides you read, and one thing you w
 
 Look at the font stacks in the brief's Type table. A stack that starts with `system-ui`, `ui-rounded`, `ui-monospace`, `Georgia` or another font every computer has needs nothing more.
 
-A stack that starts with a web font, such as `"Plus Jakarta Sans", system-ui, sans-serif`, needs the font files in `site/assets/fonts/`. Never load a font from fonts.googleapis.com or any other server; `AGENTS.md` explains why.
+A stack that starts with a web font, such as `"Newsreader", Georgia, serif`, needs the font files in `site/assets/fonts/`. The template brings the fonts of the five styles along, in the folder `fonts/`. Run this command; it is the same on every operating system:
 
-- If the files are already in `site/assets/fonts/`, load them with `@font-face` in step 4.
-- If not, ask the person once, in these words:
+```
+node tools/fonts.mjs
+```
 
-  "Your design uses the font NAME. To use it, open fonts.google.com, search for NAME, click **Get font**, then **Download all**. Unzip the download and copy everything in it into the folder `site/assets/fonts/` in your repo, the licence file too. Then tell me **done**. Or say **system**, and I use a similar font that every computer already has."
+It copies each font the brief names from `fonts/` into `site/assets/fonts/`, with its licence, and prints their `@font-face` rules. Put those rules at the top of `site/assets/styles.css` in step 4, exactly as printed. Never download a font, and never load one from fonts.googleapis.com or any other server; `AGENTS.md` explains why.
 
-  On **system**, leave the web font out of the stack in the CSS and keep the rest, for example `system-ui, sans-serif`. Leave the brief unchanged.
+If the command says a font is not one of the fonts in `fonts/`, leave that font out of its stack in the CSS and keep the rest, for example `system-ui, sans-serif`, unless its files are already in `site/assets/fonts/`. Leave the brief unchanged, and tell the person in step 7.
 
 ## 4. Write the stylesheet
 
@@ -74,7 +76,9 @@ Keep these six names. Every colour on the page comes from one of them through `v
 
 Then style the page the way the brief describes it:
 
-- **Type**: font stacks, sizes and weights for headings and body text.
+- **Style**: if the brief has a Style section, build its style with the recipe in `styles.md`, next to this skill: it also puts the sections in the brief's order and lists the AI look to avoid.
+- **Signature**: if the brief has a Signature section, build that one move as `signatures.md`, next to this skill, describes it, with its rules for reduced motion.
+- **Type**: font stacks, sizes and weights for headings and body text, and for dates and labels if the brief has a details row. Set `font-size-adjust: from-font` where a web font is used, as the font fallbacks guide says.
 - **Shapes**: corner radius, borders and shadows.
 - **Layout**: page width, the space at the sides on phones, the space between sections and items, and the project columns.
 - **Components**: links, project cards, skill tags and section headings. Every link and button shows a clearly visible focus ring when reached with the keyboard.

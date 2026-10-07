@@ -5,7 +5,7 @@ import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { briefColours, TOKENS } from "../tools/brief/check-brief.mjs";
+import { briefColours, SIGNATURE_GUIDES, STYLES, TOKENS } from "../tools/brief/check-brief.mjs";
 import { runCheck } from "../tools/check/run-check.mjs";
 import { buildFixtureSite, fixtureNames, sampleSite } from "./fixture-site.js";
 import { assertWideLayout } from "./page-layout.js";
@@ -143,3 +143,68 @@ for (const name of builtSiteNames) {
     await assertWideLayout(builtSites, name);
   });
 }
+
+// The signature menu and the style recipes, next to the Developer skill.
+const menu = await read("../.agents/skills/build/signatures.md");
+const recipes = await read("../.agents/skills/build/styles.md");
+// A Markdown text's "## " parts, by heading.
+const partsOf = (markdown) =>
+  Object.fromEntries(markdown.split(/^## /m).slice(1).map((part) => [part.split("\n")[0].trim(), part]));
+const moves = Object.entries(partsOf(menu)).filter(([heading]) => heading !== "Rules for every move");
+
+test("the signature menu names, for every move, an example site and the Modern Web Guidance guide to read first", async () => {
+  const indexed = await indexedGuides();
+  assert.equal(moves.length, 12, moves.map(([heading]) => heading).join(", "));
+  for (const [move, part] of moves) {
+    const guide = part.match(/^(?:Like|For) .+?\. Guide: `(guides\/[\w-]+\/[\w-]+\.md)`$/m)?.[1];
+    assert.ok(guide, `${move}: no example and guide line`);
+    assert.ok(indexed.includes(guide), `${move}: ${guide} is not in Modern Web Guidance`);
+  }
+  // The brief checker knows the same moves, so a brief can name only these.
+  assert.deepEqual(moves.map(([, part]) => guidePaths(part)[0]).sort(), [...SIGNATURE_GUIDES].sort());
+});
+
+test("every move says what happens when the visitor prefers reduced motion", () => {
+  for (const [move, part] of moves) assert.match(part, /^- (Reduced motion: .+|Nothing moves, so reduced motion changes nothing\..*)$/m, move);
+});
+
+test("the menu's rules: reduced motion means a fade or nothing moves, content is never hidden, text never starts faded", () => {
+  const rules = partsOf(menu)["Rules for every move"];
+  for (const needed of [/prefers-reduced-motion: reduce/, /becomes a fade, or nothing moves/, /Content is never hidden/, /\*\*No faded text when the page loads\.\*\*/, /keyboard focus/, /exactly one signature move/i]) {
+    assert.match(`${menu.split("## Rules")[0]}${rules}`, needed);
+  }
+});
+
+test("the Designer suggests, per style, moves from the menu, by the menu's own names", async () => {
+  const designerStyles = await read("../.agents/skills/design/styles.md");
+  const suggested = [...designerStyles.matchAll(/^ {2}- ([^:`]+): `(guides\/[^`]+)`$/gm)];
+  assert.ok(suggested.length >= 10, suggested.length);
+  const menuParts = partsOf(menu);
+  for (const [, name, guide] of suggested) {
+    assert.ok(menuParts[name], `"${name}" is not a move on the menu`);
+    assert.ok(menuParts[name].includes(`Guide: \`${guide}\``), `${name}: ${guide}`);
+  }
+});
+
+test("there is a recipe for each of the five styles: type, spacing, shapes, layout, colour, skills, photo, motion and what to avoid", () => {
+  const parts = partsOf(recipes);
+  for (const style of STYLES) {
+    assert.ok(parts[style], style);
+    for (const key of ["Type", "Spacing", "Shapes", "Layout", "Colour", "Skills", "Photo", "Motion", "Avoid"]) {
+      assert.match(parts[style], new RegExp(`^- \\*\\*${key}\\*\\*: .+`, "m"), `${style}: ${key}`);
+    }
+  }
+});
+
+test("the recipes list the AI look to avoid", () => {
+  const look = partsOf(recipes)["The AI look: never by default"];
+  assert.ok(look, "no AI look part");
+  for (const needed of [/indigo/, /purple/, /Inter/, /centred/, /rounded-lg/, /emoji/, /bento grid/, /cursor/, /pulsing "available" dot/]) assert.match(look, needed);
+});
+
+test("the Developer skill builds the style and the one signature move, and takes its fonts from the font folder", async () => {
+  const skill = await read("../.agents/skills/build/SKILL.md");
+  for (const needed of ["`styles.md`", "`signatures.md`", "node tools/fonts.mjs", "font-size-adjust: from-font"]) assert.ok(skill.includes(needed), needed);
+  // No download in the room.
+  assert.doesNotMatch(skill, /fonts\.google\.com|Download all/);
+});
