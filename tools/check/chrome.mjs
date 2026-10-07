@@ -6,7 +6,9 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
 
-export const TIMEOUT_MS = 15_000;
+// Slow laptops and busy Windows runners sometimes need more than 15 seconds
+// for Chrome to answer, especially for the first page it opens.
+export const TIMEOUT_MS = 30_000;
 
 // Waits for the promise, but at most ms; never keeps Node alive afterwards.
 export function waitAtMost(promise, ms) {
