@@ -125,8 +125,8 @@ Send the prompt in a code block of its own, so the person can copy it, and with 
 "Here is your Stitch prompt. Copy it, then:
 
 1. Open stitch.withgoogle.com and sign in with your Google account.
-2. Choose **Web**, and the fast model (it may be called **Flash** or **Speed**). If Stitch offers a design system or a template, choose none.
-3. Paste the prompt and send it. Do **not** press **Enhance prompt**: it rewrites your prompt towards purple, rounded corners and the font Inter, the look every AI site has.
+2. Choose **Web**. Switch on **Speed**, Stitch's fast mode, in the prompt box: it is quicker and uses fewer of your daily credits. If Stitch offers a design system or a template, choose none.
+3. Paste the prompt and send it as it is. If Stitch offers to enhance or improve your prompt, say **no**: a rewritten prompt drifts towards purple, rounded corners and the font Inter, the look every AI site has.
 4. Change one thing at a time, one short prompt each, such as "Make my name bigger". For colours, fonts and corner radius, use **Edit Theme** instead of a prompt. Use the redesign mode at most once: it uses up many of your daily credits.
 5. Does your design look like your neighbour's? Ask for three variants, set the range to **Creative**, and write "Make it more STYLE".
 
