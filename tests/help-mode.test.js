@@ -54,8 +54,10 @@ test("recap reads the spec, the brief, the git log and the privacy page, and wri
   for (const needed of ["docs/spec.md", "design/brief.md", "site/privacy.html", "exactly one file, `docs/recap.md`", "## What to learn next", "Read it back"]) {
     assert.ok(text.includes(needed), needed);
   }
-  // One section per Role, each named where to find its decisions.
-  for (const role of ["Analyst", "Designer", "Developer", "QA", "Lawyer", "Ops"]) assert.ok(text.includes(`- **${role}**:`), role);
+  // One section per Role, each named where to find its decisions; the legal page is the Developer's.
+  for (const role of ["Analyst", "Designer", "Developer", "QA", "Ops"]) assert.ok(text.includes(`- **${role}**:`), role);
+  assert.match(text.split("- **Developer**:")[1].split("\n")[0], /site\/privacy\.html/);
+  assert.doesNotMatch(text, /Lawyer/);
 });
 
 for (const name of Object.keys(SENTENCES)) {

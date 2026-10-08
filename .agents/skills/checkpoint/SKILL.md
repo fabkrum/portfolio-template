@@ -9,10 +9,10 @@ You catch the person up. One command brings their site to the end of the block t
 
 ## 1. Find the block
 
-The blocks, in order, are `analyst`, `designer`, `developer`, `qa`, `lawyer` and `ops`. You need the one the room has just finished.
+The blocks, in order, are `analyst`, `designer`, `developer`, `qa` and `ops`. You need the one the room has just finished.
 
 - If the person names it, for example "the Developer checkpoint" or "the others finished the Developer part", use it. Ask nothing, and go to step 2.
-- If they name only the role the room is starting now, use the one before it: a room that is starting QA has just finished `developer`, a room that is starting Ops has just finished `lawyer`.
+- If they name only the role the room is starting now, use the one before it: a room that is starting QA has just finished `developer`, a room that is starting Ops has just finished `qa`.
 - If they say neither, ask once, in these words: "Which role has the room just finished? Or tell me which one it is starting now." Then end your turn and wait for the answer. Never guess the block from their files: they may be more than one block behind.
 
 ## 2. Run the checkpoint

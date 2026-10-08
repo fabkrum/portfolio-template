@@ -59,3 +59,5 @@ Does everything look right?
 **Person:** Looks good, thanks!
 
 **Agent:** The new section is ready. To publish it, start a fresh chat and ask Ops. To add another module, start a fresh chat and ask for it.
+
+- The Lawyer named above was a role of its own until 2026-10-08. Since then `node tools/legal.mjs` writes the legal page at the end of the Developer's step and QA checks it; the run was not recorded again.

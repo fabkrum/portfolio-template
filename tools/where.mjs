@@ -13,16 +13,19 @@ const repoDir = fileURLToPath(new URL("..", import.meta.url));
 
 // Each Role: its name, how a sentence names it, and its page in the guide.
 const ROLES = {
-  analyst: { name: "Analyst", called: "the Analyst", page: 2 },
-  designer: { name: "Designer", called: "the Designer", page: 3 },
-  developer: { name: "Developer", called: "the Developer", page: 4 },
-  qa: { name: "QA", called: "QA", page: 5 },
-  lawyer: { name: "Lawyer", called: "the Lawyer", page: 6 },
+  analyst: { name: "Analyst", called: "the Analyst", page: 3 },
+  designer: { name: "Designer", called: "the Designer", page: 4 },
+  developer: { name: "Developer", called: "the Developer", page: 5 },
+  qa: { name: "QA", called: "QA", page: 6 },
   ops: { name: "Ops", called: "Ops", page: 7 },
 };
 
 // The sentence that starts a Role, as the guide gives it.
 const start = (block) => `Start the ${ROLES[block].name} step.`;
+
+// The five Roles, in order, as the person names one to catch up.
+const names = Object.values(ROLES).map((role) => role.name);
+const CATCH_UP = `Behind the room? Type: Catch me up: the room just finished the <Role> block. <Role> is one of ${names.slice(0, -1).join(", ")} and ${names.at(-1)}.`;
 
 function report({ roles, next }) {
   console.log("Where you are, Role by Role:");
@@ -41,7 +44,7 @@ function report({ roles, next }) {
   if (next === "designer" && roles[1].defaultBrief) {
     console.log(`Already said default to the Designer? Then the Developer is next: ${start("developer")}`);
   }
-  console.log("Behind the room? Type: Catch me up: the room just finished the <Role> block.");
+  console.log(CATCH_UP);
 }
 
 const nodeMajor = Number(process.versions.node.split(".")[0]);

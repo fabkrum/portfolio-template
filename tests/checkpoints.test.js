@@ -35,30 +35,31 @@ const DEFAULT_COLOURS = {
   "on-accent": { Light: "#ffffff", Dark: "#1b1714" },
 };
 
-// One checkpoint per block, in the order of the blocks. The privacy page is
-// the Lawyer's, so before the Lawyer's block it still needs attention.
-const BLOCKS = ["analyst", "designer", "developer", "qa", "lawyer", "ops"];
-const LAWYER_DONE = new Set(["lawyer", "ops"]);
+// One checkpoint per block, in the order of the blocks. The legal page comes
+// with the Developer's checkpoint, as node tools/legal.mjs writes it at the
+// end of the Developer's step, so before that block it still needs attention.
+const BLOCKS = ["analyst", "designer", "developer", "qa", "ops"];
+const LEGAL_DONE = new Set(["developer", "qa", "ops"]);
 
 for (const role of BLOCKS) {
-  test(`the ${role} checkpoint on a fresh copy: the Check passes ${LAWYER_DONE.has(role) ? "every item" : "all but the Lawyer's legal page"}`, async () => {
+  test(`the ${role} checkpoint on a fresh copy: the Check passes ${LEGAL_DONE.has(role) ? "every item" : "all but the legal page"}`, async () => {
     await withRepo(async (dir) => {
       const run = jumpTo(dir, role);
       assert.equal(run.status, 0, run.stdout + run.stderr);
       for (const item of Object.values(await checkOf(dir))) {
-        assert.equal(item.pass, item.id !== "legal" || LAWYER_DONE.has(role), `${item.id}: ${item.details}`);
+        assert.equal(item.pass, item.id !== "legal" || LEGAL_DONE.has(role), `${item.id}: ${item.details}`);
       }
     });
   });
 }
 
-test("the Developer's checkpoint gives the site the Developer's design, and the Check passes all but the Lawyer's item", async () => {
+test("the Developer's checkpoint gives the site the Developer's design and the legal page, and the Check passes every item", async () => {
   await withRepo(async (dir) => {
     const run = jumpTo(dir, "developer");
     assert.equal(run.status, 0, run.stdout + run.stderr);
     const css = await readFile(join(dir, "site", "assets", "styles.css"), "utf8");
     assert.deepEqual(lightDarkTokens(css), DEFAULT_COLOURS);
-    for (const item of Object.values(await checkOf(dir))) assert.equal(item.pass, item.id !== "legal", `${item.id}: ${item.details}`);
+    for (const item of Object.values(await checkOf(dir))) assert.equal(item.pass, true, `${item.id}: ${item.details}`);
   });
 });
 
@@ -71,7 +72,7 @@ for (const role of BLOCKS) {
         assert.ok((await readFile(join(dir, file))).equals(await readFile(join(templateDir, from))), file);
       }
       for (const item of Object.values(await checkOf(dir))) {
-        assert.equal(item.pass, item.id !== "legal" || LAWYER_DONE.has(role), `${item.id}: ${item.details}`);
+        assert.equal(item.pass, item.id !== "legal" || LEGAL_DONE.has(role), `${item.id}: ${item.details}`);
       }
     });
   });
@@ -87,9 +88,8 @@ test("a checkpoint brings back the code an agent broke, and the site works again
     assert.equal((await checkOf(dir)).console.pass, false, "the broken render.js shows no console error");
     const run = jumpTo(dir, "developer");
     assert.equal(run.status, 0, run.stdout + run.stderr);
-    const items = await checkOf(dir);
-    for (const item of Object.values(items)) assert.equal(item.pass, item.id !== "legal", `${item.id}: ${item.details}`);
-    assert.match(items.legal.details.join("\n"), /placeholder/);
+    for (const item of Object.values(await checkOf(dir))) assert.equal(item.pass, true, `${item.id}: ${item.details}`);
+    assert.ok((await readText(join(dir, "site", "privacy.html"))).includes("personal portfolio of Giulia Placeholder"));
   });
 });
 
@@ -122,7 +122,7 @@ test("someone with no content file, design brief or spec gets the sample person,
     for (const [file, sample] of [["site/content.json", "site/content.json"], ["design/brief.md", "design/default-brief.md"], ["docs/spec.md", "docs/spec.md"]]) {
       assert.ok((await readFile(join(dir, file))).equals(await readFile(join(templateDir, sample))), file);
     }
-    for (const item of Object.values(await checkOf(dir))) assert.equal(item.pass, item.id !== "legal", `${item.id}: ${item.details}`);
+    for (const item of Object.values(await checkOf(dir))) assert.equal(item.pass, true, `${item.id}: ${item.details}`);
   });
 });
 
@@ -137,7 +137,7 @@ const STITCH_COLOURS = {
 };
 const STITCH_FONTS = '"Plus Jakarta Sans", system-ui, sans-serif';
 
-for (const role of ["developer", "qa", "lawyer", "ops"]) {
+for (const role of ["developer", "qa", "ops"]) {
   test(`the ${role} checkpoint takes the colours and fonts of the person's own brief`, async () => {
     await withRepo(OWN, async (dir) => {
       const run = jumpTo(dir, role);
@@ -155,9 +155,9 @@ const today = () => new Date();
 // Git on Windows may check files out with CRLF line endings.
 const readText = async (path) => (await readFile(path, "utf8")).replaceAll("\r\n", "\n");
 
-test("the Lawyer's checkpoint writes the legal page for the sample person as the Lawyer's template, dated today", async () => {
+test("the Developer's checkpoint writes the legal page for the sample person from the template, dated today", async () => {
   await withRepo(async (dir) => {
-    assert.equal(jumpTo(dir, "lawyer").status, 0);
+    assert.equal(jumpTo(dir, "developer").status, 0);
     const page = await readText(join(dir, "site", "privacy.html"));
     const date = page.match(/Last updated: (\d{1,2}) (\w+) (\d{4})</);
     assert.ok(date, "no date");
@@ -167,9 +167,9 @@ test("the Lawyer's checkpoint writes the legal page for the sample person as the
   });
 });
 
-test("the Lawyer's checkpoint writes the legal page for the person in their own content file, in English", async () => {
+test("the Developer's checkpoint writes the legal page for the person in their own content file, in English", async () => {
   await withRepo(OWN, async (dir) => {
-    assert.equal(jumpTo(dir, "lawyer").status, 0);
+    assert.equal(jumpTo(dir, "developer").status, 0);
     const page = await readText(join(dir, "site", "privacy.html"));
     for (const needed of ['<html lang="en">', "<title>Legal notice &amp; privacy · Giulia Placeholder</title>", "personal portfolio of Giulia Placeholder", '<a href="mailto:giulia@example.com">giulia@example.com</a>']) {
       assert.ok(page.includes(needed), needed);
@@ -178,7 +178,7 @@ test("the Lawyer's checkpoint writes the legal page for the person in their own 
   });
 });
 
-// The legal page the Lawyer wrote for Giulia, in Italian.
+// The legal page written for Giulia, translated into Italian.
 const giuliasPrivacyPage = async () =>
   (await readText(join(templateDir, "tests", "fixtures", "finished-privacy", "privacy.html")))
     .replace('<html lang="en">', '<html lang="it">')
@@ -186,8 +186,8 @@ const giuliasPrivacyPage = async () =>
     .replaceAll("Ada Example", "Giulia Placeholder")
     .replaceAll("ada@example.com", "giulia@example.com");
 
-for (const role of ["developer", "lawyer"]) {
-  test(`the ${role} checkpoint keeps a legal page the Lawyer has written for the person`, async () => {
+for (const role of ["developer", "qa"]) {
+  test(`the ${role} checkpoint keeps a legal page written for the person`, async () => {
     await withRepo(OWN, async (dir) => {
       const page = await giuliasPrivacyPage();
       await writeFile(join(dir, "site", "privacy.html"), page);
@@ -201,7 +201,7 @@ for (const role of ["developer", "lawyer"]) {
 test("a legal page written for someone else is written again for the person in the content file", async () => {
   await withRepo(OWN, async (dir) => {
     await cp(join(templateDir, "tests", "fixtures", "finished-privacy", "privacy.html"), join(dir, "site", "privacy.html"));
-    assert.equal(jumpTo(dir, "lawyer").status, 0);
+    assert.equal(jumpTo(dir, "developer").status, 0);
     const page = await readText(join(dir, "site", "privacy.html"));
     assert.ok(page.includes("personal portfolio of Giulia Placeholder"));
     assert.ok(!page.includes("Ada Example"));
@@ -209,8 +209,8 @@ test("a legal page written for someone else is written again for the person in t
 });
 
 // What the command tells the person, in plain words.
-const NEXT_ROLE = { analyst: "the Designer", designer: "the Developer", developer: "QA", qa: "the Lawyer", lawyer: "Ops", ops: "Ops" };
-const BLOCK_NAME = { analyst: "Analyst", designer: "Designer", developer: "Developer", qa: "QA", lawyer: "Lawyer", ops: "Ops" };
+const NEXT_ROLE = { analyst: "the Designer", designer: "the Developer", developer: "QA", qa: "Ops", ops: "Ops" };
+const BLOCK_NAME = { analyst: "Analyst", designer: "Designer", developer: "Developer", qa: "QA", ops: "Ops" };
 
 for (const role of BLOCKS) {
   test(`the ${role} checkpoint says where the site is now, and to ask for ${NEXT_ROLE[role]} in a fresh chat`, async () => {
@@ -272,7 +272,7 @@ test("with a brief that is not finished, the page keeps the default colours and 
 
 test("on a site that is not in English, the command says the legal page is in English", async () => {
   await withRepo(OWN, async (dir) => {
-    const { stdout } = jumpTo(dir, "lawyer");
+    const { stdout } = jumpTo(dir, "developer");
     assert.match(stdout, /Giulia Placeholder/);
     assert.match(stdout, /giulia@example\.com/);
     assert.match(stdout, /Italian/);
@@ -281,7 +281,7 @@ test("on a site that is not in English, the command says the legal page is in En
 });
 
 for (const wrong of ["", "developr"]) {
-  test(`given ${wrong ? `a wrong name ("${wrong}")` : "no name"}, the command lists the six checkpoints and changes nothing`, async () => {
+  test(`given ${wrong ? `a wrong name ("${wrong}")` : "no name"}, the command lists the five checkpoints and changes nothing`, async () => {
     await withRepo(OWN, async (dir) => {
       const before = await repoFiles(dir);
       const run = spawnSync(process.execPath, [join(dir, "tools", "checkpoint.mjs"), ...(wrong ? [wrong] : [])], { cwd: dir, encoding: "utf8" });
@@ -303,7 +303,7 @@ test("a content file that is not valid JSON is kept; the command says how to fix
   await withRepo(OWN, async (dir) => {
     const broken = '{ "name": "Giulia Placeholder", ';
     await writeFile(join(dir, "site", "content.json"), broken);
-    const run = jumpTo(dir, "lawyer");
+    const run = jumpTo(dir, "developer");
     assert.equal(run.status, 0, run.stdout + run.stderr);
     assert.equal(await readText(join(dir, "site", "content.json")), broken);
     assert.match(run.stdout, /site\/content\.json is not valid JSON/);
@@ -311,7 +311,7 @@ test("a content file that is not valid JSON is kept; the command says how to fix
     assert.deepEqual(lightDarkTokens(await readFile(join(dir, "site", "assets", "styles.css"), "utf8")), STITCH_COLOURS);
     // Doing what it says puts in the sample person, and the privacy page follows.
     await rm(join(dir, "site", "content.json"));
-    assert.equal(jumpTo(dir, "lawyer").status, 0);
+    assert.equal(jumpTo(dir, "developer").status, 0);
     for (const item of Object.values(await checkOf(dir))) assert.equal(item.pass, true, `${item.id}: ${item.details}`);
     assert.ok((await readText(join(dir, "site", "privacy.html"))).includes("personal portfolio of Ada Example"));
   });
@@ -322,9 +322,10 @@ test("without an email address in the content file, the legal page keeps that bl
     const content = JSON.parse(await readFile(join(dir, "site", "content.json"), "utf8"));
     content.links = content.links.filter((link) => !link.url.startsWith("mailto:"));
     await writeFile(join(dir, "site", "content.json"), JSON.stringify(content, null, 2));
-    const { stdout } = jumpTo(dir, "lawyer");
+    const { stdout } = jumpTo(dir, "developer");
     assert.ok((await readText(join(dir, "site", "privacy.html"))).includes("[[EMAIL]]"));
     assert.match(stdout, /no email address/);
+    assert.match(stdout, /The Analyst adds one in a fresh chat; then node tools\/legal\.mjs writes the page again/);
     assert.match((await checkOf(dir)).legal.details.join("\n"), /\[\[EMAIL\]\]/);
   });
 });
@@ -353,7 +354,7 @@ const rgb = (hex) => `rgb(${[1, 3, 5].map((start) => parseInt(hex.slice(start, s
 
 test("in Chrome, the caught-up site shows the person's own content in the colours and fonts of their brief", async () => {
   await withRepo(OWN, async (dir) => {
-    assert.equal(jumpTo(dir, "lawyer").status, 0);
+    assert.equal(jumpTo(dir, "qa").status, 0);
     const home = await inChrome(join(dir, "site"), `({
       name: document.querySelector("h1")?.textContent,
       headings: [...document.querySelectorAll("main > .section:not([hidden]) > h2")].map((h) => h.textContent.trim()),
@@ -414,7 +415,7 @@ test("the checkpoint skill runs the one command after at most one question, read
 
 // Asked for a role in the chat that ran a checkpoint, the agent reads that
 // role's skill, not AGENTS.md: so every role skill opens with the guard.
-const ROLE_SKILLS = { analyst: "the Analyst", design: "the Designer", build: "the Developer", qa: "QA", legal: "the Lawyer", deploy: "Ops" };
+const ROLE_SKILLS = { analyst: "the Analyst", design: "the Designer", build: "the Developer", qa: "QA", deploy: "Ops" };
 
 for (const [skill, role] of Object.entries(ROLE_SKILLS)) {
   test(`the ${skill} skill starts only in a fresh chat, never after a checkpoint or another role`, async () => {
@@ -426,13 +427,27 @@ for (const [skill, role] of Object.entries(ROLE_SKILLS)) {
   });
 }
 
-test("when it writes the legal page, the command says, as the Lawyer does, that it is not legal advice", async () => {
+test("when it writes the legal page, the command says, as the Developer does, that it is not legal advice", async () => {
   await withRepo(async (dir) => {
-    const { stdout } = jumpTo(dir, "lawyer");
+    const { stdout } = jumpTo(dir, "developer");
     assert.match(stdout, /not legal advice/);
     assert.match(stdout, /ask someone who knows the law in your country/);
     // Once the page is there, the second jump keeps it and says nothing more about it.
-    assert.doesNotMatch(jumpTo(dir, "lawyer").stdout, /legal advice/);
+    assert.doesNotMatch(jumpTo(dir, "developer").stdout, /legal advice/);
+  });
+});
+
+test("node tools/checkpoint.mjs lawyer fails in plain words: there is no Lawyer block, and these are the five checkpoints", async () => {
+  await withRepo(OWN, async (dir) => {
+    const before = await repoFiles(dir);
+    const { status, stdout } = jumpTo(dir, "lawyer");
+    assert.equal(status, 1);
+    assert.match(stdout, /There is no checkpoint called "lawyer"/);
+    assert.match(stdout, /no Lawyer block any more: the Developer's checkpoint writes the legal page too/);
+    assert.match(stdout, /The five checkpoints are analyst, designer, developer, qa and ops/);
+    for (const role of BLOCKS) assert.match(stdout, new RegExp(`node tools/checkpoint\\.mjs ${role}\\b`));
+    assert.match(stdout, /Nothing was changed/);
+    assert.deepEqual(await repoFiles(dir), before);
   });
 });
 
@@ -445,7 +460,6 @@ const runsDir = join(templateDir, "tests", "fixtures", "checkpoint-runs");
 // askedAfter: the number of the person's message the checkpoint answered.
 const RUNS = {
   developer: { next: "QA", askedAfter: 1 },
-  lawyer: { next: "Ops", askedAfter: 2 },
 };
 const runReport = (run) => readText(join(runsDir, run, "report.md"));
 
@@ -513,7 +527,9 @@ for (const [run, { next, askedAfter }] of Object.entries(RUNS)) {
     const readBack = flat(answersTo(turnsIn(await runReport(run), "Chat"))[askedAfter - 1]);
     const replayed = await runRepo(run, { replay: true });
     try {
-      const shown = replayed.said.slice(0, replayed.said.indexOf("\nNext:")).split("\n").filter((line) => line.trim());
+      // The run is from before the checkpoint wrote the legal page: its lines about it are left out.
+      const shown = replayed.said.slice(0, replayed.said.indexOf("\nNext:")).split("\n").filter((line) => line.trim() && !/legal/i.test(line));
+      assert.ok(shown.length >= 6, replayed.said);
       for (const line of shown) assert.ok(readBack.includes(flat(line)), `missing from the read-back: ${line}`);
     } finally {
       await replayed.remove();
@@ -538,18 +554,12 @@ test("developer run: the person named the checkpoint, so the agent ran it at onc
   assert.equal(toolCallsIn(await runReport("developer")).find(({ call }) => /checkpoint\.mjs \w/.test(call)).after, 1);
 });
 
-test("lawyer run: the person did not say where the room is, so the agent asked once, then took the block before Ops", async () => {
-  const report = await runReport("lawyer");
-  assert.equal(toolCallsIn(report).find(({ call }) => /checkpoint\.mjs \w/.test(call)).after, 2);
-  assert.match(answersTo(turnsIn(report, "Chat"))[0], /\?/);
-});
-
-test("a privacy page the Lawyer has written stays, even while the content file is not valid JSON", async () => {
+test("a legal page written for the person stays, even while the content file is not valid JSON", async () => {
   await withRepo(OWN, async (dir) => {
     const page = await giuliasPrivacyPage();
     await writeFile(join(dir, "site", "privacy.html"), page);
     await writeFile(join(dir, "site", "content.json"), '{ "name": "Giulia Placeholder", ');
-    const { status, stdout } = jumpTo(dir, "lawyer");
+    const { status, stdout } = jumpTo(dir, "developer");
     assert.equal(status, 0, stdout);
     assert.equal(await readText(join(dir, "site", "privacy.html")), page);
     assert.match(stdout, /not valid JSON/);
@@ -593,10 +603,10 @@ test("a font list that is not one keeps the default fonts, and the command says 
 
 // What the site shows is the person's choice: the checkpoint takes nothing out
 // and names nothing as private.
-test("the Lawyer's checkpoint leaves the content file as it is, and its legal notice shows what the person gave", async () => {
+test("the Developer's checkpoint leaves the content file as it is, and its legal notice shows what the person gave", async () => {
   await withRepo({ "site/content.json": "tests/fixtures/clean-sites/contact-details-shown/content.json" }, async (dir) => {
     const given = await readText(join(dir, "site", "content.json"));
-    const { stdout } = jumpTo(dir, "lawyer");
+    const { stdout } = jumpTo(dir, "developer");
     assert.equal(await readText(join(dir, "site", "content.json")), given);
     assert.doesNotMatch(stdout, /private data/);
     assert.doesNotMatch(stdout, /postal address/, "an address is there, so nothing is missing");
@@ -612,12 +622,13 @@ test("the Lawyer's checkpoint leaves the content file as it is, and its legal no
   });
 });
 
-test("without an address, the Lawyer's checkpoint leaves the legal notice's optional lines out and says what a site that offers services still needs", async () => {
+test("without an address, the Developer's checkpoint leaves the legal notice's optional lines out and says what a site that offers services still needs", async () => {
   await withRepo(async (dir) => {
-    const { stdout } = jumpTo(dir, "lawyer");
+    const { stdout } = jumpTo(dir, "developer");
     const page = await readText(join(dir, "site", "privacy.html"));
     assert.doesNotMatch(page, /Address:|Phone:|VAT number:|\[\[/);
-    assert.match(stdout, /If your site offers services, the law also asks for a postal address, and in Italy for your Partita IVA/);
+    assert.match(stdout, /If your site offers services, the law also asks for a postal address, and in Italy for your Partita IVA: to add them, start a fresh chat and ask to add an address to your legal page/);
+    assert.doesNotMatch(stdout, /Lawyer/);
   });
 });
 
@@ -635,9 +646,11 @@ test("every file the command changed comes with what it is", async () => {
   });
 });
 
-test("the Lawyer's checkpoint holds the Lawyer's own privacy template, blanks and all", async () => {
-  assert.equal(
-    await readText(join(templateDir, "checkpoints", "lawyer", "site", "privacy.html")),
-    await readText(join(templateDir, ".agents", "skills", "legal", "privacy-template.html")),
-  );
+// One template: the checkpoints hold no copy of it, so the page a checkpoint
+// writes is the one node tools/legal.mjs writes.
+test("the legal template lives in tools/legal/, blanks and all, and no checkpoint folder holds a copy of it", async () => {
+  const template = await readText(join(templateDir, "tools", "legal", "privacy-template.html"));
+  assert.deepEqual([...new Set(template.match(/\[\[[A-Z_]+\]\]/g))].sort(), ["[[ADDRESS]]", "[[BARRIERS]]", "[[DATE]]", "[[EMAIL]]", "[[LANGUAGE]]", "[[NAME]]", "[[PHONE]]", "[[PHOTO]]", "[[VAT]]"]);
+  for (const role of ["designer", "developer", "qa", "ops"]) assert.equal(existsSync(join(templateDir, "checkpoints", role, "site", "privacy.html")), false, role);
+  assert.equal(existsSync(join(templateDir, ".agents", "skills", "legal", "privacy-template.html")), false, "the old place of the template");
 });

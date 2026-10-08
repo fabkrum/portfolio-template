@@ -1,1 +1,1 @@
-{"expect": "legal", "finding": "placeholder.*Lawyer"}
+{"expect": "legal", "finding": "placeholder.*legal\\.mjs"}

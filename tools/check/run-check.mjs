@@ -58,10 +58,10 @@ async function schemaProblems(siteDir, content, unreadable) {
 
 // The legal page is privacy.html: a legal notice, a privacy notice and an
 // accessibility statement, each a section with its id. The template ships it
-// as a placeholder, marked data-placeholder and saying so; the Lawyer role
-// writes the real page from a template with [[BLANKS]]. No problems means the
-// Lawyer has written the page.
-export const isPlaceholderPage = (page) => /\bdata-placeholder\b/.test(page) || page.includes("The Lawyer role replaces it");
+// as a placeholder, marked data-placeholder and saying so; the Developer
+// writes the real page with node tools/legal.mjs, from a template with
+// [[BLANKS]]. No problems means the legal page is written.
+export const isPlaceholderPage = (page) => /\bdata-placeholder\b/.test(page) || page.includes("This is a placeholder. The Developer replaces it");
 
 const LEGAL_SECTIONS = [
   ["legal-notice", "legal notice"],
@@ -81,13 +81,13 @@ const phoneLinks = (page) =>
 
 export function legalPageProblems(page) {
   if (isPlaceholderPage(page)) {
-    return ["privacy.html is still the placeholder from the template. The Lawyer role writes the legal page: legal notice, privacy and accessibility."];
+    return ["privacy.html is still the placeholder from the template. The Developer writes the legal page with node tools/legal.mjs: legal notice, privacy and accessibility."];
   }
   const blanks = [...new Set(page.match(/\[\[[A-Z_]+\]\]/g) ?? [])];
   return [
-    ...(blanks.length > 0 ? [`privacy.html still has blanks to fill in: ${blanks.join(", ")}. The Lawyer role fills them in.`] : []),
+    ...(blanks.length > 0 ? [`privacy.html still has blanks to fill in: ${blanks.join(", ")}. node tools/legal.mjs fills them in from site/content.json.`] : []),
     ...LEGAL_SECTIONS.filter(([id]) => !new RegExp(`\\sid=["']${id}["']`).test(page)).map(
-      ([id, name]) => `privacy.html has no ${name}: a section with id="${id}". The Lawyer role writes it from its template.`,
+      ([id, name]) => `privacy.html has no ${name}: a section with id="${id}". node tools/legal.mjs writes the page again from its template.`,
     ),
     // A legal notice must be right: a phone link calls the number it shows.
     ...phoneLinks(page)
@@ -118,7 +118,7 @@ export async function legalProblems(siteDir, content) {
   const path = join(siteDir, "privacy.html");
   const page = existsSync(path) ? await readFile(path, "utf8") : null;
   const pageProblems = page === null
-    ? ["There is no privacy.html in the site folder. The Lawyer role adds the legal page."]
+    ? ["There is no privacy.html in the site folder. node tools/legal.mjs writes the legal page."]
     : [...legalPageProblems(page), ...(isPlaceholderPage(page) ? [] : phoneMismatchProblems(content, page))];
   const homePath = join(siteDir, "index.html");
   const linked = !existsSync(homePath) || footerLinksLegalPage(await readFile(homePath, "utf8"));

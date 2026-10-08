@@ -13,6 +13,7 @@ This is the ninth round, and both runs went through all nine.
 - Round 7: the Developer run showed the output word for word but put its own sentence in place of the last two lines; the Lawyer run summed it up in two sentences, left out the spec and the note on legal advice, and added that the instructor would guide the person through publishing. After the code review, the output says what every file it changed is, and at the Lawyer's checkpoint what private data to look for; the skill and AGENTS.md say to reply with all of it, copied word for word into a text block.
 - Round 8: both read-backs were word for word. But the agent in the Lawyer run did not ask where the room was: it guessed the block from the files. And both agents started the next role in the same chat. Neither had opened AGENTS.md or the role's skill, because until then the setup only told the agent that Antigravity had loaded AGENTS.md, and it had to open the file itself. From round 9 on, the setup gives the agent the text of AGENTS.md, as Antigravity loads it into every chat. The skill's description now also says to ask once and never to guess the block from the files.
 - Round 9, this one: both runs went through.
+- On 2026-10-08 the Lawyer block went: `node tools/legal.mjs` writes the legal page at the end of the Developer's step, and the Developer's checkpoint writes it too. The Lawyer run and its fixtures are gone; this run was not recorded again, so its read-back has no line about the legal page, and `after/site/privacy.html` is what the command writes now.
 
 ## Chat
 

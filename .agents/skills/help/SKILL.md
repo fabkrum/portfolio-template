@@ -15,7 +15,7 @@ Run this command. It is the same on every operating system, and it changes nothi
 node tools/where.mjs
 ```
 
-It lists the six Roles, each done, to fix or not yet, and ends with the next step.
+It lists the five Roles, each done, to fix or not yet, and ends with the next step.
 
 ## 2. An error first
 

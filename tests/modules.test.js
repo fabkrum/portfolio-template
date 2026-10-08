@@ -219,7 +219,7 @@ for (const [run, { started, module }] of Object.entries(RUNS)) {
     }
   });
 
-  test(`${run} run: laid over the site it started from, every item of the Check passes but the Lawyer's legal page`, async () => {
+  test(`${run} run: laid over the site it started from, every item of the Check passes but the legal page, which the Developer writes later`, async () => {
     const { siteDir, remove } = await buildFixtureSite(fixturesDir, `module-runs/${run}/site`);
     try {
       for (const item of await runCheck(siteDir)) assert.equal(item.pass, item.id !== "legal", `${item.id}: ${item.details}`);

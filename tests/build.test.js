@@ -339,7 +339,7 @@ test("the footer's link to the legal page is in the site's language", async () =
   });
 });
 
-test("the legal page keeps the title and language the Lawyer gave it, gets its canonical link, and no sections of the home page", async () => {
+test("the legal page keeps the title and language it was written with, gets its canonical link, and no sections of the home page", async () => {
   const finished = new URL("./fixtures/finished-privacy/privacy.html", import.meta.url);
   const page = (await readFile(finished, "utf8")).replace('<html lang="en">', '<html lang="en-GB">');
   await withBuilt({ change: both(writeContent({ ...sample, language: "it" }), writeFiles({ "privacy.html": page })) }, async (outDir) => {

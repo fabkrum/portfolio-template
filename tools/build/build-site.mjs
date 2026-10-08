@@ -206,7 +206,7 @@ function socialTags({ type, title, description, url, image, imageAlt }) {
 
 // The <head> as the build writes it. The home page takes its title,
 // description, language and structured data from the content file. Any other
-// page keeps its own description and language, as the Lawyer wrote them for
+// page keeps its own description and language, as the legal tool wrote them for
 // the privacy page, and its title gets the person's name if it lacks it.
 // Tags the build writes replace any already there.
 function writeHead(html, head, file) {
@@ -237,7 +237,7 @@ function writeHead(html, head, file) {
 
 // The head of a page other than the home page: its own title, with the
 // person's name in it ("Privacy" becomes "Privacy · Ada Example", while
-// "Privacy · Ada Example", as the Lawyer writes it, stays), and its own
+// "Privacy · Ada Example", as node tools/legal.mjs writes it, stays), and its own
 // description.
 function otherPageHead(own, name, homeTitle) {
   const title = !own.title ? homeTitle : name && !own.title.includes(name) ? `${own.title} · ${name}` : own.title;

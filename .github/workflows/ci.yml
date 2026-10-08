@@ -54,10 +54,11 @@ jobs:
         run: node tools/check.mjs
       # The one documented action, run the way a participant runs it: from the
       # repo folder, in the runner's default shell (PowerShell on Windows).
-      - name: Jump to the Lawyer's checkpoint, as a participant does
-        run: node tools/checkpoint.mjs lawyer
-      # The Check never fails by itself, so this step looks for its verdict.
-      - name: The Check on the Lawyer's checkpoint passes every item, as a participant sees it
+      - name: Jump to the Developer's checkpoint, as a participant does
+        run: node tools/checkpoint.mjs developer
+      # The Check never fails by itself, so this step looks for its verdict:
+      # the Developer's checkpoint writes the legal page too, so every item passes.
+      - name: The Check on the Developer's checkpoint passes every item, as a participant sees it
         shell: bash
         run: |
           node tools/check.mjs | tee checkpoint-check.log

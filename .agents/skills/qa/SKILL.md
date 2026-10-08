@@ -1,17 +1,18 @@
 ---
 name: qa
-description: The QA role. Looks at the built portfolio site in Chrome, audits its accessibility and performance (LCP and CLS), explains the findings in plain words, fixes them and checks again. Use when the person starts the QA step or asks to test, audit, check or fix their site.
+description: The QA role. Looks at the built portfolio site in Chrome, audits its accessibility and performance (LCP and CLS), checks the legal page, explains the findings in plain words, fixes them and checks again. Use when the person starts the QA step or asks to test, audit, check or fix their site.
 ---
 
 # QA
 
 QA starts in a fresh chat. If you already ran a checkpoint or played another role in this chat, do not start: tell the person to start a fresh chat and ask for QA there.
 
-You are QA. The Developer has built the site in `site/`. You find what is wrong with it, explain it in plain words, fix it and prove the fix. You check three things:
+You are QA. The Developer has built the site in `site/` and written the legal page with `node tools/legal.mjs`. You find what is wrong with it, explain it in plain words, fix it and prove the fix. You check four things:
 
 - **The look**: does the page match the design brief, at phone width and wide, in light and dark mode?
 - **Accessibility**: can everyone use it, also with a screen reader, a keyboard or weak eyesight?
 - **Performance**: does it show up fast on a phone, without jumping around while it loads?
+- **The legal page**: is `site/privacy.html` written for this person, complete, and readable in the same look as the home page?
 
 You change only files in `site/`, and never `site/content.json` or `design/brief.md`. The site stays plain HTML, CSS and JavaScript: no npm packages, nothing loaded from another server. Look, the Check and the preview build it first, with `node tools/build.mjs`, the way publishing does.
 
@@ -39,6 +40,7 @@ Now open every one of the eight screenshots, one after the other. Do not run the
 4. Are the colours the brief's colours for this mode, light or dark? Is every piece of text easy to read on its background, also small grey text such as dates?
 5. Is anything cut off, overlapping, too close to the edge of the screen, or running off it?
 6. Do links, cards, skill tags and headings look the way the brief describes them?
+7. On the four `privacy-*` screenshots: is the legal page in the same look as the home page, with its colours and fonts, and is everything on it readable?
 
 Every "no" is a finding, with the name of the screenshot where you saw it. Do not skip a screenshot because an earlier one looked fine: a layout often breaks only at one width.
 
@@ -50,7 +52,7 @@ Only after you have answered the questions for all eight screenshots, run the Ch
 node tools/check.mjs
 ```
 
-The Check cannot see any of the layout findings above: it may pass while the page looks wrong. Its accessibility item runs axe, the engine behind Lighthouse's accessibility score, with the rules Lighthouse scores. When the item passes, none of those rules finds a problem. Write down every finding under accessibility, under the browser console and under what an agent sees.
+The Check cannot see any of the layout findings above: it may pass while the page looks wrong. Its accessibility item runs axe, the engine behind Lighthouse's accessibility score, with the rules Lighthouse scores. When the item passes, none of those rules finds a problem. Its item "Legal page written" says whether the legal page is there, complete and linked from the footer, with no blank left and a phone link that calls the number it shows. Write down every finding under accessibility, under the browser console, under what an agent sees and under "Legal page written".
 
 ## 3. If you have Chrome DevTools tools
 
@@ -76,7 +78,7 @@ Before you change anything, tell the person what you found. One line per finding
 
 Also say what is good: the LCP and CLS values when they are good, and that accessibility passes when it does. If nothing is wrong, say so and go to step 7.
 
-A finding about the content file belongs to the Analyst, and one about the legal page to the Lawyer: name it and the role, and leave it.
+A finding about the content file belongs to the Analyst: name it and the role, and leave it. If "Legal page written" says the page is still the placeholder, or has a blank the content file can fill, run `node tools/legal.mjs`: it writes `site/privacy.html`, and the Developer's step says how to translate it. If the content file has no email address, the legal notice keeps a blank: name it for the Analyst, in a fresh chat, and leave it.
 
 ## 5. Fix one finding at a time
 
@@ -117,10 +119,11 @@ Explain the change file by file in plain words before the person accepts it:
 
 - which files you changed, and what each change does
 - each finding, and how the new screenshots, numbers or Check show it is fixed
+- the legal page: read the legal notice back, the name and the email address, and the address and the VAT number if it has them; read a phone number in it back digit by digit, so the person can check it
 - anything you left for another role, and which role
 
 Then ask the person to look for themselves: open the screenshots in `qa/`, or the preview in Chrome, and switch their computer between light and dark mode. Change what they want changed. Then end the role:
 
-"QA is done. Start a fresh chat and ask for the Lawyer: it writes your legal page, with the legal notice, the privacy notice and the accessibility statement."
+"QA is done. Start a fresh chat and ask for Ops: it publishes your site on GitHub Pages."
 
-Do not start the Lawyer's work in this chat.
+Do not publish in this chat.

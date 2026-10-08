@@ -27,9 +27,8 @@ Start with a title and one line: whose portfolio it is, and today's date. Then o
 
 - **Analyst**: `docs/spec.md`. Who the site is for, what a visitor should do, the language, the sections, and what was left out on purpose and why.
 - **Designer**: `design/brief.md`. Where the design came from (Stitch or the default), the mood, the colours and the fonts.
-- **Developer**: `site/assets/styles.css` in the colours and fonts of the brief, and the rules for the site in `AGENTS.md`: plain HTML, CSS and JavaScript, the content built into the pages so search engines and AI agents can read them, nothing loaded from other servers, and why.
-- **QA**: what it checks (the look, accessibility, speed on a phone), and its screenshots in `qa/` if there are any.
-- **Lawyer**: the legal page, `site/privacy.html`: its legal notice, what its privacy notice promises (no cookies, no tracking, nothing from other servers) and its accessibility statement.
+- **Developer**: `site/assets/styles.css` in the colours and fonts of the brief, and the rules for the site in `AGENTS.md`: plain HTML, CSS and JavaScript, the content built into the pages so search engines and AI agents can read them, nothing loaded from other servers, and why. And the legal page, `site/privacy.html`, written with `node tools/legal.mjs`: its legal notice, what its privacy notice promises (no cookies, no tracking, nothing from other servers) and its accessibility statement.
+- **QA**: what it checks (the look, accessibility, speed on a phone, the legal page), and its screenshots in `qa/` if there are any.
 - **Ops**: the commits in the log, with their dates and files.
 
 A Role that `node tools/where.mjs` does not list as done gets one line: "Not done yet." Write only what the files and the log say: never make up a reason, and where none is written down, leave out the why.
