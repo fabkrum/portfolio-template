@@ -445,7 +445,7 @@ test("the Stitch prompt follows Google's recipe, in English, with no web address
 });
 
 test("the Designer tells the person how to use the prompt in Stitch", () => {
-  for (const needed of [/\*\*Web\*\*/, /\*\*Flash\*\* or \*\*Speed\*\*/, /Do \*\*not\*\* press \*\*Enhance prompt\*\*/, /one thing at a time/, /\*\*Edit Theme\*\*/, /\*\*Creative\*\*/, /Make it more STYLE/, /\*\*no Stitch\*\*/]) {
+  for (const needed of [/\*\*Web\*\*/, /Switch on \*\*Speed\*\*/, /send it as it is/, /offers to enhance or improve your prompt, say \*\*no\*\*/, /one thing at a time/, /\*\*Edit Theme\*\*/, /\*\*Creative\*\*/, /Make it more STYLE/, /\*\*no Stitch\*\*/]) {
     assert.match(designerSkill, needed);
   }
 });
