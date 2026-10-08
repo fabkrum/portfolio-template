@@ -68,20 +68,26 @@ ones in: this repo is public.
   leave alone, and the template's placeholder legal page; the person's answers
   gave an address, a Partita IVA and a phone number. `after/` holds the files
   the run changed, laid over `before/`; `report.md` holds what the agent told
-  the person, and what its earlier rounds changed. Both runs used the final
-  wording of the skills.
+  the person, and what its earlier rounds changed. The QA run used the QA
+  skill's wording of 2026-10-04, the Lawyer run the Lawyer skill's of
+  2026-10-08.
 - `analyst-runs/` – the Analyst skill in proxy runs on 2026-10-04, the same
   way, with the person's side played turn by turn from a fixed answer sheet.
   One folder per way in: `linkedin/` (fake LinkedIn text, `input.txt`), `cv/`
   (a fake CV, `cv.pdf`, printed from `cv.html` with headless Chrome) and
   `interview/` (nothing to start from). Each input or answer sheet carries a
-  planted phone number and address of zeros and placeholders. `answers.md` is
+  phone number and address of zeros and placeholders. The runs are from before
+  #27 (2026-10-08): the skill then told the person not to type them and left
+  them out, which their reports still show. Since #27 a phone number goes on
+  the site when the person wants calls, and an address belongs on the legal
+  page; the runs were not recorded again, and their tests no longer ask that
+  the planted data is left out. `answers.md` is
   what the person answered, `report.md` everything the agent wrote in the chat,
   `spec.md` the spec it wrote and `site/` the content file it wrote, laid over
-  the `default-brief` built site. Each content file must match the schema, hold
-  none of the planted data and pass every item of the Check but the Lawyer's
-  privacy page. All three runs used the final wording of the skill, in the
-  fifth round; `report.md` notes what the earlier rounds changed.
+  the `default-brief` built site. Each content file must match the schema and
+  pass every item of the Check but the Lawyer's legal page. All three runs
+  used the skill's wording of 2026-10-04, in the fifth round; `report.md`
+  notes what the earlier rounds changed.
 - `clean-sites/all-optional-modules/` – the sample content with entries for
   all five Optional modules (videos, podcasts, blog posts, resources, project
   ideas). Video IDs such as `EXAMPLE0001` and every `example.com` address are
@@ -107,7 +113,9 @@ ones in: this repo is public.
   file was the only file the agent changed. `sample-content.json` is the
   sample person's content file of the day of the runs, which four of them
   started from; the sample has grown since. All five are the third round, on
-  the final wording; `report.md` notes what the earlier rounds changed.
+  the wording of 2026-10-04; `report.md` notes what the earlier rounds
+  changed. Since #27 the skill no longer leaves a phone number out, so the
+  podcast run's choice to drop one is no longer tested.
 - `checkpoint-runs/` – the checkpoint skill in proxy runs on 2026-10-04, the
   same way as the Analyst runs: a person who fell behind asks the agent to
   catch them up. `developer/` is Giulia Placeholder with the Italian content
@@ -119,9 +127,10 @@ ones in: this repo is public.
   role in the same chat. `before/` holds what their repo held on top of the
   template, `after/` every file that differed once the run was over, and
   `report.md` the chat and every tool call the agent made. The agent had the
-  text of AGENTS.md loaded as its rules, as Antigravity loads it. Both runs
-  are the ninth round, on the final wording; `report.md` notes what the
-  earlier rounds changed. The files the Developer's checkpoint writes follow
+  text of AGENTS.md loaded as its rules, as Antigravity loads it. The
+  Developer run is the ninth round (2026-10-04) and the Lawyer run the tenth
+  (2026-10-08, after #27, when the command's words for the Lawyer changed);
+  `report.md` notes what the earlier rounds changed. The files the Developer's checkpoint writes follow
   that checkpoint: they are made again with the command itself whenever the
   checkpoint changes. They are Giulia's `index.html` and `assets/styles.css`
   in `developer/after/site/`, and Luca's starting point in

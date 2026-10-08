@@ -8,7 +8,7 @@ import { existsSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { checkBrief } from "../brief/check-brief.mjs";
-import { isPlaceholderPage, legalPageProblems } from "../check/run-check.mjs";
+import { isPlaceholderPage, legalProblems } from "../check/run-check.mjs";
 import { validateContent } from "../check/schema.mjs";
 import { BLOCKS, nonEmpty, readContent, sourcesUpTo, writtenFor } from "../checkpoint/apply-checkpoint.mjs";
 
@@ -73,8 +73,8 @@ async function lawyer({ repoDir, has, content, unreadable }) {
   if (!has("site/privacy.html")) return notYet("there is no site/privacy.html.");
   const page = await readFile(join(repoDir, "site", "privacy.html"), "utf8");
   if (isPlaceholderPage(page)) return notYet("site/privacy.html is still the placeholder.");
-  const [problem] = legalPageProblems(page);
-  if (problem) return toFix(`site/${problem}`);
+  const [problem] = await legalProblems(join(repoDir, "site"), unreadable ? {} : content);
+  if (problem) return toFix(problem.startsWith("privacy.html") ? `site/${problem}` : problem);
   const name = nonEmpty(content.name);
   if (!writtenFor(page, { name, unreadable })) {
     return toFix(`site/privacy.html does not name ${name ?? "the person in site/content.json"}. The Lawyer writes it again.`);

@@ -2,11 +2,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { holdsPosition } from "../tools/photo/hidden-data.mjs";
-import { HIDDEN, inBlankChrome, jpegFromChrome, webpChunks, webpSize, withHiddenData } from "./photos.js";
+import { HIDDEN, holdsPosition, inBlankChrome, jpegFromChrome, webpChunks, webpSize, withHiddenData } from "./photos.js";
 import { withRepo } from "./participant-repo.js";
 
 // The command, run the way the Analyst runs it: from the repo folder.

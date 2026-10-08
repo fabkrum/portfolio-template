@@ -172,7 +172,7 @@ function appendSections(html, sections) {
   return parent?.contentEnd == null ? html + markup.join("\n") : insertBefore(html, parent.contentEnd, markup);
 }
 
-// The footer's link to the privacy page, in the site's language.
+// The footer's link to the legal page, privacy.html, in the site's language.
 function labelPrivacyLink(html, label) {
   const footer = findElement(html, (tag) => tag.name === "footer");
   if (!text(label) || footer?.contentEnd == null) return html;

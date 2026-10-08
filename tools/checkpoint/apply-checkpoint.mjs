@@ -6,7 +6,7 @@ import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
 import { briefColours, briefFonts, checkBrief, firstFont, kindOfFont, TOKENS } from "../brief/check-brief.mjs";
 import { bundledFonts, familyOf, fontFaceRules } from "../fonts/bundled-fonts.mjs";
-import { legalPageProblems } from "../check/run-check.mjs";
+import { legalPageProblems, telLinkOf } from "../check/run-check.mjs";
 
 // The blocks of the workshop, in order, each named after the role that fills
 // it. There is one checkpoint per block.
@@ -81,8 +81,9 @@ export const NO_KNOWN_BARRIERS =
 // has the section about the person's photo, and address, phone and vat give
 // the legal notice's optional lines.
 function legalBlanks(content) {
-  const urls = Array.isArray(content.links) ? content.links.map((link) => nonEmpty(link?.url)).filter(Boolean) : [];
-  const mailto = urls.find((url) => url.startsWith("mailto:"));
+  const mailto = Array.isArray(content.links)
+    ? content.links.map((link) => nonEmpty(link?.url)).find((url) => url?.startsWith("mailto:"))
+    : undefined;
   const language = nonEmpty(content.language) ?? "en";
   return {
     NAME: nonEmpty(content.name),
@@ -92,12 +93,12 @@ function legalBlanks(content) {
     BARRIERS: NO_KNOWN_BARRIERS,
     photo: Boolean(nonEmpty(content.photo?.src)),
     address: nonEmpty(content.legal?.address),
-    phone: urls.find((url) => url.startsWith("tel:")),
+    phone: telLinkOf(content),
     vat: nonEmpty(content.legal?.vatId),
   };
 }
 
-// The privacy page's section about the person's photo, word for word as the
+// The legal page's section about the person's photo, word for word as the
 // Lawyer's skill gives it for the blank [[PHOTO]]: it goes in where the
 // content file has a photo; elsewhere the blank's line goes.
 export const PHOTO_SECTION = `      <section class="section">

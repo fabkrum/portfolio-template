@@ -4,7 +4,7 @@ Claude Haiku 4.5 as the agent in Antigravity, with only the template and the ski
 
 ## Earlier rounds
 
-This is the ninth round, and both runs went through all nine.
+This is the tenth round of the Lawyer run. Both runs went through the first nine; only the Lawyer run was recorded again in the tenth.
 
 - Round 1: in the Developer run the agent asked whether the Analyst and the Designer were done before it ran the checkpoint the person had named. In the Lawyer run it told the person the privacy page was "fully compliant with EU privacy law", and when asked to publish, it started Ops in the same chat. AGENTS.md then said to run a named checkpoint without other questions, to add no claims, and that the chat ends with the checkpoint.
 - Round 2: the Lawyer run went through. In the Developer run the agent never opened AGENTS.md: it took "the Developer checkpoint" for the Developer and began to build the site itself. The checkpoint got a skill of its own, so that its description stands next to the role skills Antigravity shows.

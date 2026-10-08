@@ -1,6 +1,6 @@
 ---
 name: legal
-description: The Lawyer role. Makes sure the site's legal page is complete and true for this site: a legal notice (who runs the site, how to reach them, and a postal address and a VAT number where the law asks for them), a privacy notice for an EU portfolio without tracking, and an accessibility statement. Use when the person starts the Lawyer step or asks about the legal notice, an Impressum, Note legali, a Partita IVA, privacy, GDPR or accessibility.
+description: The Lawyer role. Makes sure the site's legal page is complete and true for this site: a legal notice (who runs the site, how to reach them, and a postal address and a VAT number where the law asks for them), a privacy notice for an EU portfolio without tracking, and an accessibility statement. Use when the person starts the Lawyer step or asks about the legal notice, an Impressum, Note legali, a Partita IVA, the privacy notice, GDPR or the accessibility statement.
 ---
 
 # Lawyer
@@ -59,7 +59,7 @@ If a site that offers services gets no address, tell the person once that the la
 
 - `[[BARRIERS]]`: what step 3 says.
 
-Replace every blank, in every place it appears: `[[EMAIL]]` appears four times. If the site language is not English, translate all the text of the page into that language, and keep its structure, the ids of its sections (`legal-notice`, `privacy` and `accessibility`), its links and the GDPR article numbers. In Italian the legal notice is "Note legali" and the VAT number "Partita IVA"; in German the legal notice is "Impressum".
+Replace every blank, in every place it appears: `[[EMAIL]]` appears six times. If the site language is not English, translate all the text of the page into that language, and keep its structure, the ids of its sections (`legal-notice`, `privacy` and `accessibility`), its links and the GDPR article numbers. In Italian the legal notice is "Note legali" and the VAT number "Partita IVA"; in German the legal notice is "Impressum".
 
 The privacy notice promises that the site sets no cookies, has no analytics or tracking, loads nothing from other servers and has no form. Make sure that is true: search the files in `site/` for `https://` inside `src=`, `<link`, `@import`, `url(` or `fetch(`, and look for a `<form` or `<iframe`. A link a visitor clicks, such as `<a href="https://github.com/…">`, is fine. If you find anything else, do not change the page to cover it: tell the person what it is, and that the Developer should remove it in a fresh chat.
 

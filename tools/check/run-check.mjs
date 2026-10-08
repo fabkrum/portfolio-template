@@ -96,10 +96,14 @@ export function legalPageProblems(page) {
   ];
 }
 
+// The content file's phone link, a tel: address, if its links have one.
+export const telLinkOf = (content) =>
+  (Array.isArray(content?.links) ? content.links : []).map((link) => link?.url).find((url) => typeof url === "string" && url.trim() && url.startsWith("tel:"));
+
 // The phone number in the content file's links and the one on the legal page
 // must be the same number.
-function phoneMismatch(content, page) {
-  const listed = (Array.isArray(content?.links) ? content.links : []).map((link) => link?.url).find((url) => typeof url === "string" && url.startsWith("tel:"));
+function phoneMismatchProblems(content, page) {
+  const listed = telLinkOf(content);
   const onPage = phoneLinks(page)[0]?.tel;
   return listed && onPage && digits(listed) !== digits(onPage)
     ? [`The phone link in site/content.json calls ${listed}, but the one on the legal page calls ${onPage}. Both must be the number the person gave.`]
@@ -109,15 +113,16 @@ function phoneMismatch(content, page) {
 // Every visitor must find the legal page: the home page's footer links to it.
 const footerLinksLegalPage = (home) => /<footer\b[\s\S]*?\bhref=["']privacy\.html["'][\s\S]*?<\/footer>/i.test(home);
 
-async function legalProblems(siteDir, content) {
+// Everything the item "Legal page written" checks, for the site in siteDir.
+export async function legalProblems(siteDir, content) {
   const path = join(siteDir, "privacy.html");
-  const written = existsSync(path) ? await readFile(path, "utf8") : null;
-  const page = written === null
+  const page = existsSync(path) ? await readFile(path, "utf8") : null;
+  const pageProblems = page === null
     ? ["There is no privacy.html in the site folder. The Lawyer role adds the legal page."]
-    : [...legalPageProblems(written), ...(isPlaceholderPage(written) ? [] : phoneMismatch(content, written))];
+    : [...legalPageProblems(page), ...(isPlaceholderPage(page) ? [] : phoneMismatchProblems(content, page))];
   const homePath = join(siteDir, "index.html");
   const linked = !existsSync(homePath) || footerLinksLegalPage(await readFile(homePath, "utf8"));
-  return [...page, ...(linked ? [] : ["The footer of index.html has no link to privacy.html, so visitors cannot find the legal page."])];
+  return [...pageProblems, ...(linked ? [] : ["The footer of index.html has no link to privacy.html, so visitors cannot find the legal page."])];
 }
 
 // The site built and served for the Check, or why it could not be: then the

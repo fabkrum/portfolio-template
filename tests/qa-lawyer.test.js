@@ -210,7 +210,7 @@ test("the Lawyer's legal page names Ada Example and everything the person gave, 
   }
 });
 
-test("after the Lawyer, the home page's footer shows the Partita IVA", async () => {
+test("after the Lawyer, the home page's footer shows the VAT number", async () => {
   const { siteDir, remove } = await buildFixtureSite(fixturesDir, "lawyer-runs/after");
   const { mkdtemp, rm } = await import("node:fs/promises");
   const { tmpdir } = await import("node:os");
@@ -228,7 +228,7 @@ test("after the Lawyer, the home page's footer shows the Partita IVA", async () 
 // The lines of a piece of HTML without their indentation.
 const unindented = (html) => html.trim().split("\n").map((line) => line.trim());
 
-test("the Lawyer's photo section for the privacy page is word for word the one the Lawyer's checkpoint writes", async () => {
+test("the Lawyer's photo section for the legal page is word for word the one the Lawyer's checkpoint writes", async () => {
   const skill = await lawyerSkill();
   const section = skill.slice(skill.indexOf("`[[PHOTO]]`")).match(/```html\n([\s\S]*?)```/)[1];
   assert.deepEqual(unindented(section), unindented(PHOTO_SECTION));

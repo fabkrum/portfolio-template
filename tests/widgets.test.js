@@ -244,7 +244,9 @@ test("the widgets' values are escaped, never injected as markup", () => {
 
 test("every class name the widgets write is documented for the Developer", async () => {
   const docs = (await read("../.agents/skills/build/SKILL.md")) + (await read("../.agents/skills/build/widgets.md"));
-  const html = Object.values(rendered).join("");
+  // With a VAT number too, so the colophon's span.vat is rendered.
+  const withVat = renderSections({ ...widgets, legal: { vatId: "IT00000000000" } }, { today: TODAY });
+  const html = [...Object.values(rendered), ...Object.values(withVat)].join("");
   const classes = new Set([...html.matchAll(/class="([^"]+)"/g)].flatMap(([, names]) => names.split(" ")));
   for (const name of classes) assert.ok(docs.includes(`.${name}\``) || docs.includes(`.${name}.`), name);
 });

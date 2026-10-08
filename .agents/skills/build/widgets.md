@@ -36,12 +36,12 @@ The words the page adds itself, such as "Based in", come from `labels` in the co
 
 ```html
 <footer>
-  <a href="privacy.html">Privacy</a>
-  <div id="colophon">Built with AI agents at <a href="https://…">DevFest Milano</a>, <time datetime="2026-10-10">October 10, 2026</time>. No trackers. Fonts served from this site.</div>
+  <a href="privacy.html">Legal notice &amp; privacy</a>
+  <div id="colophon"><span class="vat">VAT number IT00000000000</span> · Built with AI agents at <a href="https://…">DevFest Milano</a>, <time datetime="2026-10-10">October 10, 2026</time>. No trackers. Fonts served from this site.</div>
 </footer>
 ```
 
-Keep the empty `<div id="colophon"></div>` in the footer of `index.html`: the line is filled in there. Without it, the line lands at the end of `<main>`. Style it as `#colophon`: the footer's small print. The event is a link only when the content file gives its address.
+Keep the empty `<div id="colophon"></div>` in the footer of `index.html`: the line is filled in there. Without it, the line lands at the end of `<main>`. Style it as `#colophon`: the footer's small print. The event is a link only when the content file gives its address. `span.vat` is there only when the content file has `legal.vatId`: Italy wants the Partita IVA on the home page. Keep it readable, like the rest of the line.
 
 ## The widgets
 
