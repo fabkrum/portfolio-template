@@ -32,7 +32,7 @@ Start with a title and one line: whose portfolio it is, and today's date. Then o
 - **Lawyer**: the legal page, `site/privacy.html`: its legal notice, what its privacy notice promises (no cookies, no tracking, nothing from other servers) and its accessibility statement.
 - **Ops**: the commits in the log, with their dates and files.
 
-A Role that `node tools/where.mjs` does not list as done gets one line: "Not done yet." Write only what the files and the log say: never make up a reason, and where none is written down, leave out the why. The repo is public, so no phone number, no postal address, nothing private.
+A Role that `node tools/where.mjs` does not list as done gets one line: "Not done yet." Write only what the files and the log say: never make up a reason, and where none is written down, leave out the why.
 
 End with `## What to learn next`: two or three points, each tied to this site and to a file to start from. For example: how the site switches to dark mode, in `.agents/skills/modern-web-guidance/guides/visual-design/dark-mode.md`.
 

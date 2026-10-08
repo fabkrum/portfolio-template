@@ -21,7 +21,7 @@ English (en).
 - CV: experience, education and skills.
 
 ## Left out on purpose
-Phone number and home address.
+Nothing.
 
 ## Later
 A blog, as an optional module.

@@ -27,7 +27,7 @@ git status
 
 It lists the files that changed since the last commit. Read the list back to the person in plain words: which files changed and what each one is, for example "`site/content.json`: your content" or "`site/privacy.html`: the legal page".
 
-Look at every file in the list that is not part of the site, the design brief or the spec: anything other than the files in `site/`, `design/brief.md` and `docs/spec.md`. A file the person did not make on purpose, such as a CV, a photo or a document, must not go into the public repo: it may hold their phone number or address. Name each one and ask the person to move it out of the repo folder. Then run `git status` again. If they want it published, leave it.
+Look at every file in the list that is not part of the site, the design brief or the spec: anything other than the files in `site/`, `design/brief.md` and `docs/spec.md`. A file the person may not mean to publish, such as a CV, an original photo or a document, becomes public with the repo. Name each one and ask whether it should be published. If they want it published, leave it. If not, ask them to move it out of the repo folder, then run `git status` again.
 
 If `git status` says "nothing to commit", the commit is already made: go to step 3.
 

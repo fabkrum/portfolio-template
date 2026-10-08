@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildSite } from "../tools/build/build-site.mjs";
 import { agentViewProblems } from "../tools/check/agent-view.mjs";
-import { runCheck } from "../tools/check/run-check.mjs";
+import { legalPageProblems, runCheck } from "../tools/check/run-check.mjs";
 import { buildFixtureSite, fixtureNames, sampleSite } from "./fixture-site.js";
 import { inChrome } from "./in-chrome.js";
 
@@ -89,6 +89,21 @@ for (const name of await fixtureNames(cleanSites)) {
     }
   });
 }
+
+// A phone link on the legal page calls the number it shows. "+49 (0)89 …"
+// is written with the trunk prefix in brackets, which nobody dials.
+test("the legal page's phone link must call the number it shows, written in any common way", async () => {
+  const page = await readFile(join(fixturesDir, "finished-privacy", "privacy.html"), "utf8");
+  const withPhone = (link) => page.replace("</section>", `  <p>Phone: ${link}</p>\n      </section>`);
+  for (const right of [
+    '<a href="tel:+49891234567">+49 (0)89 1234567</a>',
+    '<a href="tel:+390212345678">+39 02 1234 5678</a>',
+    '<a href="tel:+390212345678">Call me</a>',
+  ]) {
+    assert.deepEqual(legalPageProblems(withPhone(right)), [], right);
+  }
+  assert.match(legalPageProblems(withPhone('<a href="tel:+3902123456">+39 02 1234 5678</a>')).join("\n"), /shows the phone number \+39 02 1234 5678, but its link calls tel:\+3902123456/);
+});
 
 // The broken site's content is there for a visitor, once JavaScript has run;
 // only a reader that runs none misses it.

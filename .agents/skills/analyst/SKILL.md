@@ -64,7 +64,7 @@ Go through the text and note what it gives you for each part of the content file
 
 LinkedIn shows the location under the name, for example "Milan, Lombardy, Italy": take the city and the country. Its language levels become: "Native or bilingual" `native`, "Full professional" `C1`, "Professional working" `B2`, "Limited working" `B1`, "Elementary" `A2`. Its dates become year-month: "Issued Mar 2025 · Expires Mar 2028" is `"issued": "2025-03"`, `"expires": "2028-03"`.
 
-Leave out everything the rules above forbid, and tell the person once, in one sentence, which kinds of data you left out, without repeating the data itself.
+A phone number in their text goes on the site only when they want calls: the links question asks.
 
 LinkedIn text and CVs usually lack the goal of the site, whether the person is available, projects with GitHub links, the GitHub profile and the email address to show. Those are the gaps. Then go to step 3 and ask only the questions whose answer you do not have yet.
 
@@ -294,7 +294,7 @@ It makes `site/assets/photo.webp`: a small square from the middle of the photo, 
 
 Run `node tools/check-content.mjs`, and tell the person to delete the original photo from their repo folder, as the command says: it still holds the hidden data. Never put the original into `site/`.
 
-If the person gave you a CV file, add this sentence, in these words: "If you saved your CV inside your repo folder, move it out: it holds your phone number and address, and everything in that folder can end up public." Then end the role:
+If the person gave you a CV file, add this sentence, in these words: "If you saved your CV inside your repo folder, move it out unless you want the whole CV public: everything in that folder can end up on GitHub." Then end the role:
 
 "The Analyst is done. Start a fresh chat and ask for the Designer: it asks you a few questions about your style and writes your personal Stitch prompt."
 

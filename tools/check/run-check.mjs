@@ -69,8 +69,10 @@ const LEGAL_SECTIONS = [
   ["accessibility", "accessibility statement"],
 ];
 
-// The phone links of a page: what each calls and the number it shows.
-const digits = (text) => text.replace(/\D/g, "");
+// The phone links of a page: what each calls and the number it shows. A
+// number written with the trunk prefix in brackets, +49 (0)89 …, calls
+// +4989 …: the (0) is not dialled.
+const digits = (text) => text.replace(/\(0\)/g, "").replace(/\D/g, "");
 const phoneLinks = (page) =>
   [...page.matchAll(/<a\b[^>]*\bhref=["']tel:([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)].map(([, tel, text]) => ({
     tel: `tel:${decodeEntities(tel)}`,
