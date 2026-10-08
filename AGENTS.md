@@ -4,18 +4,17 @@ You help a beginner build their own portfolio site. They lead, you do the work. 
 
 ## Work role by role
 
-The site is built by six roles, always in this order. Each role has a skill in `.agents/skills/`: read its `SKILL.md` and follow it, step by step.
+The site is built by five roles, always in this order. Each role has a skill in `.agents/skills/`: read its `SKILL.md` and follow it, step by step.
 
 1. **Analyst** (skill `analyst`) – collects the person's content into `site/content.json` and writes a short spec in `docs/spec.md`.
 2. **Designer** (skill `design`) – interviews them about their style, writes their prompt for Stitch and turns their Stitch design into the design brief in `design/brief.md`.
-3. **Developer** (skill `build`) – builds the site from `site/content.json` and `design/brief.md`.
-4. **QA** (skill `qa`) – audits accessibility and performance and fixes what it finds.
-5. **Lawyer** (skill `legal`) – writes the legal page: legal notice, privacy and accessibility.
-6. **Ops** (skill `deploy`) – publishes the site by pushing to GitHub.
+3. **Developer** (skill `build`) – builds the site from `site/content.json` and `design/brief.md`, and writes the legal page with `node tools/legal.mjs`: legal notice, privacy and accessibility.
+4. **QA** (skill `qa`) – audits the look, accessibility, performance and the legal page, and fixes what it finds.
+5. **Ops** (skill `deploy`) – publishes the site by pushing to GitHub.
 
 - Do only the role the person asked for. Never jump ahead to a later role, even if it looks helpful.
 - One role per chat. When a role is finished, tell the person to start a fresh chat for the next role. A fresh chat keeps your context clean.
-- **Optional modules** come after the six roles: a section for YouTube videos, podcasts, a blog, resources or project ideas, added with the skill `portfolio-add-module`. One module per chat. When the person asks to add a section or something more to their site, that is this skill.
+- **Optional modules** come after the five roles: a section for YouTube videos, podcasts, a blog, resources or project ideas, added with the skill `portfolio-add-module`. One module per chat. When the person asks to add a section or something more to their site, that is this skill. A change to the legal page later, such as an address, a VAT number, a phone number or a translation, is the skill `legal`.
 
 ## Fell behind? Checkpoints
 
@@ -66,6 +65,7 @@ Prefer one command at a time over long chains on every system.
 - JavaScript is only for extras, never for content. The content is in the page itself, so it shows without JavaScript, and search engines and AI agents read it. Never load `site/content.json` in the browser.
 - All content lives in `site/content.json`, which must match `site/content.schema.json`. Change content there, not in the HTML. That includes the page's own words, such as section headings, in the site's language: they are the `labels` in the content file.
 - A photo of the person goes on the site only through `node tools/photo.mjs <file>` (the same command on every system): it saves a small square copy as `site/assets/photo.webp`, without the hidden data a phone saves in a photo, such as where it was taken. Never put the original photo into `site/`.
+- The legal page, `site/privacy.html`, is written by `node tools/legal.mjs` (the same command on every system) from `site/content.json`: the legal notice with the person's name and email address, and their address, phone number and VAT number if the content file has them, the privacy notice and the accessibility statement, in English. The Developer runs it at the end of its step and translates the page if the site is not in English; QA checks it. Never write the legal page by hand.
 - Load nothing from other servers: no fonts from fonts.googleapis.com, no scripts or styles from a CDN. A web font goes into `site/assets/fonts/` and is loaded from there. Loading it from Google would send every visitor's IP address to Google, which EU privacy law does not allow without consent.
 - See whether the published site is live with `node tools/live.mjs` (the same command on every system). It prints the site's address on GitHub Pages and waits until the site online matches the last commit.
 - Preview the site with `node tools/preview.mjs` (the same command on every system). It builds the site and prints a local address to open in Chrome; after a change, reload the page.

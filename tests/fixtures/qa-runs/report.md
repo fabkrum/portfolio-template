@@ -41,3 +41,5 @@ order, as it reported them.
 - Earlier runs on earlier wording of the skill: the first missed the layout
   defect entirely; the second made the heading span the grid and left the
   cards in half the page (`look-sites/cards-in-half-width`).
+
+- The Lawyer named above was a role of its own until 2026-10-08. Since then `node tools/legal.mjs` writes the legal page at the end of the Developer's step and QA checks it; the run was not recorded again.

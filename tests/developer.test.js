@@ -115,8 +115,8 @@ test("there is a site the skill built from the default brief and one from a Stit
 });
 
 for (const name of builtSiteNames) {
-  // The Developer comes before the Lawyer, so the placeholder privacy page is still there.
-  test(`built site "${name}" passes every item of the Check but the Lawyer's legal page`, async () => {
+  // The runs are from before node tools/legal.mjs: the placeholder legal page is still there.
+  test(`built site "${name}" passes every item of the Check but the legal page`, async () => {
     const { siteDir, remove } = await buildFixtureSite(builtSites, name);
     try {
       for (const item of await runCheck(siteDir)) {
@@ -222,6 +222,32 @@ test("the recipes list the AI look to avoid", () => {
   const look = partsOf(recipes)["The AI look: never by default"];
   assert.ok(look, "no AI look part");
   for (const needed of [/indigo/, /purple/, /Inter/, /centred/, /rounded-lg/, /emoji/, /bento grid/, /cursor/, /pulsing "available" dot/]) assert.match(look, needed);
+});
+
+// The legal page is the Developer's too: one command writes it, between looking at the site and the Check.
+test("the Developer skill writes the legal page with node tools/legal.mjs after looking and before the Check, translates it, and wants every item to pass", async () => {
+  const skill = await read("../.agents/skills/build/SKILL.md");
+  const at = (text) => {
+    const index = skill.indexOf(text);
+    assert.ok(index >= 0, text);
+    return index;
+  };
+  assert.ok(at("node tools/preview.mjs") < at("\nnode tools/legal.mjs\n") && at("\nnode tools/legal.mjs\n") < at("\nnode tools/check.mjs\n"), "look, then the legal page, then the Check");
+  for (const needed of [
+    "5 of 5 items pass",
+    "not legal advice",
+    "`legal-notice`, `privacy` and `accessibility`",
+    "GDPR article numbers",
+    '"Note legali"',
+    '"Partita IVA"',
+    '"Impressum"',
+    "Keep the footer link to `privacy.html`",
+    "the legal page: the legal notice with the name and the email address, and the address, the VAT number and the phone number if the content file has them",
+    '"The Developer is done. Start a fresh chat and ask for QA:',
+  ]) {
+    assert.ok(skill.includes(needed), needed);
+  }
+  assert.doesNotMatch(skill, /Lawyer/);
 });
 
 test("the Developer skill builds the style and the one signature move, and takes its fonts from the font folder", async () => {

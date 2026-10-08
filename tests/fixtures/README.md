@@ -24,13 +24,19 @@ ones in: this repo is public.
 - `base` in any `fixture.json` names another fixture folder, relative to this
   one, that is laid over `site/` first. The Check's fixtures stand on
   `finished-privacy/`: the legal page (legal notice, privacy notice and
-  accessibility statement) the Lawyer's template gives for Ada Example, made
-  with the Lawyer's checkpoint and dated 4 October 2026, so that only the
-  planted problem needs attention.
+  accessibility statement) the template in `tools/legal/` gives for Ada
+  Example, as `node tools/legal.mjs` writes it, dated 4 October 2026, so that
+  only the planted problem needs attention.
 - `clean-sites/` – the same, for sites that must pass every item: tricky but
   harmless content (dates, ISBNs, "Corso di Laurea"), and `contact-details-shown`,
   a person who shows a phone link, a postal address and a VAT number, with the
-  legal page the Lawyer's checkpoint writes for them.
+  legal page `node tools/legal.mjs` writes for them.
+- Until 2026-10-08 a sixth role, the Lawyer, wrote the legal page in a block
+  of its own, between QA and Ops. Since then `node tools/legal.mjs` writes it
+  at the end of the Developer's step and QA checks it; the Lawyer's checkpoint
+  and its proxy runs (`lawyer-runs/`, `checkpoint-runs/lawyer/`) are gone.
+  Reports of runs from before that day still speak of the Lawyer, as the
+  agent did then; they were not recorded again.
 - `design/` – a made-up Stitch export of a fictional person and a screenshot of
   it, the two inputs the Designer skill accepts. `design/briefs/` holds the
   briefs the skill wrote from each in a proxy run on 2026-10-03: a fresh
@@ -58,19 +64,15 @@ ones in: this repo is public.
   `#projects` puts the heading beside the cards; `cards-in-half-width` is a
   QA proxy run's half fix of that (the heading spans the grid, the cards stay
   in its first column); `sections-touching` removes the space between sections.
-- `qa-runs/` and `lawyer-runs/` – the QA and Lawyer skills in proxy runs, the
-  same way as above. `before/` is the site the agent was given: the
-  `default-brief` built site with planted problems. For QA (2026-10-04), faint
-  dates (`.period` at half opacity, an accessibility finding) and the grid on
-  `#projects` instead of `.projects`, so the heading takes a column of its own,
-  which the Check cannot see. For the Lawyer (2026-10-08, after #27), a pitch
-  that offers services, a bio with a birth date and a phone number it must
-  leave alone, and the template's placeholder legal page; the person's answers
-  gave an address, a Partita IVA and a phone number. `after/` holds the files
-  the run changed, laid over `before/`; `report.md` holds what the agent told
-  the person, and what its earlier rounds changed. The QA run used the QA
-  skill's wording of 2026-10-04, the Lawyer run the Lawyer skill's of
-  2026-10-08.
+- `qa-runs/` – the QA skill in a proxy run (2026-10-04), the same way as
+  above. `before/` is the site the agent was given: the `default-brief` built
+  site with planted problems, faint dates (`.period` at half opacity, an
+  accessibility finding) and the grid on `#projects` instead of `.projects`,
+  so the heading takes a column of its own, which the Check cannot see.
+  `after/` holds the files the run changed, laid over `before/`; `report.md`
+  holds what the agent told the person, and what its earlier rounds changed.
+  The run used the QA skill's wording of 2026-10-04, from before the legal
+  page became the Developer's: its legal page is still the placeholder.
 - `analyst-runs/` – the Analyst skill in proxy runs on 2026-10-04, the same
   way, with the person's side played turn by turn from a fixed answer sheet.
   One folder per way in: `linkedin/` (fake LinkedIn text, `input.txt`), `cv/`
@@ -85,7 +87,8 @@ ones in: this repo is public.
   what the person answered, `report.md` everything the agent wrote in the chat,
   `spec.md` the spec it wrote and `site/` the content file it wrote, laid over
   the `default-brief` built site. Each content file must match the schema and
-  pass every item of the Check but the Lawyer's legal page. All three runs
+  pass every item of the Check but the legal page, which the Developer writes
+  later with `node tools/legal.mjs`. All three runs
   used the skill's wording of 2026-10-04, in the fifth round; `report.md`
   notes what the earlier rounds changed.
 - `clean-sites/all-optional-modules/` – the sample content with entries for
@@ -116,31 +119,29 @@ ones in: this repo is public.
   the wording of 2026-10-04; `report.md` notes what the earlier rounds
   changed. Since #27 the skill no longer leaves a phone number out, so the
   podcast run's choice to drop one is no longer tested.
-- `checkpoint-runs/` – the checkpoint skill in proxy runs on 2026-10-04, the
+- `checkpoint-runs/` – the checkpoint skill in a proxy run on 2026-10-04, the
   same way as the Analyst runs: a person who fell behind asks the agent to
   catch them up. `developer/` is Giulia Placeholder with the Italian content
   of `analyst-runs/cv`, the brief `design/briefs/from-stitch-html.md` and a
-  stylesheet her agent left half written; she names the checkpoint. `lawyer/`
-  is Luca Esempio with the content of `analyst-runs/linkedin`, the default
-  brief, the Developer's checkpoint and a legal page with blanks left; he
-  does not say where the room is. In both, the person then asks for the next
-  role in the same chat. `before/` holds what their repo held on top of the
-  template, `after/` every file that differed once the run was over, and
-  `report.md` the chat and every tool call the agent made. The agent had the
-  text of AGENTS.md loaded as its rules, as Antigravity loads it. The
-  Developer run is the ninth round (2026-10-04) and the Lawyer run the tenth
-  (2026-10-08, after #27, when the command's words for the Lawyer changed);
-  `report.md` notes what the earlier rounds changed. The files the Developer's checkpoint writes follow
-  that checkpoint: they are made again with the command itself whenever the
-  checkpoint changes. They are Giulia's `index.html` and `assets/styles.css`
-  in `developer/after/site/`, and Luca's starting point in
-  `lawyer/before/site/`, the Developer's checkpoint with the default brief's
-  fonts. On 2026-10-07 the checkpoint moved to the Classic default design
-  with its fonts, and got the round photo, the colophon line and the styles
-  of the widgets. What the command says in both runs is unchanged.
+  stylesheet her agent left half written; she names the checkpoint, and then
+  asks for the next role in the same chat. `before/` holds what her repo held
+  on top of the template, `after/` every file that differed once the run was
+  over, and `report.md` the chat and every tool call the agent made. The
+  agent had the text of AGENTS.md loaded as its rules, as Antigravity loads
+  it. It is the ninth round; `report.md` notes what the earlier rounds
+  changed, and the Lawyer run that went with it until 2026-10-08. The files
+  the Developer's checkpoint writes follow that checkpoint: they are made
+  again with the command itself whenever the checkpoint changes. They are
+  Giulia's `index.html`, `assets/styles.css` and, since the checkpoint writes
+  the legal page too, `privacy.html` in `developer/after/site/`. On
+  2026-10-07 the checkpoint moved to the Classic default design with its
+  fonts, and got the round photo, the colophon line and the styles of the
+  widgets. The test of what the command says leaves out the legal page's
+  lines, which the run of 2026-10-04 did not have.
 - `deploy-run/` – the Ops skill in a proxy run on 2026-10-04. The repo was the
-  template, committed and pushed once, with the Developer's and the Lawyer's
-  work not committed yet and a stray `My CV.pdf` in `docs/`, next to the spec. Its GitHub
+  template, committed and pushed once, with the Developer's work and the legal
+  page (then the Lawyer's) not committed yet and a stray `My CV.pdf` in
+  `docs/`, next to the spec. Its GitHub
   address led to a bare repo on disk, and `tools/live.mjs` looked at a local
   stand-in for GitHub Pages that answered 404 until the person had switched
   Pages on. `pushed.txt` lists the commits that reached the stand-in GitHub

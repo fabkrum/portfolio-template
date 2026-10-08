@@ -16,14 +16,13 @@ const repoDir = fileURLToPath(new URL("..", import.meta.url));
 const ABOUT = {
   analyst: { name: "Analyst", next: "the Designer", gives: "your content file and spec, or the sample person" },
   designer: { name: "Designer", next: "the Developer", gives: "your design brief, or the default design" },
-  developer: { name: "Developer", next: "QA", gives: "the site, built in the colours and fonts of your brief" },
-  qa: { name: "QA", next: "the Lawyer", gives: "the site, checked" },
-  lawyer: { name: "Lawyer", next: "Ops", gives: "the legal page, written for you" },
-  ops: { name: "Ops", next: "Ops", gives: "the same as the Lawyer's: Ops publishes and changes no file" },
+  developer: { name: "Developer", next: "QA", gives: "the site, built in the colours and fonts of your brief, and your legal page" },
+  qa: { name: "QA", next: "Ops", gives: "the same as the Developer's: QA found nothing to fix" },
+  ops: { name: "Ops", next: "Ops", gives: "the same as QA's: Ops publishes and changes no file" },
 };
 
 function listCheckpoints() {
-  console.log("Run it with the role whose block the room has just finished:\n");
+  console.log(`The five checkpoints are ${BLOCKS.slice(0, -1).join(", ")} and ${BLOCKS.at(-1)}. Run it with the role whose block the room has just finished:\n`);
   for (const block of BLOCKS) console.log(`  node tools/checkpoint.mjs ${block.padEnd(9)}  ${ABOUT[block].gives}`);
   console.log("\nA checkpoint keeps your own content file, design brief and spec. Nothing was changed.");
 }
@@ -51,7 +50,7 @@ const FILE_NOTES = {
   "site/assets/favicon.svg": "the small icon in the browser tab",
   "site/assets/avatar.svg": "the drawing that stands in for the sample person's photo",
   "site/content.schema.json": "what your content file may contain",
-  "site/privacy.html": "the placeholder: the Lawyer writes the legal page",
+  "site/privacy.html": "the placeholder: the Developer writes the legal page with node tools/legal.mjs",
   "design/default-brief.md": "the default design brief, kept so you can always go back to it",
 };
 
@@ -118,16 +117,16 @@ function attention(result) {
     );
     if (!result.privacy.address) {
       notes.push(
-        "Your legal notice shows your name and email address. If your site offers services, the law also asks for a postal address, and in Italy for your Partita IVA: the Lawyer adds them in a fresh chat.",
+        "Your legal notice shows your name and email address. If your site offers services, the law also asks for a postal address, and in Italy for your Partita IVA: to add them, start a fresh chat and ask to add an address to your legal page.",
       );
     }
     if (!result.privacy.EMAIL && !result.unreadable) {
       notes.push(
-        "Your content file has no email address, so the legal page still has a blank for it: the law asks for a way to reach whoever runs the site. The Lawyer asks you for one in a fresh chat.",
+        "Your content file has no email address, so the legal page still has a blank for it: the law asks for a way to reach whoever runs the site. The Analyst adds one in a fresh chat; then node tools/legal.mjs writes the page again.",
       );
     }
     if (!result.language.startsWith("en")) {
-      notes.push(`Your site is in ${languageName(result.language)}, but the legal page is in English. The Lawyer translates it in a fresh chat.`);
+      notes.push(`Your site is in ${languageName(result.language)}, but the legal page is in English. To translate it, start a fresh chat and ask to translate your legal page.`);
     }
   }
   return notes;
@@ -158,7 +157,7 @@ function report(result) {
     console.log("\nNeeds your attention:");
     for (const note of notes) console.log(`  - ${note}`);
   }
-  if (result.block === "ops") console.log("\nOps changes no file, so this is the same as the Lawyer's checkpoint. Your site goes live once Ops publishes it.");
+  if (result.block === "ops") console.log("\nOps changes no file, so this is the same as QA's checkpoint. Your site goes live once Ops publishes it.");
   console.log(`\nNext: start a fresh chat and ask for ${block.next}.`);
   console.log("To see your site, run node tools/preview.mjs and open the address it prints in Chrome.");
 }
@@ -175,6 +174,7 @@ if (nodeMajor < 22) {
   listCheckpoints();
 } else if (!BLOCKS.includes(block)) {
   console.log(`There is no checkpoint called "${block}".`);
+  if (block.toLowerCase() === "lawyer") console.log("There is no Lawyer block any more: the Developer's checkpoint writes the legal page too, and QA checks it.");
   listCheckpoints();
   process.exitCode = 1;
 } else {

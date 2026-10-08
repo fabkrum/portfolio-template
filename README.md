@@ -63,7 +63,17 @@ From your repo folder, run:
 node tools/check.mjs
 ```
 
-It builds your site, looks at it in your own Chrome and reports each item as PASS or NEEDS ATTENTION: the content file matches the schema, accessibility (the axe rules behind Lighthouse's accessibility score), no errors in the browser console, what an agent sees (your name, headline and projects in the page itself, for search engines and AI agents that run no JavaScript), and the legal page written for your site: its legal notice, privacy notice and accessibility statement, linked from the footer. The legal page needs attention until the Lawyer role has written it. It only reports; it never stops you from publishing. It needs Node 22 or newer and Google Chrome.
+It builds your site, looks at it in your own Chrome and reports each item as PASS or NEEDS ATTENTION: the content file matches the schema, accessibility (the axe rules behind Lighthouse's accessibility score), no errors in the browser console, what an agent sees (your name, headline and projects in the page itself, for search engines and AI agents that run no JavaScript), and the legal page written for your site: its legal notice, privacy notice and accessibility statement, linked from the footer. The legal page needs attention until the Developer has written it with `node tools/legal.mjs`. It only reports; it never stops you from publishing. It needs Node 22 or newer and Google Chrome.
+
+## Your legal page
+
+From your repo folder, run:
+
+```
+node tools/legal.mjs
+```
+
+It writes `site/privacy.html`, the page the footer links as "Legal notice & privacy": a legal notice with your name and email address from `site/content.json`, and your postal address, phone number and VAT number if the content file has them, a privacy notice for a personal portfolio in the EU without tracking, and an accessibility statement. It is in English; the Developer role runs it and translates the page if your site is in another language. It is a template, not legal advice: if you sell services through the site or run it as a business, check it with someone who knows the law in your country. Run it again whenever the legal part of your content file changes.
 
 ## Look at your site
 
@@ -91,13 +101,13 @@ It prints your site's address and waits up to two minutes until the site online 
 
 ## Fell behind?
 
-The room works through the roles together, one block per role. When time is up for a block and you are not done, jump to that block's checkpoint, and you start the next block with the room. From your repo folder, run this with the role of the block that has just ended, `analyst`, `designer`, `developer`, `qa`, `lawyer` or `ops`. When the Developer's time is up, that is:
+The room works through the roles together, one block per role. When time is up for a block and you are not done, jump to that block's checkpoint, and you start the next block with the room. From your repo folder, run this with the role of the block that has just ended, `analyst`, `designer`, `developer`, `qa` or `ops`. When the Developer's time is up, that is:
 
 ```
 node tools/checkpoint.mjs developer
 ```
 
-Use the block that has just ended, not the one that starts now. It brings your site to the end of that block and keeps your own content file, design brief and spec. If you have none, it puts in the sample person, the default design brief and the sample spec. From the Developer's checkpoint on, your site takes the colours and fonts of your design brief. It tells you what it kept and what it changed, and which role to ask for next, in a fresh chat. It is the same command on every system and needs no Git. You can also ask your agent to do it for you.
+Use the block that has just ended, not the one that starts now. It brings your site to the end of that block and keeps your own content file, design brief and spec. If you have none, it puts in the sample person, the default design brief and the sample spec. From the Developer's checkpoint on, your site takes the colours and fonts of your design brief, and your legal page is written. It tells you what it kept and what it changed, and which role to ask for next, in a fresh chat. It is the same command on every system and needs no Git. You can also ask your agent to do it for you.
 
 ## Add more sections
 
@@ -123,10 +133,11 @@ Once your site is live, you can add Optional modules: a section for YouTube vide
 - `tools/contrast.mjs` – says whether a colour is readable as text on a background.
 - `tools/fonts.mjs` – copies the fonts your design brief names from `fonts/` into your site.
 - `tools/photo.mjs` – makes a small square copy of your photo for the site, without the hidden data a phone saves in a photo: `node tools/photo.mjs my-photo.jpg`.
+- `tools/legal.mjs` – writes your legal page, `site/privacy.html`, from your content file.
 - `tools/checkpoint.mjs` – jumps to a checkpoint.
 - `tools/where.mjs` – which roles are done and which comes next. Ask your agent "Where am I?" and it runs it for you.
 - `checkpoints/` – one checkpoint per block of the workshop: the repo at the end of that block. `checkpoints/README.md` explains them.
-- `.agents/skills/` – one skill per role, plus `portfolio-add-module` for Optional modules, `checkpoint` for catching up, and `help`, `explain` and `recap` for when you are stuck, want something explained, or want the story of your site written down. Antigravity IDE finds them when you open the repo.
+- `.agents/skills/` – one skill per role, plus `portfolio-add-module` for Optional modules, `legal` for changes to your legal page later, `checkpoint` for catching up, and `help`, `explain` and `recap` for when you are stuck, want something explained, or want the story of your site written down. Antigravity IDE finds them when you open the repo.
 - `.agents/skills/modern-web-guidance/` – Modern Web Guidance by the Chrome team: current best practices the Developer reads before building. Stored in the repo, so nothing is downloaded.
 - `.agents/mcp_config.json` – switches on Chrome DevTools for agents for your agent in Antigravity IDE.
 - `install.sh`, `install.ps1` – the Install script for macOS/Linux and for Windows.

@@ -10,7 +10,8 @@ import { join } from "node:path";
 import { checkBrief } from "../brief/check-brief.mjs";
 import { isPlaceholderPage, legalProblems } from "../check/run-check.mjs";
 import { validateContent } from "../check/schema.mjs";
-import { BLOCKS, nonEmpty, readContent, sourcesUpTo, writtenFor } from "../checkpoint/apply-checkpoint.mjs";
+import { BLOCKS, readContent, sourcesUpTo } from "../checkpoint/apply-checkpoint.mjs";
+import { nonEmpty, writtenFor } from "../legal/write-legal-page.mjs";
 
 const done = (note) => ({ state: "done", note });
 const toFix = (note) => ({ state: "to fix", note });
@@ -49,11 +50,23 @@ async function designer({ repoDir, has, asShipped }) {
     : done("your design brief.");
 }
 
-// The Developer replaces the template's plain stylesheet.
-async function developer({ has, asShipped }) {
+// The Developer replaces the template's plain stylesheet and, at the end of
+// its step, writes the legal page with node tools/legal.mjs: legal notice,
+// privacy and accessibility, in site/privacy.html.
+async function developer({ repoDir, has, asShipped, content, unreadable }) {
   if (!has("site/assets/styles.css")) return notYet("there is no site/assets/styles.css.");
   if (await asShipped("site/assets/styles.css")) return notYet("site/assets/styles.css is still the plain stylesheet of the template.");
-  return done("the Developer's stylesheet, in site/assets/styles.css.");
+  const stylesheet = "the Developer's stylesheet is in site/assets/styles.css";
+  if (!has("site/privacy.html")) return toFix(`${stylesheet}, but there is no site/privacy.html. node tools/legal.mjs writes the legal page.`);
+  const page = await readFile(join(repoDir, "site", "privacy.html"), "utf8");
+  if (isPlaceholderPage(page)) return toFix(`${stylesheet}, but site/privacy.html is still the placeholder. node tools/legal.mjs writes the legal page.`);
+  const [problem] = await legalProblems(join(repoDir, "site"), unreadable ? {} : content);
+  if (problem) return toFix(problem.startsWith("privacy.html") ? `site/${problem}` : problem);
+  const name = nonEmpty(content.name);
+  if (!writtenFor(page, { name, unreadable })) {
+    return toFix(`site/privacy.html does not name ${name ?? "the person in site/content.json"}. node tools/legal.mjs writes it again.`);
+  }
+  return done(`the Developer's stylesheet and your legal page${name ? `, for ${name}` : ""}.`);
 }
 
 // QA looks at the site with node tools/look.mjs, which saves screenshots in qa/.
@@ -67,26 +80,11 @@ async function qa({ repoDir }) {
     : notYet("no screenshots in qa/ yet. QA takes them with node tools/look.mjs.");
 }
 
-// The Lawyer writes the legal page for the person: legal notice, privacy and
-// accessibility, in site/privacy.html.
-async function lawyer({ repoDir, has, content, unreadable }) {
-  if (!has("site/privacy.html")) return notYet("there is no site/privacy.html.");
-  const page = await readFile(join(repoDir, "site", "privacy.html"), "utf8");
-  if (isPlaceholderPage(page)) return notYet("site/privacy.html is still the placeholder.");
-  const [problem] = await legalProblems(join(repoDir, "site"), unreadable ? {} : content);
-  if (problem) return toFix(problem.startsWith("privacy.html") ? `site/${problem}` : problem);
-  const name = nonEmpty(content.name);
-  if (!writtenFor(page, { name, unreadable })) {
-    return toFix(`site/privacy.html does not name ${name ?? "the person in site/content.json"}. The Lawyer writes it again.`);
-  }
-  return done(`your legal page${name ? `, for ${name}` : ""}: legal notice, privacy and accessibility.`);
-}
-
 // Ops publishes by pushing to the branch main on GitHub. Git's own view of
 // this computer only: whether there is a remote, what is not committed, and
 // which commits are not pushed. GIT_OPTIONAL_LOCKS=0 keeps git status from
 // writing to the repo while it looks.
-function ops(repoDir, lawyerDone) {
+function ops(repoDir, siteBuilt) {
   const git = (...args) =>
     spawnSync("git", args, { cwd: repoDir, encoding: "utf8", env: { ...process.env, GIT_OPTIONAL_LOCKS: "0" } });
   // On a fresh Mac, git is a stub that fails until the developer tools are installed.
@@ -105,7 +103,7 @@ function ops(repoDir, lawyerDone) {
   if (changed > 0) return notYet(`${counted(changed, "changed file")} ${changed === 1 ? "is" : "are"} not on GitHub yet.`);
   if (!header("upstream")) return notYet("your commits are not on GitHub yet.");
   if (ahead > 0) return notYet(`${counted(ahead, "commit")} ${ahead === 1 ? "is" : "are"} not on GitHub yet.`);
-  return lawyerDone ? done("everything is on GitHub.") : notYet("everything so far is on GitHub.");
+  return siteBuilt ? done("everything is on GitHub.") : notYet("everything so far is on GitHub.");
 }
 
 // Every Role as { block, state, note }, state "done", "to fix" or "not yet",
@@ -122,8 +120,9 @@ export async function whereAmI(repoDir) {
   const asShipped = async (file) => has(file) && (await readFile(join(repoDir, file))).equals(await readFile(shipped.get(file)));
   const repo = { repoDir, has, asShipped, ...(await readContent(join(repoDir, "site", "content.json"))) };
 
-  const states = [await analyst(repo), await designer(repo), await developer(repo), await qa(repo), await lawyer(repo)];
-  states.push(ops(repoDir, states[4].state === "done"));
+  const states = [await analyst(repo), await designer(repo), await developer(repo), await qa(repo)];
+  // Ops is done once the site the Developer built, legal page included, is on GitHub.
+  states.push(ops(repoDir, states[2].state === "done"));
   // Once a later Role is done, the default brief was the design: saying
   // "default" is how the Designer keeps it.
   if (states[1].defaultBrief && states.slice(2).some(({ state }) => state === "done")) states[1] = done("the default design.");

@@ -260,7 +260,7 @@ It either says the content file is ready or lists what to fix. Fix what it lists
 node tools/check.mjs
 ```
 
-Every item must pass, except "Legal page written" if the Lawyer has not written the legal page yet. If an item names the new section, tell the person and suggest QA in a fresh chat; do not change the HTML or the CSS yourself.
+Every item must pass, except "Legal page written" if the legal page is not written yet: the Developer writes it with `node tools/legal.mjs`. If an item names the new section, tell the person and suggest QA in a fresh chat; do not change the HTML or the CSS yourself.
 
 ## 5. Read it back, then hand over
 

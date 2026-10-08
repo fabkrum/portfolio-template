@@ -48,7 +48,7 @@ async function lay(dir, own) {
   for (const [file, from] of Object.entries(own)) await cp(join(templateDir, from), join(dir, file));
 }
 
-// The privacy page the Lawyer writes for Giulia Placeholder, the person of the Analyst's CV run.
+// The legal page node tools/legal.mjs writes for Giulia Placeholder, the person of the Analyst's CV run.
 const giuliasPrivacyPage = async () =>
   (await readFile(join(templateDir, "tests", "fixtures", "finished-privacy", "privacy.html"), "utf8"))
     .replaceAll("Ada Example", "Giulia Placeholder")
@@ -56,17 +56,19 @@ const giuliasPrivacyPage = async () =>
 
 // What each Role leaves in the person's repo, in the order of the day: the
 // content file and spec of the Analyst's CV run, the brief the Designer wrote
-// from Stitch's HTML, the stylesheet the Developer built from it, QA's
-// screenshots, the Lawyer's privacy page and Ops' push.
+// from Stitch's HTML, the stylesheet the Developer built from it and the legal
+// page it wrote with node tools/legal.mjs, QA's screenshots and Ops' push.
 const LEAVES = {
   Analyst: (dir) => lay(dir, { "site/content.json": "tests/fixtures/analyst-runs/cv/site/content.json", "docs/spec.md": "tests/fixtures/analyst-runs/cv/spec.md" }),
   Designer: (dir) => lay(dir, { "design/brief.md": "tests/fixtures/design/briefs/from-stitch-html.md" }),
-  Developer: (dir) => lay(dir, { "site/assets/styles.css": "tests/fixtures/built-sites/stitch-web-font/assets/styles.css" }),
+  Developer: async (dir) => {
+    await lay(dir, { "site/assets/styles.css": "tests/fixtures/built-sites/stitch-web-font/assets/styles.css" });
+    await writeFile(join(dir, "site", "privacy.html"), await giuliasPrivacyPage());
+  },
   QA: async (dir) => {
     await mkdir(join(dir, "qa"));
     await writeFile(join(dir, "qa", "index-phone-light.png"), "a screenshot");
   },
-  Lawyer: async (dir) => writeFile(join(dir, "site", "privacy.html"), await giuliasPrivacyPage()),
   Ops: (dir) => {
     git(dir, "add", "-A");
     git(dir, "commit", "-q", "-m", "Publish my portfolio");
@@ -74,7 +76,9 @@ const LEAVES = {
   },
 };
 const ROLES = Object.keys(LEAVES);
-const CALLED = { Analyst: "the Analyst", Designer: "the Designer", Developer: "the Developer", QA: "QA", Lawyer: "the Lawyer", Ops: "Ops" };
+const CALLED = { Analyst: "the Analyst", Designer: "the Designer", Developer: "the Developer", QA: "QA", Ops: "Ops" };
+// Each Role's page in the workshop guide: the two Setup pages come first.
+const PAGE = { Analyst: 3, Designer: 4, Developer: 5, QA: 6, Ops: 7 };
 
 // What the command says about Ops at each point of the day: the files not
 // committed yet (QA's screenshots are not among them: qa/ stays on the laptop).
@@ -82,8 +86,7 @@ const OPS_NOTES = [
   "everything so far is on GitHub.",
   "2 changed files are not on GitHub yet.",
   "3 changed files are not on GitHub yet.",
-  "4 changed files are not on GitHub yet.",
-  "4 changed files are not on GitHub yet.",
+  "5 changed files are not on GitHub yet.",
   "5 changed files are not on GitHub yet.",
   "everything is on GitHub.",
 ];
@@ -97,7 +100,7 @@ function roleLine(stdout, role) {
 const statesIn = (stdout) => Object.fromEntries(ROLES.map((role) => [role, roleLine(stdout, role).state]));
 // What the command says after the Roles, from "Next:" on.
 const nextLines = (stdout) => stdout.slice(stdout.indexOf("Next:")).trim().split("\n");
-const CATCH_UP = "Behind the room? Type: Catch me up: the room just finished the <Role> block.";
+const CATCH_UP = "Behind the room? Type: Catch me up: the room just finished the <Role> block. <Role> is one of Analyst, Designer, Developer, QA and Ops.";
 
 for (let finished = 0; finished <= ROLES.length; finished++) {
   const role = ROLES[finished];
@@ -105,8 +108,8 @@ for (let finished = 0; finished <= ROLES.length; finished++) {
     finished === 0
       ? "a fresh copy: no Role is done yet, and the Analyst is next, with the sentence that starts it"
       : role
-        ? `after ${CALLED[ROLES[finished - 1]]}: ${finished} of 6 Roles done, and ${CALLED[role]} is next, on guide page ${finished + 2}`
-        : "after Ops: all six Roles are done, everything is on GitHub, and the guide's feedback page is next";
+        ? `after ${CALLED[ROLES[finished - 1]]}: ${finished} of 5 Roles done, and ${CALLED[role]} is next, on guide page ${PAGE[role]}`
+        : "after Ops: all five Roles are done, everything is on GitHub, and the guide's feedback page is next";
   test(name, async () => {
     await withClone(async (dir) => {
       for (const done of ROLES.slice(0, finished)) await LEAVES[done](dir);
@@ -125,7 +128,7 @@ for (let finished = 0; finished <= ROLES.length; finished++) {
       // The default brief may be the Designer's own choice: saying "default" keeps it as it is.
       const orDefault = role === "Designer" ? ["Already said default to the Designer? Then the Developer is next: Start the Developer step."] : [];
       assert.deepEqual(nextLines(stdout), [
-        `Next: ${CALLED[role]}. Guide page ${finished + 2}: ${role}.`,
+        `Next: ${CALLED[role]}. Guide page ${PAGE[role]}: ${role}.`,
         `Start a fresh chat and type: Start the ${role} step.`,
         ...orDefault,
         CATCH_UP,
@@ -148,16 +151,36 @@ test("said default to the Designer, then built: the default design counts, and Q
     await LEAVES.Developer(dir);
     const { stdout } = whereIn(dir);
     assert.deepEqual(roleLine(stdout, "Designer"), { state: "done", note: "the default design." });
-    assert.match(stdout, /^Next: QA\. Guide page 5: QA\.$/m);
+    assert.deepEqual(roleLine(stdout, "Developer"), { state: "done", note: "the Developer's stylesheet and your legal page, for Giulia Placeholder." });
+    assert.match(stdout, /^Next: QA\. Guide page 6: QA\.$/m);
   });
 });
 
-test("caught up with the Lawyer's checkpoint, with no content of their own: Ops is next, and the Analyst is still to do", async () => {
+// The legal page is the Developer's: built but not written, the Developer is not done.
+test("a stylesheet without the legal page: the Developer is to fix, with the command that writes it", async () => {
   await withClone(async (dir) => {
-    assert.equal(jumpTo(dir, "lawyer").status, 0);
+    await LEAVES.Analyst(dir);
+    await LEAVES.Designer(dir);
+    await lay(dir, { "site/assets/styles.css": "tests/fixtures/built-sites/stitch-web-font/assets/styles.css" });
     const { stdout } = whereIn(dir);
-    assert.deepEqual(statesIn(stdout), { Analyst: "not yet", Designer: "done", Developer: "done", QA: "not yet", Lawyer: "done", Ops: "not yet" });
-    assert.match(stdout, /^Next: Ops\. Guide page 7: Ops\.$/m);
+    assert.deepEqual(roleLine(stdout, "Developer"), {
+      state: "to fix",
+      note: "the Developer's stylesheet is in site/assets/styles.css, but site/privacy.html is still the placeholder. node tools/legal.mjs writes the legal page.",
+    });
+    assert.match(stdout, /^Next: the Developer\. Guide page 5: Developer\.$/m);
+    // A legal page written for someone else is named too.
+    await cp(join(templateDir, "tests", "fixtures", "finished-privacy", "privacy.html"), join(dir, "site", "privacy.html"));
+    assert.deepEqual(roleLine(whereIn(dir).stdout, "Developer"), { state: "to fix", note: "site/privacy.html does not name Giulia Placeholder. node tools/legal.mjs writes it again." });
+  });
+});
+
+test("caught up with the Developer's checkpoint, with no content of their own: QA is next, and the Analyst is still to do", async () => {
+  await withClone(async (dir) => {
+    assert.equal(jumpTo(dir, "developer").status, 0);
+    const { stdout } = whereIn(dir);
+    assert.deepEqual(statesIn(stdout), { Analyst: "not yet", Designer: "done", Developer: "done", QA: "not yet", Ops: "not yet" });
+    assert.deepEqual(roleLine(stdout, "Developer"), { state: "done", note: "the Developer's stylesheet and your legal page, for Ada Example." });
+    assert.match(stdout, /^Next: QA\. Guide page 6: QA\.$/m);
   });
 });
 
@@ -169,25 +192,27 @@ test("a content file that is not valid JSON comes first, even after the Develope
     const { stdout } = whereIn(dir);
     assert.deepEqual(roleLine(stdout, "Analyst"), { state: "to fix", note: "site/content.json is not valid JSON. node tools/check-content.mjs shows where." });
     assert.equal(roleLine(stdout, "Developer").state, "done");
-    assert.match(stdout, /^Next: the Analyst\. Guide page 2: Analyst\.$/m);
+    assert.match(stdout, /^Next: the Analyst\. Guide page 3: Analyst\.$/m);
   });
 });
 
 // What the site shows is the person's choice: a phone number in the content
-// file does not send them back to the Lawyer.
-test("a phone number in the content file leaves the Lawyer done, and Ops is next", async () => {
+// file does not send them back to the Developer.
+test("a phone number in the content file's bio leaves the Developer done, and QA is next", async () => {
   await withClone(async (dir) => {
-    await lay(dir, { "site/content.json": "tests/fixtures/lawyer-runs/before/content.json" });
-    assert.equal(jumpTo(dir, "lawyer").status, 0);
+    const content = JSON.parse(await readFile(join(dir, "site", "content.json"), "utf8"));
+    content.bio.push("Call me any time on +00 000 000 0000, I love to talk about the web.");
+    await writeFile(join(dir, "site", "content.json"), JSON.stringify(content, null, 2));
+    assert.equal(jumpTo(dir, "developer").status, 0);
     const { stdout } = whereIn(dir);
-    assert.equal(roleLine(stdout, "Lawyer").state, "done");
-    assert.match(stdout, /^Next: Ops\. Guide page 7: Ops\.$/m);
+    assert.equal(roleLine(stdout, "Developer").state, "done");
+    assert.match(stdout, /^Next: QA\. Guide page 6: QA\.$/m);
   });
 });
 
 test("a commit that is not pushed yet is named, and Ops is next", async () => {
   await withClone(async (dir) => {
-    for (const role of ROLES.slice(0, 5)) await LEAVES[role](dir);
+    for (const role of ROLES.slice(0, 4)) await LEAVES[role](dir);
     git(dir, "add", "-A");
     git(dir, "commit", "-q", "-m", "Publish my portfolio");
     const { stdout } = whereIn(dir);
@@ -240,7 +265,7 @@ test("the command works on its own repo, from whichever folder it is run", async
   await withRepo(async (dir) => {
     const { status, stdout } = whereIn(dir, tmpdir());
     assert.equal(status, 0, stdout);
-    assert.match(stdout, /^Next: the Analyst\. Guide page 2: Analyst\.$/m);
+    assert.match(stdout, /^Next: the Analyst\. Guide page 3: Analyst\.$/m);
   });
 });
 

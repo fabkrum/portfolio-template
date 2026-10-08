@@ -118,6 +118,17 @@ test("the Analyst puts a phone number on the site only when the person wants cal
   assert.doesNotMatch(skill, /No phone number and no postal address, ever|Never a `tel:` link|do not type your phone number/);
 });
 
+// The legal notice is written later, by node tools/legal.mjs, from what the
+// Analyst puts into legal: the links question asks for it.
+test("the Analyst asks for the legal notice's address and VAT number in the links question, and writes them into legal", async () => {
+  const skill = await analystSkill();
+  const interview = skill.split(/^## /m).find((section) => section.startsWith("3"));
+  const links = interview.match(/^\d+\. \*\*Links\*\*: (.*)$/m)?.[1] ?? "";
+  assert.match(links, /If your site offers services, for example to freelance clients, the law asks for a postal address in the legal notice, and in Italy for your Partita IVA: give them, or say no\./);
+  for (const needed of ["`legal.address`", "`vatId`", "`node tools/legal.mjs`", "end of the Developer step"]) assert.ok(skill.includes(needed), needed);
+  assert.doesNotMatch(skill, /Lawyer/);
+});
+
 // The JSON blocks of a skill, as text, and the spec template the Analyst fills in.
 const jsonBlocks = (skill) => [...skill.matchAll(/```json\n([\s\S]*?)```/g)].map((match) => match[1]);
 const specTemplate = (skill) => skill.match(/```markdown\n([\s\S]*?)```/)[1];
@@ -127,6 +138,7 @@ test("the content file the Analyst skill shows matches the schema, the fields of
   const schema = JSON.parse(await read("../site/content.schema.json"));
   assert.deepEqual(validateContent(schema, shape), []);
   for (const field of ["pitch", "highlights", "availability", "location", "languages"]) assert.ok(field in shape, field);
+  assert.deepEqual(Object.keys(shape.legal), ["address", "vatId"]);
 });
 
 test("the Analyst asks the site's goal and writes it into the spec", async () => {
@@ -217,7 +229,7 @@ for (const run of RUNS) {
     }
   });
 
-  test(`${run} run: laid over the built sample site, every item of the Check passes but the Lawyer's legal page`, async () => {
+  test(`${run} run: laid over the built sample site, every item of the Check passes but the legal page, which the Developer writes later`, async () => {
     const { siteDir, remove } = await buildFixtureSite(fixturesDir, `analyst-runs/${run}/site`);
     try {
       for (const item of await runCheck(siteDir)) assert.equal(item.pass, item.id !== "legal", `${item.id}: ${item.details}`);

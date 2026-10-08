@@ -68,3 +68,13 @@ test("CI builds the sample site as the deploy does, on every operating system", 
   const steps = stepsOf(await read("../.github/workflows/ci.yml"), "test");
   assert.ok(steps.some((step) => /^ +run: node tools\/build\.mjs$/m.test(step)));
 });
+
+// The Developer's checkpoint writes the legal page too, so after it the Check passes every item.
+test("CI jumps to the Developer's checkpoint, as a participant does, and expects every item of the Check to pass", async () => {
+  const steps = stepsOf(await read("../.github/workflows/ci.yml"), "test");
+  const jump = steps.findIndex((step) => /^ +run: node tools\/checkpoint\.mjs developer$/m.test(step));
+  assert.ok(jump >= 0, "no jump to the Developer's checkpoint");
+  assert.match(steps[jump + 1], /node tools\/check\.mjs/);
+  assert.match(steps[jump + 1], /grep -q "5 of 5 items pass"/);
+  assert.ok(!steps.some((step) => /checkpoint\.mjs lawyer/.test(step)));
+});

@@ -17,8 +17,8 @@ const cleanSites = fileURLToPath(new URL("./fixtures/clean-sites", import.meta.u
 
 const ITEMS = ["content", "accessibility", "console", "agent", "legal"];
 
-// The template ships a placeholder legal page; the Lawyer role replaces it.
-test("the sample site passes every item but the legal page, which waits for the Lawyer", async () => {
+// The template ships a placeholder legal page; the Developer replaces it with node tools/legal.mjs.
+test("the sample site passes every item but the legal page, which waits for node tools/legal.mjs", async () => {
   const items = await runCheck(sampleSite);
   assert.deepEqual(
     items.map((item) => item.id),
@@ -30,7 +30,7 @@ test("the sample site passes every item but the legal page, which waits for the 
   }
   const legal = items.find((item) => item.id === "legal");
   assert.equal(legal.pass, false);
-  assert.match(legal.details.join("\n"), /placeholder.*Lawyer/);
+  assert.match(legal.details.join("\n"), /placeholder.*The Developer writes the legal page with node tools\/legal\.mjs/);
 });
 
 test("the sample site with a finished legal page passes every item", async () => {
