@@ -8,8 +8,7 @@ import { existsSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { checkBrief } from "../brief/check-brief.mjs";
-import { findPrivateDataInContent, findPrivateDataInSiteFiles } from "../check/private-data.mjs";
-import { isPlaceholderPage, privacyPageProblems } from "../check/run-check.mjs";
+import { isPlaceholderPage, legalPageProblems } from "../check/run-check.mjs";
 import { validateContent } from "../check/schema.mjs";
 import { BLOCKS, nonEmpty, readContent, sourcesUpTo, writtenFor } from "../checkpoint/apply-checkpoint.mjs";
 
@@ -68,26 +67,19 @@ async function qa({ repoDir }) {
     : notYet("no screenshots in qa/ yet. QA takes them with node tools/look.mjs.");
 }
 
-// The Lawyer writes the privacy page for the person and takes private data out.
+// The Lawyer writes the legal page for the person: legal notice, privacy and
+// accessibility, in site/privacy.html.
 async function lawyer({ repoDir, has, content, unreadable }) {
   if (!has("site/privacy.html")) return notYet("there is no site/privacy.html.");
   const page = await readFile(join(repoDir, "site", "privacy.html"), "utf8");
   if (isPlaceholderPage(page)) return notYet("site/privacy.html is still the placeholder.");
-  const [problem] = privacyPageProblems(page);
+  const [problem] = legalPageProblems(page);
   if (problem) return toFix(`site/${problem}`);
   const name = nonEmpty(content.name);
   if (!writtenFor(page, { name, unreadable })) {
     return toFix(`site/privacy.html does not name ${name ?? "the person in site/content.json"}. The Lawyer writes it again.`);
   }
-  const privateData = [
-    ...(unreadable ? [] : findPrivateDataInContent(content)),
-    ...(await findPrivateDataInSiteFiles(join(repoDir, "site"))),
-  ];
-  if (privateData.length > 0) {
-    const more = privateData.length > 1 ? ` And ${privateData.length - 1} more: node tools/check.mjs lists them.` : "";
-    return toFix(`what looks like private data is still in the site: ${privateData[0]}${more}`);
-  }
-  return done(`your privacy page${name ? `, for ${name}` : ""}.`);
+  return done(`your legal page${name ? `, for ${name}` : ""}: legal notice, privacy and accessibility.`);
 }
 
 // Ops publishes by pushing to the branch main on GitHub. Git's own view of
@@ -124,7 +116,7 @@ function ops(repoDir, lawyerDone) {
 export async function whereAmI(repoDir) {
   // The template as it ships, which is the Analyst's checkpoint: the sample
   // person, the sample spec, the default brief, the plain stylesheet and the
-  // placeholder privacy page.
+  // placeholder legal page.
   const shipped = await sourcesUpTo(repoDir, "analyst");
   const has = (file) => existsSync(join(repoDir, file));
   const asShipped = async (file) => has(file) && (await readFile(join(repoDir, file))).equals(await readFile(shipped.get(file)));

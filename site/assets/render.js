@@ -20,7 +20,8 @@ const ENGLISH_LABELS = {
   skills: "Skills",
   code: "Code on GitHub",
   live: "Live",
-  privacy: "Privacy",
+  privacy: "Legal notice & privacy",
+  vatId: "VAT number",
   videos: "Videos",
   podcasts: "Podcasts",
   posts: "Blog",
@@ -227,13 +228,16 @@ function renderBio(content, labels, locale) {
     ${renderEach(content.bio, (paragraph) => `<p>${escapeHtml(paragraph)}</p>`)}`;
 }
 
-// The line in the footer: built with AI agents at the event, no trackers,
-// fonts served from this site.
+// The line in the footer: the VAT number, which Italy wants on the home page,
+// then built with AI agents at the event, no trackers, fonts served from this
+// site.
 function renderColophon(content, labels, locale) {
+  const vat = filled(content.legal?.vatId) ? `<span class="vat">${escapeHtml(labels.vatId)} ${escapeHtml(content.legal.vatId)}</span>` : "";
   const { event, url, date } = content.builtAt ?? {};
-  if (!filled(event)) return "";
+  if (!filled(event)) return vat;
   const when = filled(date) ? `, ${timeElement(date, locale)}` : "";
-  return `${escapeHtml(labels.builtWith)} ${linked(url, escapeHtml(event))}${when}. ${escapeHtml(labels.noTrackers)}`;
+  const built = `${escapeHtml(labels.builtWith)} ${linked(url, escapeHtml(event))}${when}. ${escapeHtml(labels.noTrackers)}`;
+  return vat ? `${vat} · ${built}` : built;
 }
 
 // Up to four honest numbers, each with what it counts.

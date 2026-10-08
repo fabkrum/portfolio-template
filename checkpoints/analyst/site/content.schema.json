@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "content.schema.json",
   "title": "Portfolio content file",
-  "description": "All content of the portfolio site. The repo is public: never add a phone number or a postal address.",
+  "description": "All content of the portfolio site. What it shows, a phone number or an address included, is the person's choice.",
   "type": "object",
   "additionalProperties": false,
   "required": ["name", "headline", "bio"],
@@ -28,6 +28,7 @@
         "code": { "$ref": "#/$defs/label" },
         "live": { "$ref": "#/$defs/label" },
         "privacy": { "$ref": "#/$defs/label" },
+        "vatId": { "$ref": "#/$defs/label" },
         "videos": { "$ref": "#/$defs/label" },
         "podcasts": { "$ref": "#/$defs/label" },
         "posts": { "$ref": "#/$defs/label" },
@@ -99,7 +100,7 @@
       }
     },
     "availability": {
-      "description": "Whether you are available, in words with a date, and an optional action: a link a visitor clicks, with its text. Email is fine; phone numbers are not.",
+      "description": "Whether you are available, in words with a date, and an optional action: a link a visitor clicks, with its text, such as an email or a phone link.",
       "type": "object",
       "additionalProperties": false,
       "required": ["text"],
@@ -108,14 +109,14 @@
         "text": { "type": "string", "minLength": 1 },
         "actionLabel": { "description": "The text of the action's link, for example Write to me.", "type": "string", "minLength": 1 },
         "actionUrl": {
-          "description": "Where the action's link goes: an address starting with https:// or an email link starting with mailto:.",
+          "description": "Where the action's link goes: an address starting with https://, an email link starting with mailto: or a phone link starting with tel:.",
           "type": "string",
-          "pattern": "^(https://|mailto:)"
+          "pattern": "^(https://|mailto:|tel:)"
         }
       }
     },
     "location": {
-      "description": "Where you are based: the city only, never a street, a house number or a postcode.",
+      "description": "Where you are based: the city. A postal address for the legal notice goes in legal.address.",
       "type": "object",
       "additionalProperties": false,
       "required": ["city"],
@@ -173,7 +174,7 @@
       }
     },
     "links": {
-      "description": "Social and contact links. Email is fine; phone numbers are not.",
+      "description": "Social and contact links: pages starting with https://, an email address as a mailto: link and, if the person wants calls, a phone number as a tel: link.",
       "type": "array",
       "items": {
         "type": "object",
@@ -183,9 +184,18 @@
           "label": { "type": "string", "minLength": 1 },
           "url": {
             "type": "string",
-            "pattern": "^(https://|mailto:)"
+            "pattern": "^(https://|mailto:|tel:)"
           }
         }
+      }
+    },
+    "legal": {
+      "description": "What the legal notice shows besides the name and the email address, when the person gives it. A site that offers services needs a postal address in the EU, and in Italy the Partita IVA.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "address": { "description": "The postal address where the person can be reached, on one line, as it should appear.", "type": "string", "minLength": 1 },
+        "vatId": { "description": "The VAT number, such as IT12345678901. It also shows in the home page's footer.", "type": "string", "minLength": 1 }
       }
     },
     "cv": {
@@ -404,7 +414,7 @@
       "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])(-(0[1-9]|[12][0-9]|3[01]))?$"
     },
     "place": {
-      "description": "A city or a country only: no street, no house number, no postcode.",
+      "description": "A city or a country.",
       "type": "string",
       "minLength": 1,
       "pattern": "^[^0-9]+$"

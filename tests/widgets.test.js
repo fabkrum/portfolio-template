@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { pageLabels, renderSections } from "../site/assets/render.js";
-import { findPrivateDataInContent } from "../tools/check/private-data.mjs";
 import { validateContent } from "../tools/check/schema.mjs";
 import { buildFixtureSite } from "./fixture-site.js";
 import { inChrome } from "./in-chrome.js";
@@ -241,12 +240,6 @@ test("the widgets' values are escaped, never injected as markup", () => {
   ).join("");
   assert.ok(!page.includes("<img src=x"));
   assert.ok(!/"on\w+="/.test(page));
-});
-
-test("a credential ID with many digits is not taken for a phone number; a street as an event's city is named", () => {
-  assert.deepEqual(findPrivateDataInContent({ ...widgets, certifications: [{ ...widgets.certifications[0], credentialId: "0000000000000" }] }), []);
-  const street = { ...widgets.events[0], city: "Via Esempio, Placeholder Town" };
-  assert.match(findPrivateDataInContent({ ...widgets, events: [street] }).join("\n"), /events > 1 > city: "Via Esempio, Placeholder Town" looks like a street/);
 });
 
 test("every class name the widgets write is documented for the Developer", async () => {

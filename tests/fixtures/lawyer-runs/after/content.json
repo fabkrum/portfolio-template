@@ -3,9 +3,10 @@
   "language": "en",
   "name": "Ada Example",
   "headline": "Frontend developer who likes fast, accessible web pages",
+  "pitch": "I build fast, accessible websites for small shops. Hire me for your next project.",
   "bio": [
     "I build small, fast websites and the tools around them. Before I wrote code, I taught maths, so I still enjoy explaining things simply.",
-    "I love to talk about the web.",
+    "I was born on 1 April 2000 in Placeholder Town. Call me any time on +00 000 000 0000, I love to talk about the web.",
     "This is a sample portfolio of a fictional person. Replace it with your own story."
   ],
   "projects": [
@@ -33,8 +34,16 @@
     {
       "label": "Email",
       "url": "mailto:ada@example.com"
+    },
+    {
+      "label": "Phone",
+      "url": "tel:+390000000000"
     }
   ],
+  "legal": {
+    "address": "Via Esempio 1, 20100 Milano, Italy",
+    "vatId": "IT00000000000"
+  },
   "cv": {
     "experience": [
       {

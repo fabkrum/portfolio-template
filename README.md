@@ -63,7 +63,7 @@ From your repo folder, run:
 node tools/check.mjs
 ```
 
-It builds your site, looks at it in your own Chrome and reports each item as PASS or NEEDS ATTENTION: the content file matches the schema, accessibility (the axe rules behind Lighthouse's accessibility score), no errors in the browser console, what an agent sees (your name, headline and projects in the page itself, for search engines and AI agents that run no JavaScript), a privacy page written for your site, and no phone number, postal address or photo that still holds where it was taken anywhere in the site. The privacy page needs attention until the Lawyer role has written it. It only reports; it never stops you from publishing. It needs Node 22 or newer and Google Chrome.
+It builds your site, looks at it in your own Chrome and reports each item as PASS or NEEDS ATTENTION: the content file matches the schema, accessibility (the axe rules behind Lighthouse's accessibility score), no errors in the browser console, what an agent sees (your name, headline and projects in the page itself, for search engines and AI agents that run no JavaScript), and the legal page written for your site: its legal notice, privacy notice and accessibility statement, linked from the footer. The legal page needs attention until the Lawyer role has written it. It only reports; it never stops you from publishing. It needs Node 22 or newer and Google Chrome.
 
 ## Look at your site
 
@@ -118,7 +118,7 @@ Once your site is live, you can add Optional modules: a section for YouTube vide
 - `tools/look.mjs` – screenshots and load speed, for QA.
 - `tools/live.mjs` – your site's address, and whether the newest version is online.
 - `tools/check.mjs` – the Check.
-- `tools/check-content.mjs` – checks the content file: does it match the schema, and is there no phone number or postal address in it.
+- `tools/check-content.mjs` – checks the content file: does it match the schema.
 - `tools/check-brief.mjs` – checks the design brief: every section there, every colour readable on its background.
 - `tools/contrast.mjs` – says whether a colour is readable as text on a background.
 - `tools/fonts.mjs` – copies the fonts your design brief names from `fonts/` into your site.
@@ -135,6 +135,6 @@ Once your site is live, you can add Optional modules: a section for YouTube vide
 
 Every push to `main` builds and publishes the site again.
 
-## Privacy
+## Public
 
-This repo is public. Never put your phone number or postal address in it.
+This repo and your site are public: anyone can read every file, and Git keeps old versions. What your site shows, a phone number or an address included, is your choice.

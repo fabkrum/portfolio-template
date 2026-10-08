@@ -6,8 +6,7 @@ import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
 import { briefColours, briefFonts, checkBrief, firstFont, kindOfFont, TOKENS } from "../brief/check-brief.mjs";
 import { bundledFonts, familyOf, fontFaceRules } from "../fonts/bundled-fonts.mjs";
-import { findPrivateDataInContent } from "../check/private-data.mjs";
-import { privacyPageProblems } from "../check/run-check.mjs";
+import { legalPageProblems } from "../check/run-check.mjs";
 
 // The blocks of the workshop, in order, each named after the role that fills
 // it. There is one checkpoint per block.
@@ -71,21 +70,30 @@ const writtenOut = (date) => `${date.getDate()} ${MONTHS[date.getMonth()]} ${dat
 // A value from the content file, if it is text with something in it.
 export const nonEmpty = (value) => (typeof value === "string" && value.trim() ? value : undefined);
 
-// What the Lawyer fills into the blanks of the privacy page, from the content
+// The legal page's sentence about barriers when the Check found none, word for
+// word as the Lawyer's skill gives it for the blank [[BARRIERS]].
+export const NO_KNOWN_BARRIERS =
+  "No barriers are known. Automatic tests cannot find every barrier, so if you meet one, please tell me.";
+
+// What the Lawyer fills into the blanks of the legal page, from the content
 // file. The page is in English, so its language is English too. A value the
 // content file does not give stays a blank; "photo" says whether the page
-// has the section about the person's photo.
-function privacyBlanks(content) {
-  const mailto = Array.isArray(content.links)
-    ? content.links.map((link) => nonEmpty(link?.url)).find((url) => url?.startsWith("mailto:"))
-    : undefined;
+// has the section about the person's photo, and address, phone and vat give
+// the legal notice's optional lines.
+function legalBlanks(content) {
+  const urls = Array.isArray(content.links) ? content.links.map((link) => nonEmpty(link?.url)).filter(Boolean) : [];
+  const mailto = urls.find((url) => url.startsWith("mailto:"));
   const language = nonEmpty(content.language) ?? "en";
   return {
     NAME: nonEmpty(content.name),
     EMAIL: nonEmpty(mailto?.slice("mailto:".length).split("?")[0]),
     LANGUAGE: language.startsWith("en") ? language : "en",
     DATE: writtenOut(new Date()),
+    BARRIERS: NO_KNOWN_BARRIERS,
     photo: Boolean(nonEmpty(content.photo?.src)),
+    address: nonEmpty(content.legal?.address),
+    phone: urls.find((url) => url.startsWith("tel:")),
+    vat: nonEmpty(content.legal?.vatId),
   };
 }
 
@@ -98,16 +106,36 @@ export const PHOTO_SECTION = `      <section class="section">
       </section>`;
 const PHOTO_BLANK = /^[ \t]*\[\[PHOTO\]\][ \t]*\r?\n(?:[ \t]*\r?\n)?/m;
 
+// The legal notice's optional lines, as the Lawyer's skill gives them: each
+// blank stands alone on its line and becomes this paragraph where the content
+// file has the value, or the line goes. A phone number shows as written in its
+// tel: link.
+const lineBlank = (key) => new RegExp(`^([ \\t]*)\\[\\[${key}\\]\\][ \\t]*\\r?\\n`, "m");
+const phoneText = (tel) => {
+  try {
+    return decodeURIComponent(tel.slice("tel:".length));
+  } catch {
+    return tel.slice("tel:".length);
+  }
+};
+export const LEGAL_NOTICE_LINES = {
+  ADDRESS: (address) => `<p>Address: ${escapeHtml(address)}</p>`,
+  PHONE: (tel) => `<p>Phone: <a href="${escapeHtml(tel)}">${escapeHtml(phoneText(tel))}</a></p>`,
+  VAT: (vat) => `<p>VAT number: ${escapeHtml(vat)}</p>`,
+};
+const fillLine = (page, key, value) =>
+  page.replace(lineBlank(key), (_, indent) => (value ? `${indent}${LEGAL_NOTICE_LINES[key](value)}\n` : ""));
+
 const fillBlanks = (page, blanks) =>
-  page
-    .replace(PHOTO_BLANK, blanks.photo ? `${PHOTO_SECTION}\n\n` : "")
+  [["ADDRESS", blanks.address], ["PHONE", blanks.phone], ["VAT", blanks.vat]]
+    .reduce((filled, [key, value]) => fillLine(filled, key, value), page.replace(PHOTO_BLANK, blanks.photo ? `${PHOTO_SECTION}\n\n` : ""))
     .replace(/\[\[([A-Z_]+)\]\]/g, (blank, key) => (blanks[key] ? escapeHtml(blanks[key]) : blank));
 
-// A privacy page the Lawyer has written for the person in the content file is
+// A legal page the Lawyer has written for the person in the content file is
 // theirs as well: it may be translated or changed by hand. While the content
 // file cannot be read, any written page counts as theirs.
 export const writtenFor = (page, { name, unreadable }) =>
-  privacyPageProblems(page).length === 0 && (unreadable || (Boolean(name) && (page.includes(name) || page.includes(escapeHtml(name)))));
+  legalPageProblems(page).length === 0 && (unreadable || (Boolean(name) && (page.includes(name) || page.includes(escapeHtml(name)))));
 
 // A font stack from the brief's Type table, maybe written in backticks. It is
 // used only if it holds nothing but names, quotes, commas and spaces, so it can
@@ -188,7 +216,7 @@ export async function applyCheckpoint(repoDir, block) {
   const brief = await readFile(sources.get("design/brief.md") ?? join(repoDir, "design", "brief.md"), "utf8");
   const briefProblems = checkBrief(brief);
   const styledByOwnBrief = reached(block, "developer") && briefProblems.length === 0;
-  const privacy = reached(block, "lawyer") ? privacyBlanks(content) : null;
+  const privacy = reached(block, "lawyer") ? legalBlanks(content) : null;
 
   // From the Developer's block on, the stylesheet's fonts come along, each with its licence.
   const stylesheet = reached(block, "developer")
@@ -230,6 +258,5 @@ export async function applyCheckpoint(repoDir, block) {
         }
       : null,
     privacy,
-    privateData: reached(block, "lawyer") && !unreadable ? findPrivateDataInContent(content) : [],
   };
 }

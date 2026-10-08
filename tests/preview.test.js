@@ -72,7 +72,7 @@ test("after a change in site/, a reload shows it: the preview builds the site ag
     const path = join(dir, "site", "content.json");
     await writeFile(path, (await readFile(path, "utf8")).replace('"name": "Ada Example"', '"name": "Ada Lovelace Example"'));
     assert.match((await open(`${address}/`)).html, /<h1>Ada Lovelace Example<\/h1>/);
-    assert.match((await open(`${address}/privacy.html`)).html, /Privacy/);
+    assert.match((await open(`${address}/privacy.html`)).html, /Legal notice &amp; privacy/);
   });
 });
 

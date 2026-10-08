@@ -25,7 +25,7 @@ The Check cannot see the layout: a page can pass every item of the Check and sti
 node tools/look.mjs
 ```
 
-It builds the site and saves eight screenshots into the folder `qa/`: the home page and the privacy page, at phone width and wide, in light and dark mode. It also prints:
+It builds the site and saves eight screenshots into the folder `qa/`: the home page and the legal page, `privacy.html`, at phone width and wide, in light and dark mode. It also prints:
 
 - **Layout**: a page wider than the screen, a section heading that sits beside its content instead of above it, content that fills only part of its section, and sections that run into each other. Each of these is a finding.
 - **Largest Contentful Paint (LCP)**: how long until the biggest text or image shows on a phone with a slow connection. Good is 2.5 seconds or less.
@@ -76,7 +76,7 @@ Before you change anything, tell the person what you found. One line per finding
 
 Also say what is good: the LCP and CLS values when they are good, and that accessibility passes when it does. If nothing is wrong, say so and go to step 7.
 
-A finding about the content file belongs to the Analyst, and one about the privacy page or private data to the Lawyer: name it and the role, and leave it.
+A finding about the content file belongs to the Analyst, and one about the legal page to the Lawyer: name it and the role, and leave it.
 
 ## 5. Fix one finding at a time
 
@@ -121,6 +121,6 @@ Explain the change file by file in plain words before the person accepts it:
 
 Then ask the person to look for themselves: open the screenshots in `qa/`, or the preview in Chrome, and switch their computer between light and dark mode. Change what they want changed. Then end the role:
 
-"QA is done. Start a fresh chat and ask for the Lawyer: it writes your privacy page and checks that no private data is in your public repo."
+"QA is done. Start a fresh chat and ask for the Lawyer: it writes your legal page, with the legal notice, the privacy notice and the accessibility statement."
 
 Do not start the Lawyer's work in this chat.

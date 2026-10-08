@@ -104,7 +104,7 @@ Two rules that keep the layout right:
 - Never type content into `index.html`. Content changes go into `site/content.json`, in the Analyst's chat.
 - JavaScript only for extras, never for content: `site/assets/main.js` is the place for a small extra, such as an effect. Never load `site/content.json` in the browser or write content into the page with JavaScript; search engines and AI agents would not see it.
 - The build writes the page's title, description, link preview tags and the data about the person for search engines (JSON-LD) from the content file. Never write them into `index.html` yourself.
-- Keep the link to the privacy page in the footer, and keep `site/privacy.html` on the same stylesheet.
+- Keep the link to the legal page, `privacy.html`, in the footer, and keep `site/privacy.html` on the same stylesheet.
 
 ## 6. Look at it, then run the Check
 
@@ -122,7 +122,7 @@ Then run the Check in another terminal:
 node tools/check.mjs
 ```
 
-Fix every finding under accessibility, the browser console or what an agent sees; those are yours. A finding about the content file belongs to the Analyst, and one about the privacy page or private data to the Lawyer: name it and the role, and leave it. Run the Check again until your items pass. Never say the site is finished before they do.
+Fix every finding under accessibility, the browser console or what an agent sees; those are yours. A finding about the content file belongs to the Analyst, and one about the legal page to the Lawyer: name it and the role, and leave it. Run the Check again until your items pass. Never say the site is finished before they do.
 
 ## 7. Read it back, then hand over
 

@@ -10,7 +10,7 @@ The site is built by six roles, always in this order. Each role has a skill in `
 2. **Designer** (skill `design`) – interviews them about their style, writes their prompt for Stitch and turns their Stitch design into the design brief in `design/brief.md`.
 3. **Developer** (skill `build`) – builds the site from `site/content.json` and `design/brief.md`.
 4. **QA** (skill `qa`) – audits accessibility and performance and fixes what it finds.
-5. **Lawyer** (skill `legal`) – adds the privacy page and removes private data.
+5. **Lawyer** (skill `legal`) – writes the legal page: legal notice, privacy and accessibility.
 6. **Ops** (skill `deploy`) – publishes the site by pushing to GitHub.
 
 - Do only the role the person asked for. Never jump ahead to a later role, even if it looks helpful.
@@ -65,7 +65,6 @@ Prefer one command at a time over long chains on every system.
 - The site is plain HTML, CSS and JavaScript in `site/`. One build tool turns it into the finished site: `node tools/build.mjs` (the same command on every system) puts the content of `site/content.json` into the pages and writes the finished site into `_site/`. It uses only what comes with Node: never add npm packages, a `package.json` or another build tool. The preview, look, the Check and publishing build the site themselves.
 - JavaScript is only for extras, never for content. The content is in the page itself, so it shows without JavaScript, and search engines and AI agents read it. Never load `site/content.json` in the browser.
 - All content lives in `site/content.json`, which must match `site/content.schema.json`. Change content there, not in the HTML. That includes the page's own words, such as section headings, in the site's language: they are the `labels` in the content file.
-- The repo is public. Never put a phone number or a postal address in any file.
 - A photo of the person goes on the site only through `node tools/photo.mjs <file>` (the same command on every system): it saves a small square copy as `site/assets/photo.webp`, without the hidden data a phone saves in a photo, such as where it was taken. Never put the original photo into `site/`.
 - Load nothing from other servers: no fonts from fonts.googleapis.com, no scripts or styles from a CDN. A web font goes into `site/assets/fonts/` and is loaded from there. Loading it from Google would send every visitor's IP address to Google, which EU privacy law does not allow without consent.
 - See whether the published site is live with `node tools/live.mjs` (the same command on every system). It prints the site's address on GitHub Pages and waits until the site online matches the last commit.

@@ -173,15 +173,15 @@ test("a content file that is not valid JSON comes first, even after the Develope
   });
 });
 
-test("private data left in the content file sends the person back to the Lawyer before Ops", async () => {
+// What the site shows is the person's choice: a phone number in the content
+// file does not send them back to the Lawyer.
+test("a phone number in the content file leaves the Lawyer done, and Ops is next", async () => {
   await withClone(async (dir) => {
     await lay(dir, { "site/content.json": "tests/fixtures/lawyer-runs/before/content.json" });
     assert.equal(jumpTo(dir, "lawyer").status, 0);
     const { stdout } = whereIn(dir);
-    const lawyer = roleLine(stdout, "Lawyer");
-    assert.equal(lawyer.state, "to fix");
-    assert.match(lawyer.note, /"\+00 000 000 0000" looks like a phone number/);
-    assert.match(stdout, /^Next: the Lawyer\. Guide page 6: Lawyer\.$/m);
+    assert.equal(roleLine(stdout, "Lawyer").state, "done");
+    assert.match(stdout, /^Next: Ops\. Guide page 7: Ops\.$/m);
   });
 });
 

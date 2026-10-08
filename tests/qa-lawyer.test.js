@@ -5,7 +5,8 @@ import { readdir, readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { TOKENS } from "../tools/brief/check-brief.mjs";
-import { PHOTO_SECTION } from "../tools/checkpoint/apply-checkpoint.mjs";
+import { LEGAL_NOTICE_LINES, NO_KNOWN_BARRIERS, PHOTO_SECTION } from "../tools/checkpoint/apply-checkpoint.mjs";
+import { buildSite } from "../tools/build/build-site.mjs";
 import { runCheck } from "../tools/check/run-check.mjs";
 import { buildFixtureSite } from "./fixture-site.js";
 import { withRepo } from "./participant-repo.js";
@@ -49,20 +50,42 @@ test("QA looks at the page before it trusts the Check, and looks again after fix
   assert.ok(skill.split("node tools/look.mjs").length > 2, "QA never looks again after fixing");
 });
 
-test("the Lawyer writes the privacy page from the template and searches for private data", async () => {
+test("the Lawyer writes the legal page from the template: legal notice, privacy and accessibility", async () => {
   const skill = await lawyerSkill();
-  for (const needed of [".agents/skills/legal/privacy-template.html", "site/privacy.html", "site/content.json", "node tools/check.mjs", "phone number"]) {
+  for (const needed of [".agents/skills/legal/privacy-template.html", "site/privacy.html", "site/content.json", "node tools/check.mjs", "legal notice", "privacy notice", "accessibility statement"]) {
     assert.ok(skill.includes(needed), needed);
   }
   // Every blank in the template is explained in the skill.
   const blanks = [...new Set((await privacyTemplate()).match(/\[\[[A-Z_]+\]\]/g))];
-  assert.deepEqual(blanks.sort(), ["[[DATE]]", "[[EMAIL]]", "[[LANGUAGE]]", "[[NAME]]", "[[PHOTO]]"]);
+  assert.deepEqual(blanks.sort(), ["[[ADDRESS]]", "[[BARRIERS]]", "[[DATE]]", "[[EMAIL]]", "[[LANGUAGE]]", "[[NAME]]", "[[PHONE]]", "[[PHOTO]]", "[[VAT]]"]);
   for (const blank of blanks) assert.ok(skill.includes(blank), blank);
 });
 
-test("the privacy template covers what an EU portfolio without tracking must say", async () => {
+// What the site shows is the person's choice (Fabian, 2026-10-08, #27).
+test("the Lawyer searches for no private data and takes nothing out", async () => {
+  const skill = await lawyerSkill();
+  assert.match(skill, /What the site shows is the person's choice/);
+  assert.match(skill, /you do not search for it, warn about it or take it out/);
+  assert.doesNotMatch(skill, /must never be in it|Find private data|take it out, with the person's yes|I add no address/);
+});
+
+test("the legal notice's lines and the sentence about barriers are word for word the ones the Lawyer's checkpoint writes", async () => {
+  const skill = await lawyerSkill();
+  assert.ok(skill.includes("`<p>Address: …</p>`"), "the address line");
+  assert.ok(skill.includes('`<p>Phone: <a href="tel:…">…</a></p>`'), "the phone line");
+  assert.ok(skill.includes("`<p>VAT number: …</p>`"), "the VAT line");
+  assert.equal(LEGAL_NOTICE_LINES.ADDRESS("…"), "<p>Address: …</p>");
+  assert.equal(LEGAL_NOTICE_LINES.PHONE("tel:…"), '<p>Phone: <a href="tel:…">…</a></p>');
+  assert.equal(LEGAL_NOTICE_LINES.VAT("…"), "<p>VAT number: …</p>");
+  assert.ok(skill.includes(NO_KNOWN_BARRIERS), NO_KNOWN_BARRIERS);
+});
+
+test("the legal page template covers what an EU portfolio without tracking must say, and has its three parts", async () => {
   const page = await privacyTemplate();
   for (const needed of [
+    'id="legal-notice"',
+    'id="privacy"',
+    'id="accessibility"',
     "GDPR",
     "no cookies",
     "no analytics and no tracking",
@@ -71,6 +94,9 @@ test("the privacy template covers what an EU portfolio without tracking must say
     "Article 6(1)(f) GDPR",
     "EU-U.S. Data Privacy Framework",
     "Article 77 GDPR",
+    "Web Content Accessibility Guidelines (WCAG) 2.2 at level AA",
+    "axe",
+    "Found a barrier?",
     'href="./"',
     'href="assets/styles.css"',
   ]) {
@@ -104,7 +130,7 @@ test("QA was given a site with faint dates and the project heading in a column o
 
 test("after QA, the site passes the Check's accessibility item and every other item but the Lawyer's", async () => {
   const items = await checkOf("qa-runs/after");
-  for (const item of Object.values(items)) assert.equal(item.pass, item.id !== "privacy", `${item.id}: ${item.details}`);
+  for (const item of Object.values(items)) assert.equal(item.pass, item.id !== "legal", `${item.id}: ${item.details}`);
 });
 
 test("after QA, the project cards sit side by side and the sections apart", async () => {
@@ -128,12 +154,13 @@ test("QA changed only the site's code, kept the brief's six colours and loads no
 
 const readJson = async (path) => JSON.parse(await readFile(path, "utf8"));
 
-test("the Lawyer was given a content file with a phone number the Check flags and a birth date it cannot", async () => {
+test("the Lawyer was given a site that offers services, with a phone number and a birth date in its bio", async () => {
   const items = await checkOf("lawyer-runs/before");
-  assert.equal(items["private-data"].pass, false);
-  assert.match(items["private-data"].details.join("\n"), /\+00 000 000 0000.*phone number/);
-  assert.doesNotMatch(items["private-data"].details.join("\n"), /born/);
-  assert.equal(items.privacy.pass, false);
+  for (const item of Object.values(items)) assert.equal(item.pass, item.id !== "legal", `${item.id}: ${item.details}`);
+  assert.match(items.legal.details.join("\n"), /placeholder/);
+  const given = await readJson(join(fixturesDir, "lawyer-runs", "before", "content.json"));
+  assert.match(given.pitch, /Hire me/);
+  assert.ok(given.bio.some((paragraph) => /born on 1 April 2000.*\+00 000 000 0000/.test(paragraph)));
 });
 
 test("after the Lawyer, every item of the Check passes", async () => {
@@ -142,31 +169,58 @@ test("after the Lawyer, every item of the Check passes", async () => {
   }
 });
 
-test("the Lawyer took out the phone number and the birth date, and nothing else", async () => {
+test("the Lawyer took nothing out: it only added the legal part and the phone link the person asked for", async () => {
   const { siteDir, remove } = await buildFixtureSite(fixturesDir, "lawyer-runs/after");
   try {
     const content = await readJson(join(siteDir, "content.json"));
-    // The content file the Lawyer was given: the sample person of that day, with the planted paragraph.
     const given = await readJson(join(fixturesDir, "lawyer-runs", "before", "content.json"));
-    const text = JSON.stringify(content);
-    assert.doesNotMatch(text, /000 000 0000/);
-    assert.doesNotMatch(text, /born|1 April 2000/i);
-    for (const paragraph of given.bio.filter((paragraph) => !/born/.test(paragraph))) assert.ok(content.bio.includes(paragraph), paragraph);
-    assert.deepEqual({ ...content, bio: [] }, { ...given, bio: [] });
+    assert.deepEqual(content.bio, given.bio);
+    assert.deepEqual(content.legal, { address: "Via Esempio 1, 20100 Milano, Italy", vatId: "IT00000000000" });
+    assert.deepEqual(content.links, [...given.links, { label: "Phone", url: "tel:+390000000000" }]);
+    const { legal, links, ...rest } = content;
+    const { links: givenLinks, ...givenRest } = given;
+    assert.deepEqual(rest, givenRest);
   } finally {
     await remove();
   }
 });
 
-test("the Lawyer's privacy page names Ada Example, the email address and the date, and loads nothing from elsewhere", async () => {
+test("the Lawyer's legal page names Ada Example and everything the person gave, its phone link calls their number, and it loads nothing from elsewhere", async () => {
   const { siteDir, remove } = await buildFixtureSite(fixturesDir, "lawyer-runs/after");
   try {
     const page = await readFile(join(siteDir, "privacy.html"), "utf8");
-    for (const needed of ['lang="en"', "Ada Example", 'href="mailto:ada@example.com"', "4 October 2026", "GitHub Pages", "Article 77 GDPR", 'href="assets/styles.css"']) {
+    for (const needed of [
+      'lang="en"',
+      "This website is run by Ada Example.",
+      "<p>Address: Via Esempio 1, 20100 Milano, Italy</p>",
+      'href="mailto:ada@example.com"',
+      'href="tel:+390000000000"',
+      "<p>VAT number: IT00000000000</p>",
+      "8 October 2026",
+      "GitHub Pages",
+      "Article 77 GDPR",
+      NO_KNOWN_BARRIERS,
+      'href="assets/styles.css"',
+    ]) {
       assert.ok(page.includes(needed), needed);
     }
     assert.deepEqual(await loadsFromElsewhere(siteDir), []);
   } finally {
+    await remove();
+  }
+});
+
+test("after the Lawyer, the home page's footer shows the Partita IVA", async () => {
+  const { siteDir, remove } = await buildFixtureSite(fixturesDir, "lawyer-runs/after");
+  const { mkdtemp, rm } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const outDir = await mkdtemp(join(tmpdir(), "lawyer-built-"));
+  try {
+    await buildSite(siteDir, outDir, { today: "2026-10-08" });
+    const home = await readFile(join(outDir, "index.html"), "utf8");
+    assert.match(home, /<footer>[\s\S]*<span class="vat">VAT number IT00000000000<\/span>[\s\S]*<\/footer>/);
+  } finally {
+    await rm(outDir, { recursive: true, force: true });
     await remove();
   }
 });
@@ -184,29 +238,28 @@ test("the Lawyer's photo section for the privacy page is word for word the one t
 test("the Lawyer checks that the photo went through the photo tool and has alt text", async () => {
   const photo = (await lawyerSkill()).split(/^### /m).find((part) => part.startsWith("The photo"));
   assert.ok(photo, "no section about the photo");
-  for (const needed of ["node tools/photo.mjs", "`assets/photo.webp`", "the Check names no photo", "hidden data", "alt text", "`alt`", "ask the person what the photo shows"]) {
+  for (const needed of ["node tools/photo.mjs", "`assets/photo.webp`", "hidden data", "alt text", "`alt`", "ask the person what the photo shows"]) {
     assert.ok(photo.includes(needed), needed);
   }
 });
 
-test("for a site that wins clients, the Lawyer explains the EU address, the Partita IVA and the Impressum, the two options, and adds no address", async () => {
-  const sells = (await lawyerSkill()).split(/^## /m).find((part) => part.startsWith("3. A site that sells"));
-  assert.ok(sells, "no step for a site that sells");
+test("for a site that offers services, the Lawyer asks for the address, the VAT number and a phone number, and writes them where the law wants them", async () => {
+  const asks = (await lawyerSkill()).split(/^## /m).find((part) => part.startsWith("1. What the law asks of this site"));
+  assert.ok(asks, "no step for what the law asks");
   for (const needed of [
     "`## Goal` names freelance clients",
     "offers services or prices",
-    "This is not legal advice",
-    "geographic address",
     "E-Commerce Directive, Article 5",
-    "In Italy, your Partita IVA must be on the home page",
-    "In Germany, the site needs an Impressum",
-    "your home address must never go into it",
-    "coworking space",
-    "Keep the site non-commercial",
-    "I add no address and no VAT number to your site",
-    "Add no address and no VAT number yourself, also when the person gives you one",
+    "in Italy, your Partita IVA, on the home page too",
+    "in Germany, an Impressum",
+    "Do you also want a phone number on it, for example for recruiters?",
+    "`legal.address`",
+    "`legal.vatId`",
+    "the footer of the home page shows it too",
+    "a `tel:` address",
+    "Count the digits",
   ]) {
-    assert.ok(sells.includes(needed), needed);
+    assert.ok(asks.includes(needed), needed);
   }
 });
 
@@ -228,6 +281,6 @@ test("the Lawyer's checkpoint writes the photo section for a person with a photo
     // Without the section the page is the template's, blank line for blank line.
     assert.match(page.replaceAll("\r\n", "\n"), /<\/section>\n\n {6}<section class="section">\n {8}<h2>Hosting on GitHub Pages<\/h2>/);
     const items = Object.fromEntries((await runCheck(join(dir, "site"))).map((item) => [item.id, item]));
-    assert.equal(items.privacy.pass, true, items.privacy.details.join("\n"));
+    assert.equal(items.legal.pass, true, items.legal.details.join("\n"));
   });
 });

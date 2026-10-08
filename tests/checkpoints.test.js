@@ -41,12 +41,12 @@ const BLOCKS = ["analyst", "designer", "developer", "qa", "lawyer", "ops"];
 const LAWYER_DONE = new Set(["lawyer", "ops"]);
 
 for (const role of BLOCKS) {
-  test(`the ${role} checkpoint on a fresh copy: the Check passes ${LAWYER_DONE.has(role) ? "every item" : "all but the Lawyer's privacy page"}`, async () => {
+  test(`the ${role} checkpoint on a fresh copy: the Check passes ${LAWYER_DONE.has(role) ? "every item" : "all but the Lawyer's legal page"}`, async () => {
     await withRepo(async (dir) => {
       const run = jumpTo(dir, role);
       assert.equal(run.status, 0, run.stdout + run.stderr);
       for (const item of Object.values(await checkOf(dir))) {
-        assert.equal(item.pass, item.id !== "privacy" || LAWYER_DONE.has(role), `${item.id}: ${item.details}`);
+        assert.equal(item.pass, item.id !== "legal" || LAWYER_DONE.has(role), `${item.id}: ${item.details}`);
       }
     });
   });
@@ -58,7 +58,7 @@ test("the Developer's checkpoint gives the site the Developer's design, and the 
     assert.equal(run.status, 0, run.stdout + run.stderr);
     const css = await readFile(join(dir, "site", "assets", "styles.css"), "utf8");
     assert.deepEqual(lightDarkTokens(css), DEFAULT_COLOURS);
-    for (const item of Object.values(await checkOf(dir))) assert.equal(item.pass, item.id !== "privacy", `${item.id}: ${item.details}`);
+    for (const item of Object.values(await checkOf(dir))) assert.equal(item.pass, item.id !== "legal", `${item.id}: ${item.details}`);
   });
 });
 
@@ -71,7 +71,7 @@ for (const role of BLOCKS) {
         assert.ok((await readFile(join(dir, file))).equals(await readFile(join(templateDir, from))), file);
       }
       for (const item of Object.values(await checkOf(dir))) {
-        assert.equal(item.pass, item.id !== "privacy" || LAWYER_DONE.has(role), `${item.id}: ${item.details}`);
+        assert.equal(item.pass, item.id !== "legal" || LAWYER_DONE.has(role), `${item.id}: ${item.details}`);
       }
     });
   });
@@ -88,8 +88,8 @@ test("a checkpoint brings back the code an agent broke, and the site works again
     const run = jumpTo(dir, "developer");
     assert.equal(run.status, 0, run.stdout + run.stderr);
     const items = await checkOf(dir);
-    for (const item of Object.values(items)) assert.equal(item.pass, item.id !== "privacy", `${item.id}: ${item.details}`);
-    assert.match(items.privacy.details.join("\n"), /placeholder/);
+    for (const item of Object.values(items)) assert.equal(item.pass, item.id !== "legal", `${item.id}: ${item.details}`);
+    assert.match(items.legal.details.join("\n"), /placeholder/);
   });
 });
 
@@ -122,7 +122,7 @@ test("someone with no content file, design brief or spec gets the sample person,
     for (const [file, sample] of [["site/content.json", "site/content.json"], ["design/brief.md", "design/default-brief.md"], ["docs/spec.md", "docs/spec.md"]]) {
       assert.ok((await readFile(join(dir, file))).equals(await readFile(join(templateDir, sample))), file);
     }
-    for (const item of Object.values(await checkOf(dir))) assert.equal(item.pass, item.id !== "privacy", `${item.id}: ${item.details}`);
+    for (const item of Object.values(await checkOf(dir))) assert.equal(item.pass, item.id !== "legal", `${item.id}: ${item.details}`);
   });
 });
 
@@ -155,7 +155,7 @@ const today = () => new Date();
 // Git on Windows may check files out with CRLF line endings.
 const readText = async (path) => (await readFile(path, "utf8")).replaceAll("\r\n", "\n");
 
-test("the Lawyer's checkpoint writes the privacy page for the sample person as the Lawyer's template, dated today", async () => {
+test("the Lawyer's checkpoint writes the legal page for the sample person as the Lawyer's template, dated today", async () => {
   await withRepo(async (dir) => {
     assert.equal(jumpTo(dir, "lawyer").status, 0);
     const page = await readText(join(dir, "site", "privacy.html"));
@@ -167,27 +167,27 @@ test("the Lawyer's checkpoint writes the privacy page for the sample person as t
   });
 });
 
-test("the Lawyer's checkpoint writes the privacy page for the person in their own content file, in English", async () => {
+test("the Lawyer's checkpoint writes the legal page for the person in their own content file, in English", async () => {
   await withRepo(OWN, async (dir) => {
     assert.equal(jumpTo(dir, "lawyer").status, 0);
     const page = await readText(join(dir, "site", "privacy.html"));
-    for (const needed of ['<html lang="en">', "<title>Privacy · Giulia Placeholder</title>", "personal portfolio of Giulia Placeholder", '<a href="mailto:giulia@example.com">giulia@example.com</a>']) {
+    for (const needed of ['<html lang="en">', "<title>Legal notice &amp; privacy · Giulia Placeholder</title>", "personal portfolio of Giulia Placeholder", '<a href="mailto:giulia@example.com">giulia@example.com</a>']) {
       assert.ok(page.includes(needed), needed);
     }
     assert.ok(!page.includes("Ada Example"));
   });
 });
 
-// The privacy page the Lawyer wrote for Giulia, in Italian.
+// The legal page the Lawyer wrote for Giulia, in Italian.
 const giuliasPrivacyPage = async () =>
   (await readText(join(templateDir, "tests", "fixtures", "finished-privacy", "privacy.html")))
     .replace('<html lang="en">', '<html lang="it">')
-    .replace("<h1>Privacy</h1>", "<h1>Informativa sulla privacy</h1>")
+    .replace("<h1>Legal notice &amp; privacy</h1>", "<h1>Note legali e privacy</h1>")
     .replaceAll("Ada Example", "Giulia Placeholder")
     .replaceAll("ada@example.com", "giulia@example.com");
 
 for (const role of ["developer", "lawyer"]) {
-  test(`the ${role} checkpoint keeps a privacy page the Lawyer has written for the person`, async () => {
+  test(`the ${role} checkpoint keeps a legal page the Lawyer has written for the person`, async () => {
     await withRepo(OWN, async (dir) => {
       const page = await giuliasPrivacyPage();
       await writeFile(join(dir, "site", "privacy.html"), page);
@@ -198,7 +198,7 @@ for (const role of ["developer", "lawyer"]) {
   });
 }
 
-test("a privacy page written for someone else is written again for the person in the content file", async () => {
+test("a legal page written for someone else is written again for the person in the content file", async () => {
   await withRepo(OWN, async (dir) => {
     await cp(join(templateDir, "tests", "fixtures", "finished-privacy", "privacy.html"), join(dir, "site", "privacy.html"));
     assert.equal(jumpTo(dir, "lawyer").status, 0);
@@ -270,13 +270,13 @@ test("with a brief that is not finished, the page keeps the default colours and 
   });
 });
 
-test("on a site that is not in English, the command says the privacy page is in English", async () => {
+test("on a site that is not in English, the command says the legal page is in English", async () => {
   await withRepo(OWN, async (dir) => {
     const { stdout } = jumpTo(dir, "lawyer");
     assert.match(stdout, /Giulia Placeholder/);
     assert.match(stdout, /giulia@example\.com/);
     assert.match(stdout, /Italian/);
-    assert.match(stdout, /privacy page is in English/);
+    assert.match(stdout, /legal page is in English/);
   });
 });
 
@@ -317,7 +317,7 @@ test("a content file that is not valid JSON is kept; the command says how to fix
   });
 });
 
-test("without an email address in the content file, the privacy page keeps that blank and the command says why", async () => {
+test("without an email address in the content file, the legal page keeps that blank and the command says why", async () => {
   await withRepo(async (dir) => {
     const content = JSON.parse(await readFile(join(dir, "site", "content.json"), "utf8"));
     content.links = content.links.filter((link) => !link.url.startsWith("mailto:"));
@@ -325,7 +325,7 @@ test("without an email address in the content file, the privacy page keeps that 
     const { stdout } = jumpTo(dir, "lawyer");
     assert.ok((await readText(join(dir, "site", "privacy.html"))).includes("[[EMAIL]]"));
     assert.match(stdout, /no email address/);
-    assert.match((await checkOf(dir)).privacy.details.join("\n"), /\[\[EMAIL\]\]/);
+    assert.match((await checkOf(dir)).legal.details.join("\n"), /\[\[EMAIL\]\]/);
   });
 });
 
@@ -426,7 +426,7 @@ for (const [skill, role] of Object.entries(ROLE_SKILLS)) {
   });
 }
 
-test("when it writes the privacy page, the command says, as the Lawyer does, that it is not legal advice", async () => {
+test("when it writes the legal page, the command says, as the Lawyer does, that it is not legal advice", async () => {
   await withRepo(async (dir) => {
     const { stdout } = jumpTo(dir, "lawyer");
     assert.match(stdout, /not legal advice/);
@@ -591,12 +591,33 @@ test("a font list that is not one keeps the default fonts, and the command says 
   });
 });
 
-test("the Lawyer's checkpoint names private data in the content file, and that the Lawyer also reads for what no search finds", async () => {
-  await withRepo({ "site/content.json": "tests/fixtures/lawyer-runs/before/content.json" }, async (dir) => {
+// What the site shows is the person's choice: the checkpoint takes nothing out
+// and names nothing as private.
+test("the Lawyer's checkpoint leaves the content file as it is, and its legal notice shows what the person gave", async () => {
+  await withRepo({ "site/content.json": "tests/fixtures/clean-sites/contact-details-shown/content.json" }, async (dir) => {
+    const given = await readText(join(dir, "site", "content.json"));
     const { stdout } = jumpTo(dir, "lawyer");
-    assert.match(stdout, /\+00 000 000 0000/);
-    assert.match(stdout, /birth date/);
-    assert.match(stdout, /before you publish/);
+    assert.equal(await readText(join(dir, "site", "content.json")), given);
+    assert.doesNotMatch(stdout, /private data/);
+    assert.doesNotMatch(stdout, /postal address/, "an address is there, so nothing is missing");
+    const page = await readText(join(dir, "site", "privacy.html"));
+    for (const line of [
+      "<p>Address: Via Esempio 1, 20100 Milano, Italy</p>",
+      '<p>Phone: <a href="tel:+390000000000">+390000000000</a></p>',
+      "<p>VAT number: IT00000000000</p>",
+    ]) {
+      assert.ok(page.includes(line), line);
+    }
+    for (const item of Object.values(await checkOf(dir))) assert.equal(item.pass, true, `${item.id}: ${item.details}`);
+  });
+});
+
+test("without an address, the Lawyer's checkpoint leaves the legal notice's optional lines out and says what a site that offers services still needs", async () => {
+  await withRepo(async (dir) => {
+    const { stdout } = jumpTo(dir, "lawyer");
+    const page = await readText(join(dir, "site", "privacy.html"));
+    assert.doesNotMatch(page, /Address:|Phone:|VAT number:|\[\[/);
+    assert.match(stdout, /If your site offers services, the law also asks for a postal address, and in Italy for your Partita IVA/);
   });
 });
 

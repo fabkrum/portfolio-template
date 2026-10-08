@@ -333,33 +333,33 @@ test("a section with no element in the page goes at the end of <main>; an elemen
   });
 });
 
-test("the footer's link to the privacy page is in the site's language", async () => {
-  await withBuilt({ change: writeContent({ ...sample, language: "it", labels: { privacy: "Informativa sulla privacy" } }) }, async (outDir) => {
-    assert.match(await read(outDir, "index.html"), /<footer>\s*<a href="privacy\.html">Informativa sulla privacy<\/a>/);
+test("the footer's link to the legal page is in the site's language", async () => {
+  await withBuilt({ change: writeContent({ ...sample, language: "it", labels: { privacy: "Note legali e privacy" } }) }, async (outDir) => {
+    assert.match(await read(outDir, "index.html"), /<footer>\s*<a href="privacy\.html">Note legali e privacy<\/a>/);
   });
 });
 
-test("the privacy page keeps the title and language the Lawyer gave it, gets its canonical link, and no sections of the home page", async () => {
+test("the legal page keeps the title and language the Lawyer gave it, gets its canonical link, and no sections of the home page", async () => {
   const finished = new URL("./fixtures/finished-privacy/privacy.html", import.meta.url);
   const page = (await readFile(finished, "utf8")).replace('<html lang="en">', '<html lang="en-GB">');
   await withBuilt({ change: both(writeContent({ ...sample, language: "it" }), writeFiles({ "privacy.html": page })) }, async (outDir) => {
     const html = await read(outDir, "privacy.html");
     const tags = headTags(html);
-    assert.equal(tags.title, "Privacy · Ada Example");
+    assert.equal(tags.title, "Legal notice &amp; privacy · Ada Example");
     assert.equal(tags.lang, "en-GB");
     assert.equal(tags.canonical, `${ADDRESS}privacy.html`);
-    assert.equal(tags["og:title"], "Privacy · Ada Example");
+    assert.equal(tags["og:title"], "Legal notice &amp; privacy · Ada Example");
     assert.equal(tags["og:type"], "website");
     assert.equal(jsonLdOf(html).length, 0);
     assert.doesNotMatch(html, /id="projects"|Tide Tables/);
   });
 });
 
-test("a page's title without the person's name gets it: the placeholder privacy page is \"Privacy · Ada Example\"", async () => {
+test("a page's title without the person's name gets it: the placeholder legal page is \"Legal notice & privacy · Ada Example\"", async () => {
   await withBuilt({}, async (outDir) => {
     const tags = headTags(await read(outDir, "privacy.html"));
-    assert.equal(tags.title, "Privacy · Ada Example");
-    assert.equal(tags["og:title"], "Privacy · Ada Example");
+    assert.equal(tags.title, "Legal notice &amp; privacy · Ada Example");
+    assert.equal(tags["og:title"], "Legal notice &amp; privacy · Ada Example");
   });
 });
 
