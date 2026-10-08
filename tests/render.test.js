@@ -127,13 +127,13 @@ test("in Chrome, a content file in Italian turns the page's own words Italian, t
   assert.equal(words.lang, "it");
   assert.deepEqual(words.headings, ["Progetti", "Tide Tables", "Reading Log", "Dove trovarmi", "Curriculum", "Esperienza", "Formazione", "Competenze"]);
   assert.deepEqual(words.projectLinks, ["Codice su GitHub", "Codice su GitHub", "Online"]);
-  assert.equal(words.footer, "Informativa sulla privacy");
+  assert.equal(words.footer, "Note legali e privacy");
 });
 
 test("in Chrome, the sample content file keeps the page in English", async () => {
   const words = await pageWords(sample);
   assert.equal(words.lang, "en");
-  assert.equal(words.footer, "Privacy");
+  assert.equal(words.footer, "Legal notice & privacy");
   assert.deepEqual(words.projectLinks, ["Code on GitHub", "Code on GitHub", "Live"]);
 });
 

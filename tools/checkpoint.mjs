@@ -18,7 +18,7 @@ const ABOUT = {
   designer: { name: "Designer", next: "the Developer", gives: "your design brief, or the default design" },
   developer: { name: "Developer", next: "QA", gives: "the site, built in the colours and fonts of your brief" },
   qa: { name: "QA", next: "the Lawyer", gives: "the site, checked" },
-  lawyer: { name: "Lawyer", next: "Ops", gives: "the privacy page, written for you" },
+  lawyer: { name: "Lawyer", next: "Ops", gives: "the legal page, written for you" },
   ops: { name: "Ops", next: "Ops", gives: "the same as the Lawyer's: Ops publishes and changes no file" },
 };
 
@@ -33,7 +33,7 @@ const KEPT = {
     sample ? `still the sample person, ${result.name}. The Analyst replaces it with yours.` : `your content${result.name ? `, for ${result.name}` : ""}`,
   "design/brief.md": (result, sample) => (sample ? "the default design brief" : "your design brief"),
   "docs/spec.md": (result, sample) => (sample ? "still the spec of the sample person. The Analyst replaces it with yours." : "your spec"),
-  "site/privacy.html": () => "your privacy page",
+  "site/privacy.html": () => "your legal page",
 };
 
 const PUT_IN = {
@@ -51,7 +51,7 @@ const FILE_NOTES = {
   "site/assets/favicon.svg": "the small icon in the browser tab",
   "site/assets/avatar.svg": "the drawing that stands in for the sample person's photo",
   "site/content.schema.json": "what your content file may contain",
-  "site/privacy.html": "the placeholder: the Lawyer writes the real page",
+  "site/privacy.html": "the placeholder: the Lawyer writes the legal page",
   "design/default-brief.md": "the default design brief, kept so you can always go back to it",
 };
 
@@ -69,8 +69,8 @@ function changedNote(file, result) {
   }
   if (file === "site/privacy.html" && privacy) {
     return privacy.NAME && privacy.EMAIL
-      ? `the privacy page for ${privacy.NAME}, with the email address ${privacy.EMAIL}, dated today`
-      : "the privacy page, with blanks still to fill in";
+      ? `the legal page for ${privacy.NAME}, with the email address ${privacy.EMAIL}, dated today`
+      : "the legal page, with blanks still to fill in";
   }
   return FILE_NOTES[file] ?? `as it is at the end of the ${ABOUT[result.block].name} block`;
 }
@@ -112,27 +112,22 @@ function attention(result) {
       `Your design brief names the font "${font}". This checkpoint does not load it, so your site shows the next font in the list instead. The Developer can add it in a fresh chat.`,
     );
   }
-  if (result.privateData.length > 0) {
-    notes.push(
-      [
-        "site/content.json holds what looks like private data, and your repo is public:",
-        ...list(result.privateData),
-        "    The Lawyer takes it out, in a fresh chat, before you publish.",
-      ].join("\n"),
-    );
-  }
   if (result.privacy && result.changed.includes("site/privacy.html")) {
     notes.push(
-      "The privacy page comes from a template for a personal portfolio in the EU that has no tracking. It is not legal advice: if you sell services through the site or run it as a business, ask someone who knows the law in your country.",
-      "The Lawyer also reads your content file for private data no search finds, such as a birth date or the names of family members. Read site/content.json once yourself before you publish, or ask the Lawyer in a fresh chat.",
+      "The legal page comes from a template for a personal portfolio in the EU that has no tracking: a legal notice, a privacy notice and an accessibility statement. It is not legal advice: if you sell services through the site or run it as a business, ask someone who knows the law in your country.",
     );
+    if (!result.privacy.address) {
+      notes.push(
+        "Your legal notice shows your name and email address. If your site offers services, the law also asks for a postal address, and in Italy for your Partita IVA: the Lawyer adds them in a fresh chat.",
+      );
+    }
     if (!result.privacy.EMAIL && !result.unreadable) {
       notes.push(
-        "Your content file has no email address, so the privacy page still has a blank for it: the law asks for a way to reach whoever runs the site. The Lawyer asks you for one in a fresh chat.",
+        "Your content file has no email address, so the legal page still has a blank for it: the law asks for a way to reach whoever runs the site. The Lawyer asks you for one in a fresh chat.",
       );
     }
     if (!result.language.startsWith("en")) {
-      notes.push(`Your site is in ${languageName(result.language)}, but the privacy page is in English. The Lawyer translates it in a fresh chat.`);
+      notes.push(`Your site is in ${languageName(result.language)}, but the legal page is in English. The Lawyer translates it in a fresh chat.`);
     }
   }
   return notes;

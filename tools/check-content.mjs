@@ -2,13 +2,11 @@
 //
 //   node tools/check-content.mjs
 //
-// It says whether site/content.json matches site/content.schema.json and
-// whether anything in it looks like a phone number or a postal address. It
+// It says whether site/content.json matches site/content.schema.json. It
 // needs no Chrome, so it is quick. Like the Check, it only reports. Add a path
 // to check another file: node tools/check-content.mjs my-content.json
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { findPrivateDataInContent } from "./check/private-data.mjs";
 import { validateContent } from "./check/schema.mjs";
 
 const shownPath = process.argv[2] ?? "site/content.json";
@@ -35,7 +33,7 @@ async function readContent() {
 
 function report(problems) {
   if (problems.length === 0) {
-    console.log(`${shownPath} is ready: it matches the schema and has no phone number or postal address.`);
+    console.log(`${shownPath} is ready: it matches the schema.`);
     return;
   }
   console.log(`${shownPath} has ${problems.length} thing${problems.length === 1 ? "" : "s"} to fix:\n`);
@@ -46,7 +44,7 @@ try {
   const schema = JSON.parse(await readFile(schemaPath, "utf8"));
   const { content, unreadable } = await readContent();
   if (unreadable) console.log(unreadable);
-  else report([...validateContent(schema, content), ...findPrivateDataInContent(content)]);
+  else report(validateContent(schema, content));
 } catch (error) {
   console.log(`The content file could not be checked: ${error.message}`);
 }

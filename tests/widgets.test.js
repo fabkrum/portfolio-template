@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { pageLabels, renderSections } from "../site/assets/render.js";
-import { findPrivateDataInContent } from "../tools/check/private-data.mjs";
 import { validateContent } from "../tools/check/schema.mjs";
 import { buildFixtureSite } from "./fixture-site.js";
 import { inChrome } from "./in-chrome.js";
@@ -243,15 +242,11 @@ test("the widgets' values are escaped, never injected as markup", () => {
   assert.ok(!/"on\w+="/.test(page));
 });
 
-test("a credential ID with many digits is not taken for a phone number; a street as an event's city is named", () => {
-  assert.deepEqual(findPrivateDataInContent({ ...widgets, certifications: [{ ...widgets.certifications[0], credentialId: "0000000000000" }] }), []);
-  const street = { ...widgets.events[0], city: "Via Esempio, Placeholder Town" };
-  assert.match(findPrivateDataInContent({ ...widgets, events: [street] }).join("\n"), /events > 1 > city: "Via Esempio, Placeholder Town" looks like a street/);
-});
-
 test("every class name the widgets write is documented for the Developer", async () => {
   const docs = (await read("../.agents/skills/build/SKILL.md")) + (await read("../.agents/skills/build/widgets.md"));
-  const html = Object.values(rendered).join("");
+  // With a VAT number too, so the colophon's span.vat is rendered.
+  const withVat = renderSections({ ...widgets, legal: { vatId: "IT00000000000" } }, { today: TODAY });
+  const html = [...Object.values(rendered), ...Object.values(withVat)].join("");
   const classes = new Set([...html.matchAll(/class="([^"]+)"/g)].flatMap(([, names]) => names.split(" ")));
   for (const name of classes) assert.ok(docs.includes(`.${name}\``) || docs.includes(`.${name}.`), name);
 });

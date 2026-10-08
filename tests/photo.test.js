@@ -2,11 +2,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { findPrivateDataInSiteFiles, holdsPosition } from "../tools/check/private-data.mjs";
-import { HIDDEN, inBlankChrome, jpegFromChrome, webpChunks, webpSize, withHiddenData } from "./photos.js";
+import { HIDDEN, holdsPosition, inBlankChrome, jpegFromChrome, webpChunks, webpSize, withHiddenData } from "./photos.js";
 import { withRepo } from "./participant-repo.js";
 
 // The command, run the way the Analyst runs it: from the repo folder.
@@ -93,18 +91,4 @@ test("without a file name, or with one that is not there, the command says how t
     assert.equal(missing.status, 1, missing.stdout);
     assert.match(missing.stdout, /There is no file called me\.jpg/);
   });
-});
-
-test("the Check names a photo in the site that holds where it was taken, and not the photo tool's copy", async () => {
-  const siteDir = await mkdtemp(join(tmpdir(), "photo-site-"));
-  try {
-    await mkdir(join(siteDir, "assets"));
-    await writeFile(join(siteDir, "assets", "me.jpg"), phonePhoto);
-    await writeFile(join(siteDir, "assets", "plain.jpg"), await jpegFromChrome({ width: 40, height: 40 }));
-    assert.deepEqual(await findPrivateDataInSiteFiles(siteDir), [
-      "assets/me.jpg: this photo holds where it was taken, as GPS data. Make a copy without it with node tools/photo.mjs, and delete this file.",
-    ]);
-  } finally {
-    await rm(siteDir, { recursive: true, force: true });
-  }
 });

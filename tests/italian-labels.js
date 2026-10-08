@@ -9,5 +9,6 @@ export const italianLabels = {
   skills: "Competenze",
   code: "Codice su GitHub",
   live: "Online",
-  privacy: "Informativa sulla privacy",
+  privacy: "Note legali e privacy",
+  vatId: "P.IVA",
 };

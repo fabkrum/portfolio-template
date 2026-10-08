@@ -6,11 +6,11 @@ import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { BuildError } from "../build/build-site.mjs";
+import { decodeEntities } from "../build/html.mjs";
 import { serveBuild } from "../build/serve-build.mjs";
 import { agentViewProblems } from "./agent-view.mjs";
 import { findChrome, inspectSite } from "./browser.mjs";
 import { readContentFile } from "./content-file.mjs";
-import { findPrivateDataInContent, findPrivateDataInSiteFiles } from "./private-data.mjs";
 import { validateContent } from "./schema.mjs";
 
 const item = (id, title, problems) => ({ id, title, pass: problems.length === 0, details: problems });
@@ -56,25 +56,73 @@ async function schemaProblems(siteDir, content, unreadable) {
   }
 }
 
-// The template ships privacy.html as a placeholder, marked data-placeholder
-// and saying so; the Lawyer role writes the real page from a template with
-// [[BLANKS]]. No problems means the Lawyer has written the page.
+// The legal page is privacy.html: a legal notice, a privacy notice and an
+// accessibility statement, each a section with its id. The template ships it
+// as a placeholder, marked data-placeholder and saying so; the Lawyer role
+// writes the real page from a template with [[BLANKS]]. No problems means the
+// Lawyer has written the page.
 export const isPlaceholderPage = (page) => /\bdata-placeholder\b/.test(page) || page.includes("The Lawyer role replaces it");
 
-export function privacyPageProblems(page) {
+const LEGAL_SECTIONS = [
+  ["legal-notice", "legal notice"],
+  ["privacy", "privacy notice"],
+  ["accessibility", "accessibility statement"],
+];
+
+// The phone links of a page: what each calls and the number it shows. A
+// number written with the trunk prefix in brackets, +49 (0)89 …, calls
+// +4989 …: the (0) is not dialled.
+const digits = (text) => text.replace(/\(0\)/g, "").replace(/\D/g, "");
+const phoneLinks = (page) =>
+  [...page.matchAll(/<a\b[^>]*\bhref=["']tel:([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)].map(([, tel, text]) => ({
+    tel: `tel:${decodeEntities(tel)}`,
+    shown: decodeEntities(text.replace(/<[^>]*>/g, "")).trim(),
+  }));
+
+export function legalPageProblems(page) {
   if (isPlaceholderPage(page)) {
-    return ["privacy.html is still the placeholder from the template. The Lawyer role writes the real page."];
+    return ["privacy.html is still the placeholder from the template. The Lawyer role writes the legal page: legal notice, privacy and accessibility."];
   }
   const blanks = [...new Set(page.match(/\[\[[A-Z_]+\]\]/g) ?? [])];
-  return blanks.length > 0
-    ? [`privacy.html still has blanks to fill in: ${blanks.join(", ")}. The Lawyer role fills them in.`]
+  return [
+    ...(blanks.length > 0 ? [`privacy.html still has blanks to fill in: ${blanks.join(", ")}. The Lawyer role fills them in.`] : []),
+    ...LEGAL_SECTIONS.filter(([id]) => !new RegExp(`\\sid=["']${id}["']`).test(page)).map(
+      ([id, name]) => `privacy.html has no ${name}: a section with id="${id}". The Lawyer role writes it from its template.`,
+    ),
+    // A legal notice must be right: a phone link calls the number it shows.
+    ...phoneLinks(page)
+      .filter(({ tel, shown }) => digits(shown) !== "" && digits(tel) !== digits(shown))
+      .map(({ tel, shown }) => `privacy.html shows the phone number ${shown}, but its link calls ${tel}. Both must be the number the person gave.`),
+  ];
+}
+
+// The content file's phone link, a tel: address, if its links have one.
+export const telLinkOf = (content) =>
+  (Array.isArray(content?.links) ? content.links : []).map((link) => link?.url).find((url) => typeof url === "string" && url.trim() && url.startsWith("tel:"));
+
+// The phone number in the content file's links and the one on the legal page
+// must be the same number.
+function phoneMismatchProblems(content, page) {
+  const listed = telLinkOf(content);
+  const onPage = phoneLinks(page)[0]?.tel;
+  return listed && onPage && digits(listed) !== digits(onPage)
+    ? [`The phone link in site/content.json calls ${listed}, but the one on the legal page calls ${onPage}. Both must be the number the person gave.`]
     : [];
 }
 
-async function privacyProblems(siteDir) {
+// Every visitor must find the legal page: the home page's footer links to it.
+const footerLinksLegalPage = (home) => /<footer\b[\s\S]*?\bhref=["']privacy\.html["'][\s\S]*?<\/footer>/i.test(home);
+
+// Everything the item "Legal page written" checks, for the site in siteDir.
+export async function legalProblems(siteDir, content) {
   const path = join(siteDir, "privacy.html");
-  if (!existsSync(path)) return ["There is no privacy.html in the site folder. The Lawyer role adds one."];
-  return privacyPageProblems(await readFile(path, "utf8"));
+  const page = existsSync(path) ? await readFile(path, "utf8") : null;
+  const pageProblems = page === null
+    ? ["There is no privacy.html in the site folder. The Lawyer role adds the legal page."]
+    : [...legalPageProblems(page), ...(isPlaceholderPage(page) ? [] : phoneMismatchProblems(content, page))];
+  const homePath = join(siteDir, "index.html");
+  const linked = !existsSync(homePath) || footerLinksLegalPage(await readFile(homePath, "utf8"));
+  return [...pageProblems, ...(linked ? [] : ["The footer of index.html has no link to privacy.html, so visitors cannot find the legal page."])];
 }
 
 // The site built and served for the Check, or why it could not be: then the
@@ -100,12 +148,7 @@ export async function runCheck(siteDir) {
       item("content", "Content file matches the schema", await schemaProblems(siteDir, content, unreadable)),
       ...(await browserItems(site, notBuilt)),
       item("agent", "What an agent sees: your content without JavaScript", notBuilt ? [notBuilt] : await agentViewProblems(site.outDir, content ?? {})),
-      item("privacy", "Privacy page written", await privacyProblems(siteDir)),
-      // The files people and agents write: the built pages only repeat them.
-      item("private-data", "No phone number or postal address in the site", [
-        ...(unreadable ? [`${unreadable} So it could not be searched.`] : findPrivateDataInContent(content)),
-        ...(await findPrivateDataInSiteFiles(siteDir)),
-      ]),
+      item("legal", "Legal page written", await legalProblems(siteDir, content)),
     ];
   } finally {
     await site?.close();

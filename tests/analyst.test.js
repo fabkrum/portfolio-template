@@ -7,7 +7,6 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { pageLabels } from "../site/assets/render.js";
 import { runCheck } from "../tools/check/run-check.mjs";
-import { findPrivateDataInContent } from "../tools/check/private-data.mjs";
 import { validateContent } from "../tools/check/schema.mjs";
 import { buildFixtureSite } from "./fixture-site.js";
 import { italianLabels } from "./italian-labels.js";
@@ -41,21 +40,26 @@ test("the command says the sample content file is ready", () => {
   assert.match(stdout, /site\/content\.json is ready/);
 });
 
-test("the command lists a schema mistake and a phone number, and still exits 0", async () => {
+test("the command lists a schema mistake, and still exits 0", async () => {
   const { stdout, status } = await runOn({
     ...sample,
     headline: "",
     bio: [...sample.bio, "Call me on +00 000 000 0000."],
   });
   assert.equal(status, 0);
-  assert.match(stdout, /2 things to fix/);
+  assert.match(stdout, /1 thing to fix/);
   assert.match(stdout, /headline must not be empty/);
-  assert.match(stdout, /"\+00 000 000 0000" looks like a phone number/);
+  assert.doesNotMatch(stdout, /phone/);
 });
 
-test("a postal address in the content file is named", async () => {
-  const { stdout } = await runOn({ ...sample, bio: ["I live at 12 Example Street and love the web."] });
-  assert.match(stdout, /"12 Example Street" looks like a postal address/);
+// What the site shows is the person's choice.
+test("a phone link and the legal notice's address and VAT number are ready as they are", async () => {
+  const { stdout } = await runOn({
+    ...sample,
+    links: [...sample.links, { label: "Phone", url: "tel:+390000000000" }],
+    legal: { address: "Via Esempio 1, 20100 Milano, Italy", vatId: "IT00000000000" },
+  });
+  assert.match(stdout, /site\/content\.json is ready|is ready: it matches the schema/);
 });
 
 test("the command says plainly when there is no content file", () => {
@@ -106,10 +110,12 @@ test("the Analyst asks at most 8 questions, one at a time, and agrees the site l
   assert.ok(questions.length > 0 && questions.length <= 8, `${questions.length} questions`);
 });
 
-test("the Analyst keeps phone numbers and postal addresses out", async () => {
+test("the Analyst puts a phone number on the site only when the person wants calls, as a tel: link", async () => {
   const skill = await analystSkill();
-  assert.match(skill, /phone number/);
-  assert.match(skill, /postal address/);
+  assert.match(skill, /What the site shows is the person's choice/);
+  assert.match(skill, /phone number goes on it when they want calls/);
+  assert.match(skill, /`tel:`/);
+  assert.doesNotMatch(skill, /No phone number and no postal address, ever|Never a `tel:` link|do not type your phone number/);
 });
 
 // The JSON blocks of a skill, as text, and the spec template the Analyst fills in.
@@ -189,23 +195,12 @@ async function questionsOf(run) {
   return { answers: answerCount(turns), agentSaid: agentText(turns) };
 }
 
-// What the person put in that must never reach the content file or the spec.
-const planted = {
-  linkedin: ["000 000 0000", "12 Example Street"],
-  cv: ["000 000 0000", "Via Esempio", "00000", "1 January 2000"],
-  interview: ["000 000 0000", "Placeholder Road"],
-};
+// The Analyst's proxy runs, one per way to start.
+const RUNS = ["linkedin", "cv", "interview"];
 
-for (const run of Object.keys(planted)) {
-  test(`${run} run: the content file matches the schema and has no phone number or postal address`, async () => {
-    const content = await runContent(run);
-    assert.deepEqual(validateContent(schema, content), []);
-    assert.deepEqual(findPrivateDataInContent(content), []);
-  });
-
-  test(`${run} run: nothing private the person put in reached the content file or the spec`, async () => {
-    const written = JSON.stringify(await runContent(run)) + (await read(`./fixtures/analyst-runs/${run}/spec.md`));
-    for (const secret of planted[run]) assert.ok(!written.includes(secret), secret);
+for (const run of RUNS) {
+  test(`${run} run: the content file matches the schema`, async () => {
+    assert.deepEqual(validateContent(schema, await runContent(run)), []);
   });
 
   test(`${run} run: the short spec has every section`, async () => {
@@ -222,10 +217,10 @@ for (const run of Object.keys(planted)) {
     }
   });
 
-  test(`${run} run: laid over the built sample site, every item of the Check passes but the Lawyer's privacy page`, async () => {
+  test(`${run} run: laid over the built sample site, every item of the Check passes but the Lawyer's legal page`, async () => {
     const { siteDir, remove } = await buildFixtureSite(fixturesDir, `analyst-runs/${run}/site`);
     try {
-      for (const item of await runCheck(siteDir)) assert.equal(item.pass, item.id !== "privacy", `${item.id}: ${item.details}`);
+      for (const item of await runCheck(siteDir)) assert.equal(item.pass, item.id !== "legal", `${item.id}: ${item.details}`);
     } finally {
       await remove();
     }

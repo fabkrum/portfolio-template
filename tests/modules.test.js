@@ -6,7 +6,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderSections } from "../site/assets/render.js";
-import { findPrivateDataInContent } from "../tools/check/private-data.mjs";
 import { runCheck } from "../tools/check/run-check.mjs";
 import { validateContent } from "../tools/check/schema.mjs";
 import { buildFixtureSite, sampleSite } from "./fixture-site.js";
@@ -70,18 +69,6 @@ test("module entries are escaped, never injected as markup", () => {
   assert.ok(!videos.includes('"onmouseover'));
 });
 
-
-test("a phone number in a module entry is named like anywhere else", async () => {
-  const dir = await mkdtemp(join(tmpdir(), "modules-content-"));
-  try {
-    const path = join(dir, "content.json");
-    const podcasts = [{ title: "Ask me anything", url: "https://podcasts.example.com/1", description: "Call in on +00 000 000 0000." }];
-    await writeFile(path, JSON.stringify({ ...withModules, podcasts }));
-    assert.match(checkContent(path).stdout, /"\+00 000 000 0000" looks like a phone number/);
-  } finally {
-    await rm(dir, { recursive: true, force: true });
-  }
-});
 
 const VISIBLE_HEADINGS = `[...document.querySelectorAll("main > .section:not([hidden]) > h2")].map((h) => h.textContent.trim())`;
 
@@ -175,10 +162,8 @@ const readBack = (turns) => agentText(turns.slice(0, turns.findIndex((turn) => t
 const END_OF_ROLE = "The new section is ready.";
 
 for (const [run, { started, module }] of Object.entries(RUNS)) {
-  test(`${run} run: the content file matches the schema and has no phone number or postal address`, async () => {
-    const content = await runContent(run);
-    assert.deepEqual(validateContent(schema, content), []);
-    assert.deepEqual(findPrivateDataInContent(content), []);
+  test(`${run} run: the content file matches the schema`, async () => {
+    assert.deepEqual(validateContent(schema, await runContent(run)), []);
   });
 
   test(`${run} run: only the module's entries were added; everything else in the content file is unchanged`, async () => {
@@ -234,10 +219,10 @@ for (const [run, { started, module }] of Object.entries(RUNS)) {
     }
   });
 
-  test(`${run} run: laid over the site it started from, every item of the Check passes but the Lawyer's privacy page`, async () => {
+  test(`${run} run: laid over the site it started from, every item of the Check passes but the Lawyer's legal page`, async () => {
     const { siteDir, remove } = await buildFixtureSite(fixturesDir, `module-runs/${run}/site`);
     try {
-      for (const item of await runCheck(siteDir)) assert.equal(item.pass, item.id !== "privacy", `${item.id}: ${item.details}`);
+      for (const item of await runCheck(siteDir)) assert.equal(item.pass, item.id !== "legal", `${item.id}: ${item.details}`);
     } finally {
       await remove();
     }
@@ -253,10 +238,9 @@ test("YouTube run: all three videos, as links on YouTube, the http one as https,
   ]);
 });
 
-test("podcasts run: both episodes with their shows, the call-in phone number left out", async () => {
+test("podcasts run: both episodes with their shows", async () => {
   const { podcasts } = await runContent("podcasts");
   assert.deepEqual(podcasts.map((episode) => episode.show), ["The Example Podcast", "Placeholder Radio"]);
-  assert.ok(!JSON.stringify(podcasts).includes("000 000 0000"));
 });
 
 test("blog run: three posts, dates as year-month-day, the one without a date left without", async () => {

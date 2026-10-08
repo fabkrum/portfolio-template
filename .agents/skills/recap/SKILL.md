@@ -1,6 +1,6 @@
 ---
 name: recap
-description: Writes docs/recap.md, the story of the person's portfolio Role by Role, with what each Role produced and the decisions it made and why, taken from the spec, the design brief, the git log and the privacy page, and then two or three things to learn next. Reads the summary back. Writes only docs/recap.md. Use when the person says "Write down what we did and why", "recap", or asks for a summary of what they built and why.
+description: Writes docs/recap.md, the story of the person's portfolio Role by Role, with what each Role produced and the decisions it made and why, taken from the spec, the design brief, the git log and the legal page, and then two or three things to learn next. Reads the summary back. Writes only docs/recap.md. Use when the person says "Write down what we did and why", "recap", or asks for a summary of what they built and why.
 ---
 
 # Recap
@@ -29,10 +29,10 @@ Start with a title and one line: whose portfolio it is, and today's date. Then o
 - **Designer**: `design/brief.md`. Where the design came from (Stitch or the default), the mood, the colours and the fonts.
 - **Developer**: `site/assets/styles.css` in the colours and fonts of the brief, and the rules for the site in `AGENTS.md`: plain HTML, CSS and JavaScript, the content built into the pages so search engines and AI agents can read them, nothing loaded from other servers, and why.
 - **QA**: what it checks (the look, accessibility, speed on a phone), and its screenshots in `qa/` if there are any.
-- **Lawyer**: `site/privacy.html` and what it promises: no cookies, no tracking, nothing from other servers.
+- **Lawyer**: the legal page, `site/privacy.html`: its legal notice, what its privacy notice promises (no cookies, no tracking, nothing from other servers) and its accessibility statement.
 - **Ops**: the commits in the log, with their dates and files.
 
-A Role that `node tools/where.mjs` does not list as done gets one line: "Not done yet." Write only what the files and the log say: never make up a reason, and where none is written down, leave out the why. The repo is public, so no phone number, no postal address, nothing private.
+A Role that `node tools/where.mjs` does not list as done gets one line: "Not done yet." Write only what the files and the log say: never make up a reason, and where none is written down, leave out the why.
 
 End with `## What to learn next`: two or three points, each tied to this site and to a file to start from. For example: how the site switches to dark mode, in `.agents/skills/modern-web-guidance/guides/visual-design/dark-mode.md`.
 

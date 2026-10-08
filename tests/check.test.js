@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildSite } from "../tools/build/build-site.mjs";
 import { agentViewProblems } from "../tools/check/agent-view.mjs";
-import { runCheck } from "../tools/check/run-check.mjs";
+import { legalPageProblems, runCheck } from "../tools/check/run-check.mjs";
 import { buildFixtureSite, fixtureNames, sampleSite } from "./fixture-site.js";
 import { inChrome } from "./in-chrome.js";
 
@@ -15,24 +15,25 @@ const fixturesDir = fileURLToPath(new URL("./fixtures", import.meta.url));
 const brokenSites = fileURLToPath(new URL("./fixtures/broken-sites", import.meta.url));
 const cleanSites = fileURLToPath(new URL("./fixtures/clean-sites", import.meta.url));
 
-const ITEMS = ["content", "accessibility", "console", "agent", "privacy", "private-data"];
+const ITEMS = ["content", "accessibility", "console", "agent", "legal"];
 
-// The template ships a placeholder privacy page; the Lawyer role replaces it.
-test("the sample site passes every item but the privacy page, which waits for the Lawyer", async () => {
+// The template ships a placeholder legal page; the Lawyer role replaces it.
+test("the sample site passes every item but the legal page, which waits for the Lawyer", async () => {
   const items = await runCheck(sampleSite);
   assert.deepEqual(
     items.map((item) => item.id),
     ITEMS,
   );
-  for (const item of items.filter((item) => item.id !== "privacy")) {
+  assert.equal(items.find((item) => item.id === "legal").title, "Legal page written");
+  for (const item of items.filter((item) => item.id !== "legal")) {
     assert.equal(item.pass, true, `${item.id}: ${item.details}`);
   }
-  const privacy = items.find((item) => item.id === "privacy");
-  assert.equal(privacy.pass, false);
-  assert.match(privacy.details.join("\n"), /placeholder.*Lawyer/);
+  const legal = items.find((item) => item.id === "legal");
+  assert.equal(legal.pass, false);
+  assert.match(legal.details.join("\n"), /placeholder.*Lawyer/);
 });
 
-test("the sample site with a finished privacy page passes every item", async () => {
+test("the sample site with a finished legal page passes every item", async () => {
   const { siteDir, remove } = await buildFixtureSite(fixturesDir, "finished-privacy");
   try {
     for (const item of await runCheck(siteDir)) assert.equal(item.pass, true, `${item.id}: ${item.details}`);
@@ -88,6 +89,21 @@ for (const name of await fixtureNames(cleanSites)) {
     }
   });
 }
+
+// A phone link on the legal page calls the number it shows. "+49 (0)89 …"
+// is written with the trunk prefix in brackets, which nobody dials.
+test("the legal page's phone link must call the number it shows, written in any common way", async () => {
+  const page = await readFile(join(fixturesDir, "finished-privacy", "privacy.html"), "utf8");
+  const withPhone = (link) => page.replace("</section>", `  <p>Phone: ${link}</p>\n      </section>`);
+  for (const right of [
+    '<a href="tel:+49891234567">+49 (0)89 1234567</a>',
+    '<a href="tel:+390212345678">+39 02 1234 5678</a>',
+    '<a href="tel:+390212345678">Call me</a>',
+  ]) {
+    assert.deepEqual(legalPageProblems(withPhone(right)), [], right);
+  }
+  assert.match(legalPageProblems(withPhone('<a href="tel:+3902123456">+39 02 1234 5678</a>')).join("\n"), /shows the phone number \+39 02 1234 5678, but its link calls tel:\+3902123456/);
+});
 
 // The broken site's content is there for a visitor, once JavaScript has run;
 // only a reader that runs none misses it.
@@ -221,9 +237,9 @@ test("the one command reports in plain language and never fails, even with findi
     const run = spawnSync(process.execPath, [checkCommand, siteDir], { encoding: "utf8" });
     assert.equal(run.status, 0, run.stderr);
     assert.match(run.stdout, /PASS\s+Content file matches the schema/);
-    assert.match(run.stdout, /NEEDS ATTENTION\s+Privacy page/);
+    assert.match(run.stdout, /NEEDS ATTENTION\s+Legal page written/);
     assert.match(run.stdout, /There is no privacy\.html in the site folder/);
-    assert.match(run.stdout, /5 of 6 items pass, 1 needs attention\./);
+    assert.match(run.stdout, /4 of 5 items pass, 1 needs attention\./);
     assert.match(run.stdout, /never stops you from publishing/);
   } finally {
     await remove();
@@ -233,8 +249,8 @@ test("the one command reports in plain language and never fails, even with findi
 test("the one command checks the repo's own site when given no folder", () => {
   const run = spawnSync(process.execPath, [checkCommand], { encoding: "utf8", cwd: tmpdir() });
   assert.equal(run.status, 0, run.stderr);
-  assert.match(run.stdout, /5 of 6 items pass, 1 needs attention\./);
-  assert.match(run.stdout, /NEEDS ATTENTION\s+Privacy page/);
+  assert.match(run.stdout, /4 of 5 items pass, 1 needs attention\./);
+  assert.match(run.stdout, /NEEDS ATTENTION\s+Legal page written/);
 });
 
 test("the one command explains a wrong folder instead of crashing", () => {

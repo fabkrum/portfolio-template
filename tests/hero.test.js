@@ -1,11 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderSections } from "../site/assets/render.js";
-import { findPrivateDataInContent, findPrivateDataInSiteFiles } from "../tools/check/private-data.mjs";
 import { validateContent } from "../tools/check/schema.mjs";
 import { buildFixtureSite } from "./fixture-site.js";
 import { inChrome } from "./in-chrome.js";
@@ -46,14 +44,17 @@ test("a photo must be a picture in the site's own assets folder, never one from 
   assert.equal(problemsWith({ photo: { src: "assets/photo.webp", alt: "Me" } }), "");
 });
 
-test("a street address or a postcode in the location is named", () => {
-  assert.match(problemsWith({ location: { city: "Via Esempio 0, 00000 Nowhere" } }), /location > city has the wrong format.*city or a country only/);
+// The location is the city the person is based in; a postal address, for the
+// legal notice, goes into legal.address.
+test("the location takes a city, not a street address", () => {
+  assert.match(problemsWith({ location: { city: "Via Esempio 0, 00000 Nowhere" } }), /location > city has the wrong format.*city or a country/);
   assert.match(problemsWith({ location: { city: "Milan", street: "Via Esempio" } }), /"street" is not allowed in location/);
 });
 
-test("a tel: action is named; the action takes https:// and mailto: links", () => {
+test("the action takes https://, mailto: and tel: links, and nothing else", () => {
   const action = (actionUrl) => problemsWith({ availability: { text: "Available.", actionLabel: "Call me", actionUrl } });
-  assert.match(action("tel:0000000000"), /availability > actionUrl has the wrong format/);
+  assert.equal(action("tel:0000000000"), "");
+  assert.match(action("http://cal.example.com/ada"), /availability > actionUrl has the wrong format/);
   assert.equal(action("mailto:ada@example.com"), "");
   assert.equal(action("https://cal.example.com/ada"), "");
 });
@@ -188,31 +189,14 @@ test("the new fields are escaped, never injected as markup", () => {
   }
 });
 
-test("a street name or a postcode in the location is named as private data", () => {
-  const found = (city) => findPrivateDataInContent({ ...sample, location: { city } }).join("\n");
-  assert.match(found("Via Esempio, Placeholder Town"), /location > city: "Via Esempio, Placeholder Town" looks like a street/);
-  assert.match(found("00000 Placeholder Town"), /location > city: "00000 Placeholder Town" looks like a postcode/);
-  assert.equal(found("Milan"), "");
-  assert.equal(found("Reggio nell'Emilia"), "");
-});
-
-test("a tel: link anywhere in the content file is named as private data", () => {
-  const found = findPrivateDataInContent({ ...sample, availability: { text: "Ring me.", actionLabel: "Call", actionUrl: "tel:000" } });
-  assert.deepEqual(found, ['content.json > availability > actionUrl: "tel:000" is a phone link.']);
-  assert.match(findPrivateDataInContent({ ...sample, pitch: "Call tel:+00 000 000 0000 now." }).join("\n"), /"tel:\+00 000 000 0000" is a phone link/);
-});
-
-test("a tel: link in a page of the site is named, once, however short its number", async () => {
-  const siteDir = await mkdtemp(join(tmpdir(), "phone-link-"));
-  try {
-    await writeFile(join(siteDir, "index.html"), '<footer>\n  <a href="tel:000">Call me</a>\n  <a href="tel:+00 000 000 0000">Or here</a>\n</footer>\n');
-    assert.deepEqual(await findPrivateDataInSiteFiles(siteDir), [
-      'index.html, line 2: "tel:000" is a phone link.',
-      'index.html, line 3: "tel:+00 000 000 0000" is a phone link.',
-    ]);
-  } finally {
-    await rm(siteDir, { recursive: true, force: true });
-  }
+// What the site shows is the person's choice: a recruiter may call them.
+test("a phone link is the person's choice: the schema takes tel: for the availability action and in the links", () => {
+  const callable = {
+    ...sample,
+    availability: { text: "Available from November.", actionLabel: "Call me", actionUrl: "tel:+390000000000" },
+    links: [...sample.links, { label: "Phone", url: "tel:+390000000000" }],
+  };
+  assert.deepEqual(validateContent(schema, callable), []);
 });
 
 test("in Chrome, the sample person's site from a workshop shows a round photo, the pitch, availability and the colophon line in the footer", async () => {

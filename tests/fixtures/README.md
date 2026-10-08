@@ -15,15 +15,22 @@ ones in: this repo is public.
   to put into the page, and its `assets/main.js` fills the page from
   `content.json` in the browser. A visitor's Chrome shows the content; a
   search engine or an AI agent, which runs no JavaScript, does not.
-  `photo-with-location/assets/me.jpg` is a small JPEG made in Chrome with the
-  hidden data a phone saves planted into it by `tests/photos.js`: a camera
-  name and the GPS position 0° N 0° E, a place in the sea.
+  `legal-page-without-accessibility`, `footer-without-legal-link`,
+  `phone-link-calls-another-number` and `phone-in-content-differs-from-legal-page`
+  each break one rule of the legal page (#27): its three parts, the footer
+  link to it, and a phone link that calls the number the page shows and the
+  content file gives. Phone numbers and addresses on the site are the
+  person's choice, so no fixture flags them any more.
 - `base` in any `fixture.json` names another fixture folder, relative to this
   one, that is laid over `site/` first. The Check's fixtures stand on
-  `finished-privacy/`: the privacy page the Lawyer's template gives for Ada
-  Example, so that only the planted problem needs attention.
-- `clean-sites/` – the same, for sites with tricky but harmless content (dates,
-  ISBNs, "Corso di Laurea") that must pass every item.
+  `finished-privacy/`: the legal page (legal notice, privacy notice and
+  accessibility statement) the Lawyer's template gives for Ada Example, made
+  with the Lawyer's checkpoint and dated 4 October 2026, so that only the
+  planted problem needs attention.
+- `clean-sites/` – the same, for sites that must pass every item: tricky but
+  harmless content (dates, ISBNs, "Corso di Laurea"), and `contact-details-shown`,
+  a person who shows a phone link, a postal address and a VAT number, with the
+  legal page the Lawyer's checkpoint writes for them.
 - `design/` – a made-up Stitch export of a fictional person and a screenshot of
   it, the two inputs the Designer skill accepts. `design/briefs/` holds the
   briefs the skill wrote from each in a proxy run on 2026-10-03: a fresh
@@ -51,28 +58,36 @@ ones in: this repo is public.
   `#projects` puts the heading beside the cards; `cards-in-half-width` is a
   QA proxy run's half fix of that (the heading spans the grid, the cards stay
   in its first column); `sections-touching` removes the space between sections.
-- `qa-runs/` and `lawyer-runs/` – the QA and Lawyer skills in proxy runs on
-  2026-10-04, the same way as above. `before/` is the site the agent was
-  given: the `default-brief` built site with planted problems. For QA, faint
+- `qa-runs/` and `lawyer-runs/` – the QA and Lawyer skills in proxy runs, the
+  same way as above. `before/` is the site the agent was given: the
+  `default-brief` built site with planted problems. For QA (2026-10-04), faint
   dates (`.period` at half opacity, an accessibility finding) and the grid on
   `#projects` instead of `.projects`, so the heading takes a column of its own,
-  which the Check cannot see. For the Lawyer, a phone number (the Check finds
-  it) and a birth date (it does not) in the content file, and the template's
-  placeholder privacy page. `after/` holds the files the run changed, laid over
-  `before/`; `report.md` holds what the agent told the person. Both runs used
-  the final wording of the skills.
+  which the Check cannot see. For the Lawyer (2026-10-08, after #27), a pitch
+  that offers services, a bio with a birth date and a phone number it must
+  leave alone, and the template's placeholder legal page; the person's answers
+  gave an address, a Partita IVA and a phone number. `after/` holds the files
+  the run changed, laid over `before/`; `report.md` holds what the agent told
+  the person, and what its earlier rounds changed. The QA run used the QA
+  skill's wording of 2026-10-04, the Lawyer run the Lawyer skill's of
+  2026-10-08.
 - `analyst-runs/` – the Analyst skill in proxy runs on 2026-10-04, the same
   way, with the person's side played turn by turn from a fixed answer sheet.
   One folder per way in: `linkedin/` (fake LinkedIn text, `input.txt`), `cv/`
   (a fake CV, `cv.pdf`, printed from `cv.html` with headless Chrome) and
   `interview/` (nothing to start from). Each input or answer sheet carries a
-  planted phone number and address of zeros and placeholders. `answers.md` is
+  phone number and address of zeros and placeholders. The runs are from before
+  #27 (2026-10-08): the skill then told the person not to type them and left
+  them out, which their reports still show. Since #27 a phone number goes on
+  the site when the person wants calls, and an address belongs on the legal
+  page; the runs were not recorded again, and their tests no longer ask that
+  the planted data is left out. `answers.md` is
   what the person answered, `report.md` everything the agent wrote in the chat,
   `spec.md` the spec it wrote and `site/` the content file it wrote, laid over
-  the `default-brief` built site. Each content file must match the schema, hold
-  none of the planted data and pass every item of the Check but the Lawyer's
-  privacy page. All three runs used the final wording of the skill, in the
-  fifth round; `report.md` notes what the earlier rounds changed.
+  the `default-brief` built site. Each content file must match the schema and
+  pass every item of the Check but the Lawyer's legal page. All three runs
+  used the skill's wording of 2026-10-04, in the fifth round; `report.md`
+  notes what the earlier rounds changed.
 - `clean-sites/all-optional-modules/` – the sample content with entries for
   all five Optional modules (videos, podcasts, blog posts, resources, project
   ideas). Video IDs such as `EXAMPLE0001` and every `example.com` address are
@@ -98,21 +113,24 @@ ones in: this repo is public.
   file was the only file the agent changed. `sample-content.json` is the
   sample person's content file of the day of the runs, which four of them
   started from; the sample has grown since. All five are the third round, on
-  the final wording; `report.md` notes what the earlier rounds changed.
+  the wording of 2026-10-04; `report.md` notes what the earlier rounds
+  changed. Since #27 the skill no longer leaves a phone number out, so the
+  podcast run's choice to drop one is no longer tested.
 - `checkpoint-runs/` – the checkpoint skill in proxy runs on 2026-10-04, the
   same way as the Analyst runs: a person who fell behind asks the agent to
   catch them up. `developer/` is Giulia Placeholder with the Italian content
   of `analyst-runs/cv`, the brief `design/briefs/from-stitch-html.md` and a
   stylesheet her agent left half written; she names the checkpoint. `lawyer/`
   is Luca Esempio with the content of `analyst-runs/linkedin`, the default
-  brief, the Developer's checkpoint and a privacy page with blanks left; he
+  brief, the Developer's checkpoint and a legal page with blanks left; he
   does not say where the room is. In both, the person then asks for the next
   role in the same chat. `before/` holds what their repo held on top of the
   template, `after/` every file that differed once the run was over, and
   `report.md` the chat and every tool call the agent made. The agent had the
-  text of AGENTS.md loaded as its rules, as Antigravity loads it. Both runs
-  are the ninth round, on the final wording; `report.md` notes what the
-  earlier rounds changed. The files the Developer's checkpoint writes follow
+  text of AGENTS.md loaded as its rules, as Antigravity loads it. The
+  Developer run is the ninth round (2026-10-04) and the Lawyer run the tenth
+  (2026-10-08, after #27, when the command's words for the Lawyer changed);
+  `report.md` notes what the earlier rounds changed. The files the Developer's checkpoint writes follow
   that checkpoint: they are made again with the command itself whenever the
   checkpoint changes. They are Giulia's `index.html` and `assets/styles.css`
   in `developer/after/site/`, and Luca's starting point in

@@ -1,0 +1,1 @@
+{"base": "../../finished-privacy", "expect": "legal", "finding": "footer of index\\.html has no link to privacy\\.html"}

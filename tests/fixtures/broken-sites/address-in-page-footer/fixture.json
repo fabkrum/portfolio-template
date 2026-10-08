@@ -1,1 +1,0 @@
-{"base": "../../finished-privacy", "expect": "private-data", "finding": "index\\.html.*12 Example Street.*postal address"}

@@ -61,7 +61,7 @@ jobs:
         shell: bash
         run: |
           node tools/check.mjs | tee checkpoint-check.log
-          grep -q "6 of 6 items pass" checkpoint-check.log
+          grep -q "5 of 5 items pass" checkpoint-check.log
 
   lint-install:
     if: github.repository == 'fabkrum/portfolio-template'
