@@ -182,11 +182,41 @@ test("the Analyst takes certifications and events from LinkedIn's sections, with
   }
 });
 
-test("the Analyst explains how to add a photo: into the repo folder, then the photo tool, with alt text", async () => {
+// The guide's photo step: + → Media in the chat box. Copying the photo into
+// the repo folder is the way when the agent cannot open the attachment.
+test("the Analyst takes a photo attached with + → Media, runs the photo tool, and puts the photo on the page", async () => {
   const skill = await analystSkill();
-  for (const needed of ["Copy the photo into your repo folder", "node tools/photo.mjs", '"src": "assets/photo.webp"', '"alt"', "not one made by AI", "delete the original photo"]) {
+  const offer = skill.match(/^"Would you like a photo of yourself on your site\? (.*)"$/m)?.[1] ?? "";
+  assert.match(offer, /Click the \*\*\+\*\* in the chat box, then \*\*Media\*\*, pick your photo/);
+  assert.match(offer, /not one made by AI/);
+  for (const needed of [
+    "When the person attaches a photo, copy the attached file into the repo folder",
+    "Never into `site/`",
+    "Copy the photo into your repo folder",
+    "node tools/photo.mjs",
+    '"src": "assets/photo.webp"',
+    '"alt"',
+    "delete the original photo",
+    "If you copied it into the repo folder, delete it yourself",
+    '"Your photo is on your site: open the preview, or reload it, to see it."',
+  ]) {
     assert.ok(skill.includes(needed), needed);
   }
+});
+
+// After a LinkedIn text or a CV, the person sees what goes on the page and
+// can change or take out parts before anything is written.
+test("the Analyst shows what it found in the text and waits for the person's answer, outside the 8 questions", async () => {
+  const skill = await analystSkill();
+  const sort = skill.split(/^## /m).find((section) => section.startsWith("2"));
+  assert.match(sort, /Show what you found before you ask anything else/);
+  assert.match(sort, /^"Is this right\? Tell me what to change or leave out, or say \*\*yes\*\*\."$/m);
+  assert.match(sort, /nothing they took out goes into the content file/);
+  assert.match(sort, /This message is not one of the 8 questions/);
+  assert.match(skill, /The one exception is the message in step 2 that shows what you found in their text: it is not one of the 8\./);
+  // It comes before the questions about the gaps, and the file is written after them.
+  assert.ok(skill.indexOf("Show what you found") < skill.indexOf("## 3. Ask about the gaps"));
+  assert.ok(skill.indexOf("## 3. Ask about the gaps") < skill.indexOf("## 4. Write the content file"));
 });
 
 // Proxy runs: a fresh agent on Claude Haiku 4.5 played the Analyst on fake
