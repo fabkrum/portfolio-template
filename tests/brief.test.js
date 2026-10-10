@@ -455,6 +455,18 @@ test("the Designer's hand-over sends the person back to the guide, then asks for
   assert.match(handOver, /Do not explain Stitch in this message/);
 });
 
+// Fabian's rehearsal, 2026-10-10: the brief took 7 minutes after the design
+// came back, mostly waiting to allow seven contrast.mjs runs; check-brief
+// checks every pair at once.
+test("the Designer checks the written brief once with check-brief instead of testing colour pairs one by one", () => {
+  // Up to step 9: the brief template inside step 8 has "## " headings of its own.
+  const step8 = designerSkill.split("## 8. Write the brief, then check it")[1]?.split("\n## 9.")[0] ?? "";
+  assert.match(step8, /once the brief is written: never before, on the old brief/);
+  assert.match(step8, /It checks every colour pair of the brief at once, in light and in dark mode/);
+  assert.match(step8, /do not test colour pairs one by one with `node tools\/contrast\.mjs`/);
+  assert.match(step8, /Never open the source of a tool either/);
+});
+
 test("the Designer tells the person how to use the prompt in Stitch", () => {
   for (const needed of [/\*\*Web\*\*/, /Switch on \*\*Speed\*\*/, /send it as it is/, /offers to enhance or improve your prompt, say \*\*no\*\*/, /one thing at a time/, /\*\*Edit Theme\*\*/, /\*\*Creative\*\*/, /Make it more STYLE/, /\*\*no Stitch\*\*/]) {
     assert.match(designerSkill, needed);
