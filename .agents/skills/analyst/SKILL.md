@@ -277,15 +277,9 @@ Send one message that explains both files in plain words, before the person acce
 - `docs/spec.md`: the goal, for whom, what a visitor should do (your guess), and the sections
 - what `node tools/check-content.mjs` said
 
-Never skip this message, also not when something else goes wrong, such as the preview not starting.
+Never skip this message, also not when something else goes wrong.
 
-In the same message, show them how to see their content on the page. Start the preview in a terminal of its own; it never finishes by itself, so do not wait for it:
-
-```
-node tools/preview.mjs
-```
-
-The person opens the address it prints in Chrome. The page still has the plain look of the template; the Designer and the Developer change that later. Ask whether the content is right, and offer a photo, in these words:
+Do not start the preview. The page still has the plain look of the template, and the person sees it first in the Developer step, in their own style. In the same message, ask whether the content is right, and offer a photo, in these words:
 
 "Would you like a photo of yourself on your site? A friendly, well-lit photo of your face works best; no photo is better than a bad one, and it must be a real photo, not one made by AI. Click the **+** in the chat box, then **Media**, pick your photo, and tell me in a few words what it shows, for people who cannot see it. For example: smiling in front of a bookshelf."
 
@@ -307,7 +301,7 @@ It makes `site/assets/photo.webp`: a small square from the middle of the photo, 
 
 Run `node tools/check-content.mjs`. Then the original goes, as the command says: it still holds the hidden data. If you copied it into the repo folder, delete it yourself; if the person copied it there, tell them to delete the original photo from their repo folder. Never put the original into `site/`.
 
-The photo is on the page now. Tell the person, in these words: "Your photo is on your site: open the preview, or reload it, to see it."
+Tell the person, in these words: "Your photo is ready. You will see it on your page in the Developer step."
 
 If the person gave you a CV file, add this sentence, in these words: "If you saved your CV inside your repo folder, move it out unless you want the whole CV public: everything in that folder can end up on GitHub." Then end the role:
 
