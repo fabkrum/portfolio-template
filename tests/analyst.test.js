@@ -213,10 +213,31 @@ test("the Analyst shows what it found in the text and waits for the person's ans
   assert.match(sort, /^"Is this right\? Tell me what to change or leave out, or say \*\*yes\*\*\."$/m);
   assert.match(sort, /nothing they took out goes into the content file/);
   assert.match(sort, /This message is not one of the 8 questions/);
-  assert.match(skill, /The one exception is the message in step 2 that shows what you found in their text: it is not one of the 8\./);
+  assert.match(skill, /Two messages are not among the 8: the one in step 2 that shows what you found in their text, and the email follow-up in step 3\./);
   // It comes before the questions about the gaps, and the file is written after them.
   assert.ok(skill.indexOf("Show what you found") < skill.indexOf("## 3. Ask about the gaps"));
   assert.ok(skill.indexOf("## 3. Ask about the gaps") < skill.indexOf("## 4. Write the content file"));
+});
+
+// Without an email address the legal notice has a blank (node tools/legal.mjs
+// says so at the end of the Developer step), so the Analyst asks once more.
+test("the Analyst asks once more for the email address when it has none, even after 8 questions", async () => {
+  const skill = await analystSkill();
+  assert.match(skill, /Never ask a follow-up, apart from the one for the email address in step 3\./);
+  const interview = skill.split(/^## /m).find((section) => section.startsWith("3"));
+  assert.match(interview, /\*\*The email address is the one follow-up\.\*\*/);
+  assert.match(interview, /"Which email address may visitors see\? The legal notice on your site needs one\."/);
+  assert.match(interview, /Ask it even after your 8th question/);
+  assert.match(interview, /ask nothing more but the email follow-up/);
+  // Still at most 8 numbered questions.
+  assert.ok((interview.match(/^\d+\. \*\*/gm) ?? []).length <= 8);
+});
+
+// A beginner may have no repository yet: the question says how to skip it.
+test("the projects question says to skip it without projects on GitHub", async () => {
+  const interview = (await analystSkill()).split(/^## /m).find((section) => section.startsWith("3"));
+  const projects = interview.match(/^\d+\. \*\*Projects\*\*: (.*)$/m)?.[1] ?? "";
+  assert.match(projects, /No projects on GitHub yet\? Say \*\*skip\*\*\."$/);
 });
 
 // Proxy runs: a fresh agent on Claude Haiku 4.5 played the Analyst on fake
