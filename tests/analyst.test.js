@@ -198,10 +198,19 @@ test("the Analyst takes a photo attached with + → Media, runs the photo tool, 
     '"alt"',
     "delete the original photo",
     "If you copied it into the repo folder, delete it yourself",
-    '"Your photo is on your site: open the preview, or reload it, to see it."',
+    '"Your photo is ready. You will see it on your page in the Developer step."',
   ]) {
     assert.ok(skill.includes(needed), needed);
   }
+});
+
+// The first look at the page is the Developer's, in the person's own style:
+// the Analyst's plain page only looked unfinished (Fabian, 2026-10-10).
+test("the Analyst does not start the preview; the Developer does", async () => {
+  const skill = await analystSkill();
+  assert.doesNotMatch(skill, /node tools\/preview\.mjs/);
+  assert.match(skill, /Do not start the preview\./);
+  assert.match(await read("../.agents/skills/build/SKILL.md"), /node tools\/preview\.mjs/);
 });
 
 // After a LinkedIn text or a CV, the person sees what goes on the page and
