@@ -257,11 +257,13 @@ Mood: the three words, then one sentence on the feel of the design.
 2. `projects`: why it comes here, in a few words.
 ```
 
-Then run this command. It is the same on every operating system:
+Then run this command, once the brief is written: never before, on the old brief. It is the same on every operating system:
 
 ```
 node tools/check-brief.mjs
 ```
+
+It checks every colour pair of the brief at once, in light and in dark mode. So with a Stitch design or a screenshot, do not test colour pairs one by one with `node tools/contrast.mjs` before you write the brief: every command waits for the person to allow it, and that costs them minutes. Never open the source of a tool either: its output says what to fix.
 
 It either says the brief is ready or lists what to fix. When a colour pair is too hard to read, make the lighter colour lighter or the darker colour darker, and keep its hue. Run the command again until it says the brief is ready. Never call the brief finished before it does. Under "Good to know" it may name a font the site cannot load, or a section the brief lacks: write the style's font instead, or add the section, and run it again. If the command fails because Node is missing, tell the person that running the Install script again installs Node.
 
