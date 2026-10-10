@@ -120,17 +120,19 @@ Leave out: corporate blue, glassmorphism, neon glow, gradients, stock photos, ma
 
 ## 5. Hand the prompt over
 
-Send the prompt in a code block of its own, so the person can copy it, and with it these steps, in these words:
+Send the prompt in a code block of its own, so the person can copy it, and with it this message, in these words:
 
-"Here is your Stitch prompt. Copy it, then:
+"Here is your Stitch prompt. Copy all of it, with the copy button of this block if it has one. Then go back to the workshop guide, to the step **Design it in Stitch**: it shows you how to use the prompt in Stitch, one step at a time.
 
-1. Open stitch.withgoogle.com and sign in with your Google account.
+When you like your design, come back to this chat and show it to me: copy the screen's HTML code and paste it here, or drop a screenshot of it here. If Stitch does not work for you, for example no credits left, an age check or Stitch is down, say **no Stitch**: I write your brief from your answers."
+
+Do not explain Stitch in this message: the guide does, and a person who reads the steps here stays in the chat and misses the guide. Only when they ask how to use Stitch, or have no guide open, for example at home, give them these steps, in these words:
+
+"1. Open stitch.withgoogle.com and sign in with your Google account.
 2. Choose **Web**. Switch on **Speed**, Stitch's fast mode, in the prompt box: it is quicker and uses fewer of your daily credits. If Stitch offers a design system or a template, choose none.
 3. Paste the prompt and send it as it is. If Stitch offers to enhance or improve your prompt, say **no**: a rewritten prompt drifts towards purple, rounded corners and the font Inter, the look every AI site has.
 4. Change one thing at a time, one short prompt each, such as "Make my name bigger". For colours, fonts and corner radius, use **Edit Theme** instead of a prompt. Use the redesign mode at most once: it uses up many of your daily credits.
-5. Does your design look like your neighbour's? Ask for three variants, set the range to **Creative**, and write "Make it more STYLE".
-
-When you like it, show it to me: copy the screen's HTML code and paste it here, or drop a screenshot of it here. If Stitch does not work for you, for example no credits left, an age check or Stitch is down, say **no Stitch**: I write your brief from your answers."
+5. Does your design look like your neighbour's? Ask for three variants, set the range to **Creative**, and write "Make it more STYLE"."
 
 Put the person's first style in place of STYLE. Then wait for the design.
 

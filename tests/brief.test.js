@@ -444,6 +444,17 @@ test("the Stitch prompt follows Google's recipe, in English, with no web address
   }
 });
 
+// Fabian, 2026-10-10: the hand-over sends the person back to the guide's
+// Stitch step; the agent explains Stitch only when asked or without a guide.
+test("the Designer's hand-over sends the person back to the guide, then asks for the design in the same chat", () => {
+  const handOver = designerSkill.split("## 5. Hand the prompt over")[1]?.split("\n## ")[0] ?? "";
+  const message = handOver.match(/^"Here is your Stitch prompt\.([\s\S]*?)"$/m)?.[1] ?? "";
+  assert.match(message, /go back to the workshop guide, to the step \*\*Design it in Stitch\*\*/);
+  assert.match(message, /come back to this chat and show it to me/);
+  assert.doesNotMatch(message, /stitch\.withgoogle\.com|\*\*Speed\*\*/);
+  assert.match(handOver, /Do not explain Stitch in this message/);
+});
+
 test("the Designer tells the person how to use the prompt in Stitch", () => {
   for (const needed of [/\*\*Web\*\*/, /Switch on \*\*Speed\*\*/, /send it as it is/, /offers to enhance or improve your prompt, say \*\*no\*\*/, /one thing at a time/, /\*\*Edit Theme\*\*/, /\*\*Creative\*\*/, /Make it more STYLE/, /\*\*no Stitch\*\*/]) {
     assert.match(designerSkill, needed);
