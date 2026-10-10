@@ -114,7 +114,7 @@ Start the preview in a terminal of its own, so it keeps running while you go on 
 node tools/preview.mjs
 ```
 
-It builds the site and prints an address such as `http://localhost:8000`. It never finishes by itself, so do not wait for it to end. After each change, reload the page: the preview builds the site again first. If the page says the site could not be built, it names what is wrong: fix it if it is yours, such as a mistake in `render.js`; a content file that is not valid JSON belongs to the Analyst. If you can open pages in a browser yourself, look at it first, at a phone width and at a wide width, and compare it with the brief: the colours, the fonts, and the project cards in columns from the width the brief names. Fix what differs. Then ask the person to open it in Chrome, look at it, and switch their computer between light and dark mode. The preview keeps running until they press Ctrl+C in its terminal.
+It builds the site and prints an address such as `http://localhost:8000`. It never finishes by itself, so do not wait for it to end. After each change, reload the page: the preview builds the site again first. If the page says the site could not be built, it names what is wrong: fix it if it is yours, such as a mistake in `render.js`; a content file that is not valid JSON belongs to the Analyst. Do not open it in a browser yourself, with Chrome DevTools or any other browser tool: starting one costs the person minutes, and QA takes screenshots at a phone and a wide width, in light and dark mode, in the next Block. Ask the person to open it in Chrome, look at it, and switch their computer between light and dark mode. The preview keeps running until they press Ctrl+C in its terminal.
 
 ## 7. Write the legal page
 
