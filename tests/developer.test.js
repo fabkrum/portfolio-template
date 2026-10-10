@@ -285,3 +285,16 @@ test("the Developer's checkpoint, built from the default brief, is in the Classi
     }
   });
 });
+
+// Fabian's rehearsal, 2026-10-10: the Developer opened Chrome DevTools to look
+// at the site itself; starting it took 96 seconds, the whole look 3 minutes.
+// QA takes these screenshots in the next Block, and the person looks at the
+// preview.
+test("the Developer does not open the site in a browser itself; the person does, and QA takes the screenshots", async () => {
+  const skill = await read("../.agents/skills/build/SKILL.md");
+  const look = skill.split("## 6. Look at it")[1]?.split("\n## ")[0] ?? "";
+  assert.match(look, /Do not open it in a browser yourself, with Chrome DevTools or any other browser tool/);
+  assert.match(look, /QA takes screenshots at a phone and a wide width, in light and dark mode, in the next Block/);
+  assert.match(look, /Ask the person to open it in Chrome/);
+  assert.doesNotMatch(look, /look at it first, at a phone width/);
+});
