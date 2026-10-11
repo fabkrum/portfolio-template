@@ -7,8 +7,10 @@
 # own portfolio repo in your home folder and opens it in Antigravity IDE. It is
 # safe to run again at any time.
 #
-# It asks for your GitHub username. PORTFOLIO_GITHUB_USER and PORTFOLIO_REPO
-# answer that up front (the automated tests use them).
+# It asks for the link to your repo on GitHub; your username alone means a
+# repo called portfolio. PORTFOLIO_GITHUB_USER and PORTFOLIO_REPO answer that
+# up front: the workshop guide's line carries them, and so do the automated
+# tests.
 #
 # In a workshop, the guide's line also names the event, before irm:
 # WORKSHOP_EVENT, WORKSHOP_DATE (YYYY-MM-DD) and WORKSHOP_CITY. The script
@@ -76,22 +78,35 @@
 
     # ------------------------------------------------------------ questions
 
+    # The repo to set up. PORTFOLIO_GITHUB_USER and PORTFOLIO_REPO answer up
+    # front; without them the script asks. The answer may be a username (the
+    # repo is then called portfolio), owner/name, a link to any page of the
+    # repo on github.com as the browser's address bar shows it, or the site's
+    # address.
     function Get-RepoTarget {
         $user = "$env:PORTFOLIO_GITHUB_USER"
         $repo = if ($env:PORTFOLIO_REPO) { $env:PORTFOLIO_REPO } else { 'portfolio' }
-        if (-not $user) { $user = Read-Host 'What is your GitHub username' }
-        # Accept a pasted link such as https://github.com/ada/portfolio as well.
-        $user = ($user -replace '\s', '') -replace '^https?://', '' -replace '^github\.com/', '' -replace '^@', ''
-        if ($user -match '^([^/]+)/([^/]+)') {
-            $user = $Matches[1]
+        if (-not $user) { $user = Read-Host 'Paste the link to your new repo, or type your GitHub username' }
+        $answer = $user -creplace '\s', '' -creplace '[?#].*$', '' -creplace '^https?://', '' -creplace '^www\.', '' -creplace '^@', ''
+        if ($answer -cmatch '^github\.com/(.*)$') {
+            $answer = $Matches[1]
+        } elseif ($answer -cmatch '^([^/]+)\.github\.io(/([^/]*))?') {
+            # The site's address: a repo named owner.github.io has no path.
+            $site = $Matches[1]
+            $answer = if ($Matches[3]) { "$site/$($Matches[3])" } else { "$site/$site.github.io" }
+        }
+        $name = $answer
+        if ($answer -match '^([^/]+)/([^/]+)') {
+            $name = $Matches[1]
             $repo = $Matches[2] -replace '\.git$', ''
         }
-        if ($user -notmatch '^[A-Za-z0-9-]+$' -or $repo -notmatch '^[A-Za-z0-9._-]+$' -or $repo -match '^\.\.?$') {
+        if ($name -notmatch '^[A-Za-z0-9-]+$' -or $repo -notmatch '^[A-Za-z0-9._-]+$' -or $repo -match '^\.\.?$') {
             Write-Host ''
-            Write-Host "That does not look like a GitHub username: `"$user/$repo`"."
-            Write-Host 'Run this command again and type just your username, for example: ada-lovelace'
+            Write-Host "That does not look like a link to your repo or a GitHub username: `"$user`"."
+            Write-Host 'Run this command again and paste the link to your new repo, for example: https://github.com/ada-lovelace/portfolio'
             return $null
         }
+        $user = $name
         return @{ User = $user; Name = $repo; Dir = (Join-Path $HOME $repo); Url = "https://github.com/$user/$repo" }
     }
 
@@ -485,6 +500,7 @@
     Write-Host 'Setting up your laptop for the portfolio workshop.'
     $repo = Get-RepoTarget
     if (-not $repo) { return }
+    Write-Host "Your repo on GitHub: $($repo.Url)"
 
     Write-Heading 'Apps'
     Test-Chrome

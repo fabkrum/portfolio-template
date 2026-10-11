@@ -124,18 +124,21 @@ jobs:
         run: while read -r path; do sudo mv "$path.hidden" "$path"; done < "$RUNNER_TEMP/hidden-chrome"
       - name: Ready after the first run, and no workshop.json (the line named no event)
         run: bash under-test/tests/install/assert-ready.sh "$HOME/$PORTFOLIO_REPO" "$ORIGIN"
-      # This time nothing answers the question up front: the participant types
-      # (here: pastes their repo link) into a real terminal. The line is the
-      # workshop guide's, with the event.
+      # This time nothing answers the question up front: the participant
+      # pastes into a real terminal what the browser's address bar shows, here
+      # a deeper page of their repo. The line is the workshop guide's, with
+      # the event.
       - name: Second run, from the workshop guide, answering the question in a terminal
         run: >
-          printf '%s\n' "https://github.com/$PORTFOLIO_GITHUB_USER/$PORTFOLIO_REPO"
+          printf '%s\n' "https://github.com/$PORTFOLIO_GITHUB_USER/$PORTFOLIO_REPO/tree/main?tab=readme-ov-file#readme"
           | env -u PORTFOLIO_GITHUB_USER -u PORTFOLIO_REPO script -qec 'wget -qO- "$INSTALL_URL" | WORKSHOP_EVENT="$EVENT" WORKSHOP_DATE="$EVENT_DATE" WORKSHOP_CITY="$EVENT_CITY" sh' /dev/null
           | tee "$RUNNER_TEMP/second-run.log"
-      - name: Second run asked, then found everything in place and saved the event
+      - name: Second run asked, named the repo, then found everything in place and saved the event
         run: >
           bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/second-run.log"
-          "What is your GitHub username?" "Chrome DevTools for agents is ready"
+          "Paste the link to your new repo, or type your GitHub username:"
+          "Your repo on GitHub: https://github.com/$PORTFOLIO_GITHUB_USER/$PORTFOLIO_REPO"
+          "Chrome DevTools for agents is ready"
           "Your repo is already in" "Saved your workshop in workshop.json" "Run this command again any time"
       - name: Still ready after the second run, with the event in workshop.json
         run: >
@@ -160,6 +163,27 @@ jobs:
         run: >
           WORKSHOP_EVENT="DevFest Milano 2026" WORKSHOP_DATE=2026-10-10 WORKSHOP_CITY=Milan
           bash under-test/tests/install/assert-ready.sh "$HOME/$PORTFOLIO_REPO" "$ORIGIN"
+      # The site's address works as the answer too, and a username alone means
+      # a repo called portfolio. PORTFOLIO_GITHUB_USER takes what the question
+      # takes.
+      - name: The site's address as the answer
+        run: >
+          wget -qO- "$INSTALL_URL"
+          | env -u PORTFOLIO_REPO PORTFOLIO_GITHUB_USER="https://$PORTFOLIO_GITHUB_USER.github.io/$PORTFOLIO_REPO/" sh 2>&1
+          | tee "$RUNNER_TEMP/site-address.log"
+      - name: The site's address named the repo, and the script found it
+        run: >
+          bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/site-address.log"
+          "Your repo on GitHub: https://github.com/$PORTFOLIO_GITHUB_USER/$PORTFOLIO_REPO" "Your repo is already in $HOME/$PORTFOLIO_REPO."
+      - name: A username alone as the answer
+        run: >
+          wget -qO- "$INSTALL_URL"
+          | env -u PORTFOLIO_REPO PORTFOLIO_GITHUB_USER=octocat sh 2>&1
+          | tee "$RUNNER_TEMP/username-alone.log"
+      - name: A username alone means a repo called portfolio
+        run: >
+          bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/username-alone.log"
+          "Your repo on GitHub: https://github.com/octocat/portfolio" "I could not find your repo at https://github.com/octocat/portfolio."
       # From here on a stand-in for Antigravity IDE is installed, so a run
       # that opens a folder says so; the eighth run shows that it does.
       - name: A stand-in for Antigravity IDE
@@ -420,6 +444,29 @@ jobs:
       - name: Third run said QA works without it, and finished
         if: matrix.winget == 'present'
         run: under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\third-run.log" -Message 'Downloading Chrome DevTools for agents', 'the QA role works without it', 'Run this command again any time'
+      # What a browser shows works as the answer: a link from a deeper page of
+      # the repo, with a query and a fragment, and the site's address.
+      # PORTFOLIO_GITHUB_USER takes what the question takes.
+      - name: A link from the Actions tab as the answer
+        if: matrix.winget == 'present'
+        run: |
+          $env:PORTFOLIO_GITHUB_USER = "https://github.com/$env:PORTFOLIO_GITHUB_USER/$env:PORTFOLIO_REPO/actions?query=workflow%3ACI#runs"
+          Remove-Item Env:PORTFOLIO_REPO
+          powershell.exe -NoProfile -ExecutionPolicy Restricted -Command "irm $env:INSTALL_URL | iex" *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\deep-link.log"
+      - name: The link named the repo, and the script found it
+        if: matrix.winget == 'present'
+        run: |
+          under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\deep-link.log" -Message "Your repo on GitHub: https://github.com/$env:PORTFOLIO_GITHUB_USER/$env:PORTFOLIO_REPO", "Your repo is already in $HOME\$env:PORTFOLIO_REPO."
+      - name: The site's address as the answer
+        if: matrix.winget == 'present'
+        run: |
+          $env:PORTFOLIO_GITHUB_USER = "https://$env:PORTFOLIO_GITHUB_USER.github.io/$env:PORTFOLIO_REPO/"
+          Remove-Item Env:PORTFOLIO_REPO
+          powershell.exe -NoProfile -ExecutionPolicy Restricted -Command "irm $env:INSTALL_URL | iex" *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\site-address.log"
+      - name: The site's address named the repo, and the script found it
+        if: matrix.winget == 'present'
+        run: |
+          under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\site-address.log" -Message "Your repo on GitHub: https://github.com/$env:PORTFOLIO_GITHUB_USER/$env:PORTFOLIO_REPO", "Your repo is already in $HOME\$env:PORTFOLIO_REPO."
       # From here on a stand-in for Antigravity IDE is installed where the
       # script looks for it, so a run that opens a folder says so; the eighth
       # run shows that it does. Windows' own hostname.exe starts and ends at

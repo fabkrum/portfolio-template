@@ -9,8 +9,10 @@
 # own portfolio repo in your home folder and opens it in Antigravity IDE. It is
 # safe to run again at any time.
 #
-# It asks for your GitHub username. PORTFOLIO_GITHUB_USER and PORTFOLIO_REPO
-# answer that up front (the automated tests use them).
+# It asks for the link to your repo on GitHub; your username alone means a
+# repo called portfolio. PORTFOLIO_GITHUB_USER and PORTFOLIO_REPO answer that
+# up front: the workshop guide's line carries them, and so do the automated
+# tests.
 #
 # In a workshop, the guide's line also names the event, in front of sh:
 # WORKSHOP_EVENT, WORKSHOP_DATE (YYYY-MM-DD) and WORKSHOP_CITY. The script
@@ -71,25 +73,42 @@ sha256_of() {
 
 # ---------------------------------------------------------------- questions
 
+# The repo to set up. PORTFOLIO_GITHUB_USER and PORTFOLIO_REPO answer up
+# front; without them the script asks. The answer may be a username (the repo
+# is then called portfolio), owner/name, a link to any page of the repo on
+# github.com as the browser's address bar shows it, or the site's address.
 ask_github_user() {
   GH_USER=${PORTFOLIO_GITHUB_USER:-}
   REPO=${PORTFOLIO_REPO:-portfolio}
   if [ -z "$GH_USER" ] && (: </dev/tty) 2>/dev/null; then
-    printf 'What is your GitHub username? '
+    printf 'Paste the link to your new repo, or type your GitHub username: '
     read -r GH_USER </dev/tty
   fi
-  # Accept a pasted link such as https://github.com/ada/portfolio as well.
-  GH_USER=$(printf '%s' "$GH_USER" | tr -d ' ')
-  GH_USER=${GH_USER#https://}
-  GH_USER=${GH_USER#http://}
-  GH_USER=${GH_USER#github.com/}
-  GH_USER=${GH_USER#@}
-  case $GH_USER in
+  ANSWER=$GH_USER
+  answer=$(printf '%s' "$GH_USER" | tr -d ' \t\r')
+  answer=${answer%%[?#]*}
+  answer=${answer#https://}
+  answer=${answer#http://}
+  answer=${answer#www.}
+  answer=${answer#@}
+  case $answer in
+    github.com/*) answer=${answer#github.com/} ;;
+    # The site's address: a repo named owner.github.io has no path.
+    *.github.io | *.github.io/*)
+      site=${answer%%.github.io*}
+      path=${answer#*.github.io}
+      path=${path#/}
+      path=${path%%/*}
+      answer="$site/${path:-$site.github.io}"
+      ;;
+  esac
+  GH_USER=$answer
+  case $answer in
     */*)
-      REPO=${GH_USER#*/}
+      REPO=${answer#*/}
       REPO=${REPO%%/*}
       REPO=${REPO%.git}
-      GH_USER=${GH_USER%%/*}
+      GH_USER=${answer%%/*}
       ;;
   esac
   case $GH_USER in
@@ -578,10 +597,11 @@ if [ "$OS" = other ]; then
 fi
 
 if ! ask_github_user; then
-  printf '\nThat does not look like a GitHub username: "%s".\n' "$GH_USER${REPO:+/$REPO}"
-  printf 'Run this command again and type just your username, for example: ada-lovelace\n'
+  printf '\nThat does not look like a link to your repo or a GitHub username: "%s".\n' "$ANSWER"
+  printf 'Run this command again and paste the link to your new repo, for example: https://github.com/ada-lovelace/portfolio\n'
   exit 1
 fi
+printf 'Your repo on GitHub: %s\n' "$REPO_URL"
 
 heading "Apps"
 check_chrome
