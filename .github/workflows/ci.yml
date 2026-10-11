@@ -124,18 +124,21 @@ jobs:
         run: while read -r path; do sudo mv "$path.hidden" "$path"; done < "$RUNNER_TEMP/hidden-chrome"
       - name: Ready after the first run, and no workshop.json (the line named no event)
         run: bash under-test/tests/install/assert-ready.sh "$HOME/$PORTFOLIO_REPO" "$ORIGIN"
-      # This time nothing answers the question up front: the participant types
-      # (here: pastes their repo link) into a real terminal. The line is the
-      # workshop guide's, with the event.
+      # This time nothing answers the question up front, as for a participant
+      # who saved no username in the guide: their line names only the event.
+      # They paste into a real terminal what the browser's address bar shows,
+      # here a deeper page of their repo.
       - name: Second run, from the workshop guide, answering the question in a terminal
         run: >
-          printf '%s\n' "https://github.com/$PORTFOLIO_GITHUB_USER/$PORTFOLIO_REPO"
+          printf '%s\n' "https://github.com/$PORTFOLIO_GITHUB_USER/$PORTFOLIO_REPO/tree/main?tab=readme-ov-file#readme"
           | env -u PORTFOLIO_GITHUB_USER -u PORTFOLIO_REPO script -qec 'wget -qO- "$INSTALL_URL" | WORKSHOP_EVENT="$EVENT" WORKSHOP_DATE="$EVENT_DATE" WORKSHOP_CITY="$EVENT_CITY" sh' /dev/null
           | tee "$RUNNER_TEMP/second-run.log"
-      - name: Second run asked, then found everything in place and saved the event
+      - name: Second run asked, named the repo, then found everything in place and saved the event
         run: >
           bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/second-run.log"
-          "What is your GitHub username?" "Chrome DevTools for agents is ready"
+          "Paste the link to your new repo, or type your GitHub username:"
+          "Your repo on GitHub: https://github.com/$PORTFOLIO_GITHUB_USER/$PORTFOLIO_REPO"
+          "Chrome DevTools for agents is ready"
           "Your repo is already in" "Saved your workshop in workshop.json" "Run this command again any time"
       - name: Still ready after the second run, with the event in workshop.json
         run: >
@@ -160,6 +163,123 @@ jobs:
         run: >
           WORKSHOP_EVENT="DevFest Milano 2026" WORKSHOP_DATE=2026-10-10 WORKSHOP_CITY=Milan
           bash under-test/tests/install/assert-ready.sh "$HOME/$PORTFOLIO_REPO" "$ORIGIN"
+      # The site's address works as the answer too, and a username alone means
+      # a repo called portfolio. PORTFOLIO_GITHUB_USER takes what the question
+      # takes.
+      - name: The site's address as the answer
+        run: >
+          wget -qO- "$INSTALL_URL"
+          | env -u PORTFOLIO_REPO PORTFOLIO_GITHUB_USER="https://$PORTFOLIO_GITHUB_USER.github.io/$PORTFOLIO_REPO/" sh 2>&1
+          | tee "$RUNNER_TEMP/site-address.log"
+      - name: The site's address named the repo, and the script found it
+        run: >
+          bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/site-address.log"
+          "Your repo on GitHub: https://github.com/$PORTFOLIO_GITHUB_USER/$PORTFOLIO_REPO" "Your repo is already in $HOME/$PORTFOLIO_REPO."
+      # octocat has no repo called portfolio, so this run ends at "I could not
+      # find your repo": it shows which repo a username alone means.
+      - name: A username alone as the answer
+        run: >
+          wget -qO- "$INSTALL_URL"
+          | env -u PORTFOLIO_REPO PORTFOLIO_GITHUB_USER=octocat sh 2>&1
+          | tee "$RUNNER_TEMP/username-alone.log"
+      - name: A username alone means a repo called portfolio
+        run: >
+          bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/username-alone.log"
+          "Your repo on GitHub: https://github.com/octocat/portfolio" "I could not find your repo at https://github.com/octocat/portfolio."
+      # owner/owner.github.io names the repo of a site at the address without
+      # a path; it is not taken for that address.
+      - name: A repo named owner.github.io as the answer
+        run: >
+          wget -qO- "$INSTALL_URL"
+          | env -u PORTFOLIO_REPO PORTFOLIO_GITHUB_USER=octocat/octocat.github.io sh 2>&1
+          | tee "$RUNNER_TEMP/root-repo.log"
+      - name: The answer named the repo owner.github.io
+        run: >
+          bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/root-repo.log"
+          "Your repo on GitHub: https://github.com/octocat/octocat.github.io"
+      # From here on a stand-in for Antigravity IDE is installed, so a run
+      # that opens a folder says so; the eighth run shows that it does.
+      - name: A stand-in for Antigravity IDE
+        run: |
+          mkdir -p "$RUNNER_TEMP/fake-ide"
+          printf '%s\n' '#!/bin/sh' 'exit 0' > "$RUNNER_TEMP/fake-ide/antigravity-ide"
+          chmod +x "$RUNNER_TEMP/fake-ide/antigravity-ide"
+      # A repo that is not a copy of the Template, such as a live site the
+      # participant named by mistake: here GitHub's own sample repo. Git
+      # copies it, and the script stops before it reaches the home folder.
+      - name: Fourth run, with a repo that is not a copy of the Template
+        run: >
+          wget -qO- "$INSTALL_URL"
+          | PATH="$RUNNER_TEMP/fake-ide:$PATH" PORTFOLIO_GITHUB_USER=octocat PORTFOLIO_REPO=Hello-World WORKSHOP_EVENT="DevFest Fourth Run" sh 2>&1
+          | tee "$RUNNER_TEMP/fourth-run.log"
+      - name: Fourth run stopped at the repo and left nothing behind
+        run: |
+          bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/fourth-run.log" \
+            "Your repo at https://github.com/octocat/Hello-World is not a copy of the Template." \
+            "Run this command again with your copy of the Template: the repo you made with Use this template, such as portfolio-2026." \
+            "Antigravity IDE is installed." "Run this command again any time"
+          bash under-test/tests/install/assert-stopped.sh "$RUNNER_TEMP/fourth-run.log" "$HOME/Hello-World"
+      # The same repo, already in the home folder, like a live site the
+      # participant cloned there before the workshop: the script leaves it
+      # as it is, workshop.json included.
+      - name: The repo that is not a copy is in the home folder already
+        run: |
+          git clone -q https://github.com/octocat/Hello-World.git "$HOME/Hello-World"
+          git -C "$HOME/Hello-World" rev-parse HEAD > "$RUNNER_TEMP/hello-world-commit"
+      - name: Fifth run, with that folder in place
+        run: >
+          wget -qO- "$INSTALL_URL"
+          | PATH="$RUNNER_TEMP/fake-ide:$PATH" PORTFOLIO_GITHUB_USER=octocat PORTFOLIO_REPO=Hello-World WORKSHOP_EVENT="DevFest Fifth Run" sh 2>&1
+          | tee "$RUNNER_TEMP/fifth-run.log"
+      - name: Fifth run stopped at the repo and left the folder as it was
+        run: |
+          bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/fifth-run.log" \
+            "I left the folder $HOME/Hello-World as it is." "Your repo at https://github.com/octocat/Hello-World is not a copy of the Template."
+          WORKSHOP_EVENT="DevFest Fifth Run" bash under-test/tests/install/assert-stopped.sh "$RUNNER_TEMP/fifth-run.log" "$HOME/Hello-World" "$(cat "$RUNNER_TEMP/hello-world-commit")"
+      # The participant's own copy of the Template from the first runs, named
+      # with another owner: the same repo name, someone else's repo. The
+      # script names the repo in the folder and leaves it as it is.
+      - name: Sixth run, with the Template's folder and another owner
+        run: |
+          git -C "$HOME/$PORTFOLIO_REPO" rev-parse HEAD > "$RUNNER_TEMP/template-commit"
+          wget -qO- "$INSTALL_URL" \
+            | PATH="$RUNNER_TEMP/fake-ide:$PATH" PORTFOLIO_GITHUB_USER=octocat WORKSHOP_EVENT="DevFest Sixth Run" sh 2>&1 \
+            | tee "$RUNNER_TEMP/sixth-run.log"
+      - name: Sixth run named the other repo and left the folder as it was
+        run: |
+          bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/sixth-run.log" \
+            "The folder $HOME/$PORTFOLIO_REPO holds another repo: ${ORIGIN%.git}." \
+            "Rename or move the folder $HOME/$PORTFOLIO_REPO, then run this command again."
+          WORKSHOP_EVENT="DevFest Sixth Run" bash under-test/tests/install/assert-stopped.sh "$RUNNER_TEMP/sixth-run.log" "$HOME/$PORTFOLIO_REPO" "$(cat "$RUNNER_TEMP/template-commit")"
+      # A copy of the Template downloaded without Git, as the first run on a
+      # laptop without Git leaves it, under the name of a repo that is not a
+      # copy: Git's history from that repo would make a push overwrite it.
+      - name: A folder downloaded without Git, under the name of a repo that is not a copy
+        run: |
+          rm -rf "$HOME/Hello-World"
+          cp -R under-test "$HOME/Hello-World"
+          rm -rf "$HOME/Hello-World/.git"
+      - name: Seventh run, connecting that folder to Git
+        run: >
+          wget -qO- "$INSTALL_URL"
+          | PATH="$RUNNER_TEMP/fake-ide:$PATH" PORTFOLIO_GITHUB_USER=octocat PORTFOLIO_REPO=Hello-World WORKSHOP_EVENT="DevFest Seventh Run" sh 2>&1
+          | tee "$RUNNER_TEMP/seventh-run.log"
+      - name: Seventh run stopped at the repo and left the folder without Git
+        run: |
+          bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/seventh-run.log" \
+            "Your repo at https://github.com/octocat/Hello-World is not a copy of the Template."
+          WORKSHOP_EVENT="DevFest Seventh Run" bash under-test/tests/install/assert-stopped.sh "$RUNNER_TEMP/seventh-run.log" "$HOME/Hello-World" --without-git
+      # The participant's own copy again, with the stand-in for Antigravity
+      # IDE: it opens, so the stops above really did not open anything.
+      - name: Eighth run, at the participant's own copy
+        run: >
+          wget -qO- "$INSTALL_URL"
+          | PATH="$RUNNER_TEMP/fake-ide:$PATH" sh 2>&1
+          | tee "$RUNNER_TEMP/eighth-run.log"
+      - name: Eighth run found the copy and opened it
+        run: >
+          bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/eighth-run.log"
+          "Your repo is already in $HOME/$PORTFOLIO_REPO." "Opening your repo in Antigravity IDE."
 
   install-macos:
     if: github.repository == 'fabkrum/portfolio-template'
@@ -207,6 +327,24 @@ jobs:
         run: >
           WORKSHOP_EVENT="$EVENT" WORKSHOP_DATE="$EVENT_DATE" WORKSHOP_CITY="$EVENT_CITY"
           bash under-test/tests/install/assert-ready.sh "$HOME/$PORTFOLIO_REPO" "$ORIGIN" --without-git
+      # Without Git the script downloads a repo instead of copying it with
+      # Git, and checks the download the same way: GitHub's sample repo is no
+      # copy of the Template.
+      - name: Without Git, a repo that is not a copy of the Template
+        run: >
+          curl -fsSL "$INSTALL_URL"
+          | PATH="$RUNNER_TEMP/fresh-mac:$PATH" PORTFOLIO_GITHUB_USER=octocat PORTFOLIO_REPO=Hello-World WORKSHOP_EVENT="$EVENT" sh 2>&1
+          | tee "$RUNNER_TEMP/not-a-copy.log"
+      # "command line developer tools": Git was missing, so the script took the
+      # download route.
+      - name: Without Git, stopped at the repo and left nothing behind
+        run: |
+          bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/not-a-copy.log" \
+            "command line developer tools" \
+            "Your repo at https://github.com/octocat/Hello-World is not a copy of the Template." \
+            "Run this command again with your copy of the Template: the repo you made with Use this template, such as portfolio-2026." \
+            "Run this command again any time"
+          bash under-test/tests/install/assert-stopped.sh "$RUNNER_TEMP/not-a-copy.log" "$HOME/Hello-World"
       # The README's line, without an event: workshop.json stays as it was.
       - name: Second run (developer tools now installed)
         run: curl -fsSL "$INSTALL_URL" | sh 2>&1 | tee "$RUNNER_TEMP/second-run.log"
@@ -270,11 +408,30 @@ jobs:
       - name: "With winget: ready after the first run, and no workshop.json (the line named no event)"
         if: matrix.winget == 'present'
         run: under-test/tests/install/assert-ready.ps1 -RepoDir "$HOME\$env:PORTFOLIO_REPO" -Origin $env:ORIGIN
+      # pwsh fails a step only on its last command's exit code: each check
+      # but the last stops the step itself.
       - name: "Without winget: told about Git, downloaded the repo, Node from nodejs.org, and no workshop.json"
         if: matrix.winget == 'missing'
         run: |
           under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\first-run.log" -Message 'Git could not be installed', 'Downloading Node from nodejs.org'
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
           under-test/tests/install/assert-ready.ps1 -RepoDir "$HOME\$env:PORTFOLIO_REPO" -Origin $env:ORIGIN -WithoutGit
+      # Without Git the script downloads a repo instead of copying it with
+      # Git, and checks the download the same way: GitHub's sample repo is no
+      # copy of the Template. winget stays hidden, so Git stays missing.
+      - name: "Without winget: a repo that is not a copy of the Template, downloaded without Git"
+        if: matrix.winget == 'missing'
+        run: |
+          $env:Path = "$env:RUNNER_TEMP\no-winget;$env:Path"
+          $env:PORTFOLIO_GITHUB_USER = 'octocat'; $env:PORTFOLIO_REPO = 'Hello-World'; $env:WORKSHOP_EVENT = $env:EVENT
+          powershell.exe -NoProfile -ExecutionPolicy Restricted -Command "irm $env:INSTALL_URL | iex" *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\not-a-copy.log"
+      # "Git could not be installed": the script took the download route.
+      - name: "Without winget: stopped at the repo and left nothing behind"
+        if: matrix.winget == 'missing'
+        run: |
+          under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\not-a-copy.log" -Message 'Git could not be installed', 'Your repo at https://github.com/octocat/Hello-World is not a copy of the Template.', 'Run this command again with your copy of the Template: the repo you made with Use this template, such as portfolio-2026.', 'Run this command again any time'
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          under-test/tests/install/assert-stopped.ps1 -Log "$env:RUNNER_TEMP\not-a-copy.log" -RepoDir "$HOME\Hello-World"
       # The workshop guide's line sets the event in the window, then runs irm.
       - name: Second run, from the workshop guide (winget available again in the missing case)
         run: |
@@ -300,3 +457,150 @@ jobs:
       - name: Third run said QA works without it, and finished
         if: matrix.winget == 'present'
         run: under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\third-run.log" -Message 'Downloading Chrome DevTools for agents', 'the QA role works without it', 'Run this command again any time'
+      # What a browser shows works as the answer: a link from a deeper page of
+      # the repo, with a query and a fragment, and the site's address.
+      # PORTFOLIO_GITHUB_USER takes what the question takes.
+      - name: A link from the Actions tab as the answer
+        if: matrix.winget == 'present'
+        run: |
+          $env:PORTFOLIO_GITHUB_USER = "https://github.com/$env:PORTFOLIO_GITHUB_USER/$env:PORTFOLIO_REPO/actions?query=workflow%3ACI#runs"
+          Remove-Item Env:PORTFOLIO_REPO
+          powershell.exe -NoProfile -ExecutionPolicy Restricted -Command "irm $env:INSTALL_URL | iex" *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\deep-link.log"
+      - name: The link named the repo, and the script found it
+        if: matrix.winget == 'present'
+        run: |
+          under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\deep-link.log" -Message "Your repo on GitHub: https://github.com/$env:PORTFOLIO_GITHUB_USER/$env:PORTFOLIO_REPO", "Your repo is already in $HOME\$env:PORTFOLIO_REPO."
+      - name: The site's address as the answer
+        if: matrix.winget == 'present'
+        run: |
+          $env:PORTFOLIO_GITHUB_USER = "https://$env:PORTFOLIO_GITHUB_USER.github.io/$env:PORTFOLIO_REPO/"
+          Remove-Item Env:PORTFOLIO_REPO
+          powershell.exe -NoProfile -ExecutionPolicy Restricted -Command "irm $env:INSTALL_URL | iex" *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\site-address.log"
+      - name: The site's address named the repo, and the script found it
+        if: matrix.winget == 'present'
+        run: |
+          under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\site-address.log" -Message "Your repo on GitHub: https://github.com/$env:PORTFOLIO_GITHUB_USER/$env:PORTFOLIO_REPO", "Your repo is already in $HOME\$env:PORTFOLIO_REPO."
+      - name: A username alone as the answer
+        if: matrix.winget == 'present'
+        run: |
+          $env:PORTFOLIO_GITHUB_USER = 'octocat'
+          Remove-Item Env:PORTFOLIO_REPO
+          powershell.exe -NoProfile -ExecutionPolicy Restricted -Command "irm $env:INSTALL_URL | iex" *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\username-alone.log"
+      - name: A username alone means a repo called portfolio
+        if: matrix.winget == 'present'
+        run: |
+          under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\username-alone.log" -Message 'Your repo on GitHub: https://github.com/octocat/portfolio', 'I could not find your repo at https://github.com/octocat/portfolio.'
+      # owner/owner.github.io names the repo of a site at the address without
+      # a path, and a host that only starts like a site's address is none:
+      # the same repos as on Mac and Linux.
+      - name: A repo named owner.github.io as the answer
+        if: matrix.winget == 'present'
+        run: |
+          $env:PORTFOLIO_GITHUB_USER = 'octocat/octocat.github.io'
+          Remove-Item Env:PORTFOLIO_REPO
+          powershell.exe -NoProfile -ExecutionPolicy Restricted -Command "irm $env:INSTALL_URL | iex" *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\root-repo.log"
+      - name: The answer named the repo owner.github.io
+        if: matrix.winget == 'present'
+        run: |
+          under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\root-repo.log" -Message 'Your repo on GitHub: https://github.com/octocat/octocat.github.io'
+      - name: A look-alike of a site's address as the answer
+        if: matrix.winget == 'present'
+        run: |
+          $env:PORTFOLIO_GITHUB_USER = 'https://octocat.github.io.example.com/x'
+          Remove-Item Env:PORTFOLIO_REPO
+          powershell.exe -NoProfile -ExecutionPolicy Restricted -Command "irm $env:INSTALL_URL | iex" *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\look-alike.log"
+      - name: The look-alike is not taken for a site's address
+        if: matrix.winget == 'present'
+        run: |
+          under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\look-alike.log" -Message 'That does not look like a link to your repo or a GitHub username'
+      # From here on a stand-in for Antigravity IDE is installed where the
+      # script looks for it, so a run that opens a folder says so; the eighth
+      # run shows that it does. Windows' own hostname.exe starts and ends at
+      # once.
+      - name: A stand-in for Antigravity IDE
+        if: matrix.winget == 'present'
+        run: |
+          New-Item -ItemType Directory -Force "$env:LOCALAPPDATA\Programs\Antigravity IDE" | Out-Null
+          Copy-Item "$env:WINDIR\System32\hostname.exe" "$env:LOCALAPPDATA\Programs\Antigravity IDE\Antigravity IDE.exe"
+      # A repo that is not a copy of the Template, such as a live site the
+      # participant named by mistake: here GitHub's own sample repo. Git
+      # copies it, and the script stops before it reaches the home folder.
+      - name: Fourth run, with a repo that is not a copy of the Template
+        if: matrix.winget == 'present'
+        run: |
+          $env:PORTFOLIO_GITHUB_USER = 'octocat'; $env:PORTFOLIO_REPO = 'Hello-World'; $env:WORKSHOP_EVENT = 'DevFest Fourth Run'
+          powershell.exe -NoProfile -ExecutionPolicy Restricted -Command "irm $env:INSTALL_URL | iex" *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\fourth-run.log"
+      - name: Fourth run stopped at the repo and left nothing behind
+        if: matrix.winget == 'present'
+        run: |
+          under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\fourth-run.log" -Message 'Your repo at https://github.com/octocat/Hello-World is not a copy of the Template.', 'Run this command again with your copy of the Template: the repo you made with Use this template, such as portfolio-2026.', 'Antigravity IDE is installed.', 'Run this command again any time'
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          under-test/tests/install/assert-stopped.ps1 -Log "$env:RUNNER_TEMP\fourth-run.log" -RepoDir "$HOME\Hello-World"
+      # The same repo, already in the home folder, like a live site the
+      # participant cloned there before the workshop: the script leaves it
+      # as it is, workshop.json included. Git comes from the first run.
+      - name: The repo that is not a copy is in the home folder already
+        if: matrix.winget == 'present'
+        run: |
+          $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
+          git clone -q https://github.com/octocat/Hello-World.git "$HOME\Hello-World"
+          git -C "$HOME\Hello-World" rev-parse HEAD | Set-Content "$env:RUNNER_TEMP\hello-world-commit"
+      - name: Fifth run, with that folder in place
+        if: matrix.winget == 'present'
+        run: |
+          $env:PORTFOLIO_GITHUB_USER = 'octocat'; $env:PORTFOLIO_REPO = 'Hello-World'; $env:WORKSHOP_EVENT = 'DevFest Fifth Run'
+          powershell.exe -NoProfile -ExecutionPolicy Restricted -Command "irm $env:INSTALL_URL | iex" *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\fifth-run.log"
+      - name: Fifth run stopped at the repo and left the folder as it was
+        if: matrix.winget == 'present'
+        run: |
+          under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\fifth-run.log" -Message "I left the folder $HOME\Hello-World as it is.", 'Your repo at https://github.com/octocat/Hello-World is not a copy of the Template.'
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $env:WORKSHOP_EVENT = 'DevFest Fifth Run'
+          under-test/tests/install/assert-stopped.ps1 -Log "$env:RUNNER_TEMP\fifth-run.log" -RepoDir "$HOME\Hello-World" -Commit (Get-Content "$env:RUNNER_TEMP\hello-world-commit")
+      # The participant's own copy of the Template from the first runs, named
+      # with another owner: the same repo name, someone else's repo. The
+      # script names the repo in the folder and leaves it as it is.
+      - name: Sixth run, with the Template's folder and another owner
+        if: matrix.winget == 'present'
+        run: |
+          $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
+          git -C "$HOME\$env:PORTFOLIO_REPO" rev-parse HEAD | Set-Content "$env:RUNNER_TEMP\template-commit"
+          $env:PORTFOLIO_GITHUB_USER = 'octocat'; $env:WORKSHOP_EVENT = 'DevFest Sixth Run'
+          powershell.exe -NoProfile -ExecutionPolicy Restricted -Command "irm $env:INSTALL_URL | iex" *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\sixth-run.log"
+      - name: Sixth run named the other repo and left the folder as it was
+        if: matrix.winget == 'present'
+        run: |
+          $other = $env:ORIGIN -replace '\.git$', ''
+          under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\sixth-run.log" -Message "The folder $HOME\$env:PORTFOLIO_REPO holds another repo: $other.", "Rename or move the folder $HOME\$env:PORTFOLIO_REPO, then run this command again."
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $env:WORKSHOP_EVENT = 'DevFest Sixth Run'
+          under-test/tests/install/assert-stopped.ps1 -Log "$env:RUNNER_TEMP\sixth-run.log" -RepoDir "$HOME\$env:PORTFOLIO_REPO" -Commit (Get-Content "$env:RUNNER_TEMP\template-commit")
+      # A copy of the Template downloaded without Git, as the first run on a
+      # laptop without Git leaves it, under the name of a repo that is not a
+      # copy: Git's history from that repo would make a push overwrite it.
+      - name: A folder downloaded without Git, under the name of a repo that is not a copy
+        if: matrix.winget == 'present'
+        run: |
+          Remove-Item "$HOME\Hello-World" -Recurse -Force
+          Copy-Item under-test "$HOME\Hello-World" -Recurse
+          Remove-Item "$HOME\Hello-World\.git" -Recurse -Force
+      - name: Seventh run, connecting that folder to Git
+        if: matrix.winget == 'present'
+        run: |
+          $env:PORTFOLIO_GITHUB_USER = 'octocat'; $env:PORTFOLIO_REPO = 'Hello-World'; $env:WORKSHOP_EVENT = 'DevFest Seventh Run'
+          powershell.exe -NoProfile -ExecutionPolicy Restricted -Command "irm $env:INSTALL_URL | iex" *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\seventh-run.log"
+      - name: Seventh run stopped at the repo and left the folder without Git
+        if: matrix.winget == 'present'
+        run: |
+          under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\seventh-run.log" -Message 'Your repo at https://github.com/octocat/Hello-World is not a copy of the Template.'
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $env:WORKSHOP_EVENT = 'DevFest Seventh Run'
+          under-test/tests/install/assert-stopped.ps1 -Log "$env:RUNNER_TEMP\seventh-run.log" -RepoDir "$HOME\Hello-World" -WithoutGit
+      # The participant's own copy again, with the stand-in for Antigravity
+      # IDE: it opens, so the stops above really did not open anything.
+      - name: Eighth run, at the participant's own copy
+        if: matrix.winget == 'present'
+        run: powershell.exe -NoProfile -ExecutionPolicy Restricted -Command "irm $env:INSTALL_URL | iex" *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\eighth-run.log"
+      - name: Eighth run found the copy and opened it
+        if: matrix.winget == 'present'
+        run: under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\eighth-run.log" -Message "Your repo is already in $HOME\$env:PORTFOLIO_REPO.", 'Opened your repo in Antigravity IDE.'

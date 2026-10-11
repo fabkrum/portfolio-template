@@ -5,15 +5,15 @@ Your own portfolio site, built with AI agents and published on GitHub Pages. The
 ## Get your copy
 
 1. Click **Use this template** → **Create a new repository**.
-2. Name it `portfolio` and make it **Public**.
+2. Name it `portfolio` and make it **Public**. You already have a repo called portfolio? Take another name, such as `portfolio-2026`: everything here works with any name.
 3. In your new repo, open **Settings → Pages** and set **Source** to **GitHub Actions**.
 4. Open the **Actions** tab and re-run the "Deploy to GitHub Pages" workflow (the first run fails until step 3 is done).
 
-A few minutes later your site is live at `https://YOUR-USERNAME.github.io/portfolio/`. Until the Analyst role adds your own content it shows Ada Example, a fictional person.
+A few minutes later your site is live at `https://YOUR-USERNAME.github.io/portfolio/`, with your repo's name in place of `portfolio` if you took another; a repo named `YOUR-USERNAME.github.io` is the site at `https://YOUR-USERNAME.github.io/` itself. Until the Analyst role adds your own content it shows Ada Example, a fictional person.
 
 ## Set up your laptop
 
-Paste one line into a terminal and press Enter. It asks for your GitHub username.
+Paste one line into a terminal and press Enter. It asks for the link to your new repo: copy it from your browser's address bar. For a repo called portfolio, your GitHub username alone is enough.
 
 **macOS** (Terminal):
 
@@ -33,7 +33,7 @@ wget -qO- https://raw.githubusercontent.com/fabkrum/portfolio-template/main/inst
 irm https://raw.githubusercontent.com/fabkrum/portfolio-template/main/install.ps1 | iex
 ```
 
-It checks Google Chrome and Antigravity IDE, installs Git and Node where they are missing, downloads Chrome DevTools for agents, puts your repo in a `portfolio` folder in your home folder and opens it in Antigravity IDE. Whatever it cannot do itself, it tells you in plain words, with what to do next. Run it again any time; it only does what is still missing.
+It checks Google Chrome and Antigravity IDE, installs Git and Node where they are missing, downloads Chrome DevTools for agents, puts your repo in a folder of the same name in your home folder and opens it in Antigravity IDE. It works only on your copy of the Template and leaves any other folder or repo alone. Whatever it cannot do itself, it tells you in plain words, with what to do next. Run it again any time; it only does what is still missing.
 
 ## Preview your site
 
