@@ -9,7 +9,7 @@ Your own portfolio site, built with AI agents and published on GitHub Pages. The
 3. In your new repo, open **Settings → Pages** and set **Source** to **GitHub Actions**.
 4. Open the **Actions** tab and re-run the "Deploy to GitHub Pages" workflow (the first run fails until step 3 is done).
 
-A few minutes later your site is live at `https://YOUR-USERNAME.github.io/portfolio/`, with your repo's name in place of `portfolio` if you took another. Until the Analyst role adds your own content it shows Ada Example, a fictional person.
+A few minutes later your site is live at `https://YOUR-USERNAME.github.io/portfolio/`, with your repo's name in place of `portfolio` if you took another; a repo named `YOUR-USERNAME.github.io` is the site at `https://YOUR-USERNAME.github.io/` itself. Until the Analyst role adds your own content it shows Ada Example, a fictional person.
 
 ## Set up your laptop
 

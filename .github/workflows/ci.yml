@@ -124,10 +124,10 @@ jobs:
         run: while read -r path; do sudo mv "$path.hidden" "$path"; done < "$RUNNER_TEMP/hidden-chrome"
       - name: Ready after the first run, and no workshop.json (the line named no event)
         run: bash under-test/tests/install/assert-ready.sh "$HOME/$PORTFOLIO_REPO" "$ORIGIN"
-      # This time nothing answers the question up front: the participant
-      # pastes into a real terminal what the browser's address bar shows, here
-      # a deeper page of their repo. The line is the workshop guide's, with
-      # the event.
+      # This time nothing answers the question up front, as for a participant
+      # who saved no username in the guide: their line names only the event.
+      # They paste into a real terminal what the browser's address bar shows,
+      # here a deeper page of their repo.
       - name: Second run, from the workshop guide, answering the question in a terminal
         run: >
           printf '%s\n' "https://github.com/$PORTFOLIO_GITHUB_USER/$PORTFOLIO_REPO/tree/main?tab=readme-ov-file#readme"
@@ -175,6 +175,8 @@ jobs:
         run: >
           bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/site-address.log"
           "Your repo on GitHub: https://github.com/$PORTFOLIO_GITHUB_USER/$PORTFOLIO_REPO" "Your repo is already in $HOME/$PORTFOLIO_REPO."
+      # octocat has no repo called portfolio, so this run ends at "I could not
+      # find your repo": it shows which repo a username alone means.
       - name: A username alone as the answer
         run: >
           wget -qO- "$INSTALL_URL"
@@ -184,6 +186,17 @@ jobs:
         run: >
           bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/username-alone.log"
           "Your repo on GitHub: https://github.com/octocat/portfolio" "I could not find your repo at https://github.com/octocat/portfolio."
+      # owner/owner.github.io names the repo of a site at the address without
+      # a path; it is not taken for that address.
+      - name: A repo named owner.github.io as the answer
+        run: >
+          wget -qO- "$INSTALL_URL"
+          | env -u PORTFOLIO_REPO PORTFOLIO_GITHUB_USER=octocat/octocat.github.io sh 2>&1
+          | tee "$RUNNER_TEMP/root-repo.log"
+      - name: The answer named the repo owner.github.io
+        run: >
+          bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/root-repo.log"
+          "Your repo on GitHub: https://github.com/octocat/octocat.github.io"
       # From here on a stand-in for Antigravity IDE is installed, so a run
       # that opens a folder says so; the eighth run shows that it does.
       - name: A stand-in for Antigravity IDE
@@ -467,6 +480,39 @@ jobs:
         if: matrix.winget == 'present'
         run: |
           under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\site-address.log" -Message "Your repo on GitHub: https://github.com/$env:PORTFOLIO_GITHUB_USER/$env:PORTFOLIO_REPO", "Your repo is already in $HOME\$env:PORTFOLIO_REPO."
+      - name: A username alone as the answer
+        if: matrix.winget == 'present'
+        run: |
+          $env:PORTFOLIO_GITHUB_USER = 'octocat'
+          Remove-Item Env:PORTFOLIO_REPO
+          powershell.exe -NoProfile -ExecutionPolicy Restricted -Command "irm $env:INSTALL_URL | iex" *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\username-alone.log"
+      - name: A username alone means a repo called portfolio
+        if: matrix.winget == 'present'
+        run: |
+          under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\username-alone.log" -Message 'Your repo on GitHub: https://github.com/octocat/portfolio', 'I could not find your repo at https://github.com/octocat/portfolio.'
+      # owner/owner.github.io names the repo of a site at the address without
+      # a path, and a host that only starts like a site's address is none:
+      # the same repos as on Mac and Linux.
+      - name: A repo named owner.github.io as the answer
+        if: matrix.winget == 'present'
+        run: |
+          $env:PORTFOLIO_GITHUB_USER = 'octocat/octocat.github.io'
+          Remove-Item Env:PORTFOLIO_REPO
+          powershell.exe -NoProfile -ExecutionPolicy Restricted -Command "irm $env:INSTALL_URL | iex" *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\root-repo.log"
+      - name: The answer named the repo owner.github.io
+        if: matrix.winget == 'present'
+        run: |
+          under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\root-repo.log" -Message 'Your repo on GitHub: https://github.com/octocat/octocat.github.io'
+      - name: A look-alike of a site's address as the answer
+        if: matrix.winget == 'present'
+        run: |
+          $env:PORTFOLIO_GITHUB_USER = 'https://octocat.github.io.example.com/x'
+          Remove-Item Env:PORTFOLIO_REPO
+          powershell.exe -NoProfile -ExecutionPolicy Restricted -Command "irm $env:INSTALL_URL | iex" *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\look-alike.log"
+      - name: The look-alike is not taken for a site's address
+        if: matrix.winget == 'present'
+        run: |
+          under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\look-alike.log" -Message 'That does not look like a link to your repo or a GitHub username'
       # From here on a stand-in for Antigravity IDE is installed where the
       # script looks for it, so a run that opens a folder says so; the eighth
       # run shows that it does. Windows' own hostname.exe starts and ends at

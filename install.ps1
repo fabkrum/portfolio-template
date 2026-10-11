@@ -9,8 +9,8 @@
 #
 # It asks for the link to your repo on GitHub; your username alone means a
 # repo called portfolio. PORTFOLIO_GITHUB_USER and PORTFOLIO_REPO answer that
-# up front: the workshop guide's line carries them, and so do the automated
-# tests.
+# up front: the workshop guide's line carries them once you saved your
+# username in the guide, and the automated tests set them.
 #
 # In a workshop, the guide's line also names the event, before irm:
 # WORKSHOP_EVENT, WORKSHOP_DATE (YYYY-MM-DD) and WORKSHOP_CITY. The script
@@ -78,36 +78,36 @@
 
     # ------------------------------------------------------------ questions
 
-    # The repo to set up. PORTFOLIO_GITHUB_USER and PORTFOLIO_REPO answer up
-    # front; without them the script asks. The answer may be a username (the
-    # repo is then called portfolio), owner/name, a link to any page of the
-    # repo on github.com as the browser's address bar shows it, or the site's
-    # address.
+    # The repo to set up, from PORTFOLIO_GITHUB_USER and PORTFOLIO_REPO, or
+    # else from the question. The answer may be a username (the repo is then
+    # called portfolio), owner/name, a link to any page of the repo on
+    # github.com as the browser's address bar shows it, or the site's address.
+    # Case-sensitive operators and the same spaces as on Mac and Linux, so
+    # both scripts reach the same repo for the same answer.
     function Get-RepoTarget {
-        $user = "$env:PORTFOLIO_GITHUB_USER"
+        $answer = "$env:PORTFOLIO_GITHUB_USER"
         $repo = if ($env:PORTFOLIO_REPO) { $env:PORTFOLIO_REPO } else { 'portfolio' }
-        if (-not $user) { $user = Read-Host 'Paste the link to your new repo, or type your GitHub username' }
-        $answer = $user -creplace '\s', '' -creplace '[?#].*$', '' -creplace '^https?://', '' -creplace '^www\.', '' -creplace '^@', ''
-        if ($answer -cmatch '^github\.com/(.*)$') {
-            $answer = $Matches[1]
-        } elseif ($answer -cmatch '^([^/]+)\.github\.io(/([^/]*))?') {
-            # The site's address: a repo named owner.github.io has no path.
+        if (-not $answer) { $answer = Read-Host 'Paste the link to your new repo, or type your GitHub username' }
+        $link = $answer -creplace '[ \t\r]', '' -creplace '[?#].*$', '' -creplace '^https?://', '' -creplace '^www\.', '' -creplace '^@', '' -creplace '/+$', ''
+        if ($link -cmatch '^github\.com/(.*)$') { $link = $Matches[1] }
+        # The site's address, owner.github.io before the first slash; a repo
+        # named owner.github.io has no path.
+        if ($link -cmatch '^([^/]+)\.github\.io(?:/([^/]*))?(?:/.*)?$') {
             $site = $Matches[1]
-            $answer = if ($Matches[3]) { "$site/$($Matches[3])" } else { "$site/$site.github.io" }
+            $link = if ($Matches[2]) { "$site/$($Matches[2])" } else { "$site/$site.github.io" }
         }
-        $name = $answer
-        if ($answer -match '^([^/]+)/([^/]+)') {
-            $name = $Matches[1]
-            $repo = $Matches[2] -replace '\.git$', ''
+        $owner = $link
+        if ($link -cmatch '^([^/]+)/([^/]+)') {
+            $owner = $Matches[1]
+            $repo = $Matches[2] -creplace '\.git$', ''
         }
-        if ($name -notmatch '^[A-Za-z0-9-]+$' -or $repo -notmatch '^[A-Za-z0-9._-]+$' -or $repo -match '^\.\.?$') {
+        if ($owner -notmatch '^[A-Za-z0-9-]+$' -or $repo -notmatch '^[A-Za-z0-9._-]+$' -or $repo -match '^\.\.?$') {
             Write-Host ''
-            Write-Host "That does not look like a link to your repo or a GitHub username: `"$user`"."
+            Write-Host "That does not look like a link to your repo or a GitHub username: `"$answer`"."
             Write-Host 'Run this command again and paste the link to your new repo, for example: https://github.com/ada-lovelace/portfolio'
             return $null
         }
-        $user = $name
-        return @{ User = $user; Name = $repo; Dir = (Join-Path $HOME $repo); Url = "https://github.com/$user/$repo" }
+        return @{ User = $owner; Name = $repo; Dir = (Join-Path $HOME $repo); Url = "https://github.com/$owner/$repo" }
     }
 
     # --------------------------------------------------------- desktop apps
@@ -445,7 +445,7 @@
             return $true
         }
         if (-not (Test-Page $repo.Url)) {
-            Write-Todo "I could not find your repo at $($repo.Url)." "Check your username, and that you created your copy from the template, named it `"$($repo.Name)`" and made it Public. Then run this command again."
+            Write-Todo "I could not find your repo at $($repo.Url)." "Check your username and your repo's name, `"$($repo.Name)`", and that the repo is Public. Then run this command again."
             return $false
         }
         if ($state.HaveGit) {

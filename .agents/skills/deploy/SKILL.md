@@ -51,7 +51,7 @@ git add -A
 git commit -m "Publish my portfolio"
 ```
 
-If the commit says "Please tell me who you are", Git does not know a name for the commit yet. Take the GitHub username from the repo's address, which `git remote -v` shows (`https://github.com/USERNAME/portfolio.git`), and run these two commands with it. The `noreply` address keeps the person's own email address out of the public repo:
+If the commit says "Please tell me who you are", Git does not know a name for the commit yet. Take the GitHub username from the repo's address, which `git remote -v` shows (`https://github.com/USERNAME/REPO.git`, where REPO is the repo's name), and run these two commands with it. The `noreply` address keeps the person's own email address out of the public repo:
 
 ```
 git config user.name "USERNAME"

@@ -11,8 +11,8 @@
 #
 # It asks for the link to your repo on GitHub; your username alone means a
 # repo called portfolio. PORTFOLIO_GITHUB_USER and PORTFOLIO_REPO answer that
-# up front: the workshop guide's line carries them, and so do the automated
-# tests.
+# up front: the workshop guide's line carries them once you saved your
+# username in the guide, and the automated tests set them.
 #
 # In a workshop, the guide's line also names the event, in front of sh:
 # WORKSHOP_EVENT, WORKSHOP_DATE (YYYY-MM-DD) and WORKSHOP_CITY. The script
@@ -73,42 +73,45 @@ sha256_of() {
 
 # ---------------------------------------------------------------- questions
 
-# The repo to set up. PORTFOLIO_GITHUB_USER and PORTFOLIO_REPO answer up
-# front; without them the script asks. The answer may be a username (the repo
-# is then called portfolio), owner/name, a link to any page of the repo on
-# github.com as the browser's address bar shows it, or the site's address.
-ask_github_user() {
-  GH_USER=${PORTFOLIO_GITHUB_USER:-}
+# The repo to set up, from PORTFOLIO_GITHUB_USER and PORTFOLIO_REPO, or else
+# from the question. The answer may be a username (the repo is then called
+# portfolio), owner/name, a link to any page of the repo on github.com as the
+# browser's address bar shows it, or the site's address.
+ask_for_repo() {
+  ANSWER=${PORTFOLIO_GITHUB_USER:-}
   REPO=${PORTFOLIO_REPO:-portfolio}
-  if [ -z "$GH_USER" ] && (: </dev/tty) 2>/dev/null; then
+  if [ -z "$ANSWER" ] && (: </dev/tty) 2>/dev/null; then
     printf 'Paste the link to your new repo, or type your GitHub username: '
-    read -r GH_USER </dev/tty
+    read -r ANSWER </dev/tty
   fi
-  ANSWER=$GH_USER
-  answer=$(printf '%s' "$GH_USER" | tr -d ' \t\r')
-  answer=${answer%%[?#]*}
-  answer=${answer#https://}
-  answer=${answer#http://}
-  answer=${answer#www.}
-  answer=${answer#@}
-  case $answer in
-    github.com/*) answer=${answer#github.com/} ;;
-    # The site's address: a repo named owner.github.io has no path.
-    *.github.io | *.github.io/*)
-      site=${answer%%.github.io*}
-      path=${answer#*.github.io}
+  link=$(printf '%s' "$ANSWER" | tr -d ' \t\r')
+  link=${link%%[?#]*}
+  link=${link#https://}
+  link=${link#http://}
+  link=${link#www.}
+  link=${link#@}
+  while [ "${link%/}" != "$link" ]; do link=${link%/}; done
+  case $link in
+    github.com/*) link=${link#github.com/} ;;
+  esac
+  # The site's address, owner.github.io before the first slash; a repo named
+  # owner.github.io has no path.
+  case ${link%%/*} in
+    *.github.io)
+      site=${link%%.github.io*}
+      path=${link#*.github.io}
       path=${path#/}
       path=${path%%/*}
-      answer="$site/${path:-$site.github.io}"
+      link="$site/${path:-$site.github.io}"
       ;;
   esac
-  GH_USER=$answer
-  case $answer in
+  GH_USER=$link
+  case $link in
     */*)
-      REPO=${answer#*/}
+      REPO=${link#*/}
       REPO=${REPO%%/*}
       REPO=${REPO%.git}
-      GH_USER=${answer%%/*}
+      GH_USER=${link%%/*}
       ;;
   esac
   case $GH_USER in
@@ -497,7 +500,7 @@ get_repo() {
   fi
   if ! page_exists "$REPO_URL"; then
     todo "I could not find your repo at $REPO_URL." \
-      "Check your username, and that you created your copy from the template, named it \"$REPO\" and made it Public. Then run this command again."
+      "Check your username and your repo's name, \"$REPO\", and that the repo is Public. Then run this command again."
     return 1
   fi
   if [ "$HAVE_GIT" = 1 ]; then
@@ -596,7 +599,7 @@ if [ "$OS" = other ]; then
   exit 1
 fi
 
-if ! ask_github_user; then
+if ! ask_for_repo; then
   printf '\nThat does not look like a link to your repo or a GitHub username: "%s".\n' "$ANSWER"
   printf 'Run this command again and paste the link to your new repo, for example: https://github.com/ada-lovelace/portfolio\n'
   exit 1
