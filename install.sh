@@ -348,38 +348,41 @@ looks_like_the_template() {
 }
 
 # The origin of the Git folder $1, as its .git/config names it: this needs no
-# Git.
+# Git. Like Git, it reads the section and key names in any case.
 origin_of() {
   awk '
-    /^[ \t]*\[/ { inside = /^[ \t]*\[remote "origin"\]/; next }
-    inside && /^[ \t]*url[ \t]*=/ {
-      sub(/^[ \t]*url[ \t]*=[ \t]*/, "")
+    { line = tolower($0) }
+    line ~ /^[ \t]*\[/ { inside = (line ~ /^[ \t]*\[remote "origin"\]/); next }
+    inside && line ~ /^[ \t]*url[ \t]*=/ {
+      sub(/^[^=]*=[ \t]*/, "")
       sub(/[ \t\r]+$/, "")
       print
       exit
     }' "$1/.git/config" 2>/dev/null
 }
 
-# An origin as a plain address: https://github.com/owner/name for a repo on
-# GitHub, however Git wrote it (with .git at the end, as an SSH address, with
-# a name or a token in it); any other origin as it is.
+# An origin as a plain address, to compare and to show: for a repo on GitHub,
+# https://github.com/owner/name in lower case, however Git wrote it (with .git
+# at the end, as an SSH address, with a name or a token in it); any other
+# origin as it is, but without a name or a token, which must not show on the
+# screen.
 plain_address() {
-  address=$(printf '%s' "$1" | sed -e 's#/*$##' -e 's#\.git$##' -e 's#^[A-Za-z+]*://##' -e 's#^[^@/]*@##' -e 's#^github\.com:#github.com/#')
+  address=$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | sed -e 's#/*$##' -e 's#\.git$##' -e 's#^[a-z+]*://##' -e 's#^[^@/]*@##' -e 's#^github\.com:#github.com/#')
   case $address in
     github.com/*) printf 'https://%s' "$address" ;;
-    *) printf '%s' "$1" ;;
+    *) printf '%s' "$1" | sed 's#://[^@/]*@#://#' ;;
   esac
 }
 
 # Whether the origin $1 is the repo the participant named. GitHub ignores the
 # case of owner and repo names.
 is_named_repo() {
-  [ "$(plain_address "$1" | tr '[:upper:]' '[:lower:]')" = "$(printf '%s' "$REPO_URL" | tr '[:upper:]' '[:lower:]')" ]
+  [ "$(plain_address "$1")" = "$(printf '%s' "$REPO_URL" | tr '[:upper:]' '[:lower:]')" ]
 }
 
-# The repo is not the participant's copy of the Template: perhaps a live site,
-# named by mistake.
-not_a_copy() {
+# The to-do for a repo that is not the participant's copy of the Template:
+# perhaps a live site, named by mistake.
+todo_not_a_copy() {
   todo "Your repo at $REPO_URL is not a copy of the Template." \
     "Run this command again with your copy of the Template: the repo you made with Use this template, such as portfolio-2026."
 }
@@ -387,7 +390,8 @@ not_a_copy() {
 # The finished copy replaces the repo folder only if that folder is missing or
 # empty, so a half-finished run never ends up inside an existing folder. A
 # repo that is not a copy of the Template never gets there: it is removed
-# again, and the status is 2.
+# again. Status 0 when the copy is in place, 2 when the repo is not a copy of
+# the Template, 1 when the folder is in the way.
 move_into_place() {
   if ! looks_like_the_template "$REPO_DIR.partial"; then
     rm -rf "$REPO_DIR.partial"
@@ -398,6 +402,7 @@ move_into_place() {
   mv "$REPO_DIR.partial" "$REPO_DIR"
 }
 
+# Status as for move_into_place, and 1 when Git could not copy the repo.
 clone_repo() {
   rm -rf "$REPO_DIR.partial"
   GIT_TERMINAL_PROMPT=0 git clone -q "$REPO_URL.git" "$REPO_DIR.partial" || return 1
@@ -405,15 +410,24 @@ clone_repo() {
 }
 
 # A folder downloaded while Git was missing gets Git's history added; the
-# files in it, including any changes, stay as they are.
+# files in it, including any changes, stay as they are. Only the history of a
+# copy of the Template: with another repo's history, a push would overwrite
+# that repo. Status 0 when connected, 2 when the repo is not a copy of the
+# Template, 1 when Git could not get the history.
 connect_download_to_git() {
   rm -rf "$REPO_DIR.partial"
   GIT_TERMINAL_PROMPT=0 git clone -q --no-checkout "$REPO_URL.git" "$REPO_DIR.partial" || return 1
+  if ! git -C "$REPO_DIR.partial" cat-file -e HEAD:tools/check.mjs 2>/dev/null ||
+    ! git -C "$REPO_DIR.partial" cat-file -e HEAD:site/content.json 2>/dev/null; then
+    rm -rf "$REPO_DIR.partial"
+    return 2
+  fi
   mv "$REPO_DIR.partial/.git" "$REPO_DIR/.git" || return 1
   rm -rf "$REPO_DIR.partial"
   git -C "$REPO_DIR" reset -q
 }
 
+# Status as for move_into_place, and 1 when the download failed.
 download_repo() {
   fetch "$REPO_URL/archive/HEAD.tar.gz" "$WORK/repo.tar.gz" || return 1
   rm -rf "$REPO_DIR.partial"
@@ -422,11 +436,12 @@ download_repo() {
   move_into_place
 }
 
-# 1 once the repo folder holds the participant's copy of the Template: only
-# then does the script write workshop.json into it and open it.
-REPO_READY=0
+# Puts the participant's copy of the Template into the repo folder, or finds
+# it there. Status 0 when the folder holds their copy, also with a to-do about
+# Git left; 1 when the script stopped at the repo, with a to-do, and left the
+# folder as it was.
 get_repo() {
-  if [ -d "$REPO_DIR/.git" ]; then
+  if [ -e "$REPO_DIR/.git" ]; then
     origin=$(origin_of "$REPO_DIR")
     if ! is_named_repo "$origin"; then
       if [ -n "$origin" ]; then found=": $(plain_address "$origin")"; else found=", not connected to GitHub"; fi
@@ -435,12 +450,11 @@ get_repo() {
       return 1
     fi
     if ! looks_like_the_template "$REPO_DIR"; then
-      not_a_copy
       info "I left the folder $REPO_DIR as it is."
+      todo_not_a_copy
       return 1
     fi
     ok "Your repo is already in $REPO_DIR."
-    REPO_READY=1
     return 0
   fi
   if [ -d "$REPO_DIR" ] && [ -n "$(ls -A "$REPO_DIR")" ]; then
@@ -449,18 +463,18 @@ get_repo() {
         "Rename or move the folder $REPO_DIR, then run this command again."
       return 1
     fi
-    REPO_READY=1
     if [ "$HAVE_GIT" = 0 ]; then
       ok "Your repo is already in $REPO_DIR (downloaded without Git)."
       return 0
     fi
-    if connect_download_to_git; then
-      ok "Connected your repo folder to Git: $REPO_DIR"
-      return 0
-    fi
+    connect_download_to_git
+    case $? in
+      0) ok "Connected your repo folder to Git: $REPO_DIR"; return 0 ;;
+      2) todo_not_a_copy; return 1 ;;
+    esac
     todo "Your repo folder could not be connected to Git yet." \
       "Check your internet connection, then run this command again."
-    return 1
+    return 0
   fi
   if ! page_exists "$REPO_URL"; then
     todo "I could not find your repo at $REPO_URL." \
@@ -470,22 +484,27 @@ get_repo() {
   if [ "$HAVE_GIT" = 1 ]; then
     clone_repo
     case $? in
-      0) ok "Copied your repo to $REPO_DIR."; REPO_READY=1; return 0 ;;
-      2) not_a_copy; return 1 ;;
+      0) ok "Copied your repo to $REPO_DIR."; return 0 ;;
+      2) todo_not_a_copy; return 1 ;;
     esac
     info "Git could not copy your repo; downloading it instead."
   fi
   download_repo
   case $? in
-    0) ok "Downloaded your repo to $REPO_DIR (without Git for now; it gets connected once Git is installed)."; REPO_READY=1; return 0 ;;
-    2) not_a_copy; return 1 ;;
+    0) ok "Downloaded your repo to $REPO_DIR (without Git for now; it gets connected once Git is installed)."; return 0 ;;
+    2) todo_not_a_copy; return 1 ;;
   esac
   todo "Your repo could not be downloaded from $REPO_URL." \
     "Check your internet connection, then run this command again."
+  return 1
 }
 
+# 1 once the repo folder holds the participant's copy of the Template: only
+# then does the script write workshop.json into it and open it.
+HAVE_REPO=0
+
 open_in_ide() {
-  if [ -z "$IDE_APP" ] || [ "$REPO_READY" = 0 ]; then return 0; fi
+  if [ -z "$IDE_APP" ] || [ "$HAVE_REPO" = 0 ]; then return 0; fi
   if [ "$OS" = darwin ]; then
     opened=$(open -a "$IDE_APP" "$REPO_DIR" >/dev/null 2>&1 && echo yes)
   else
@@ -541,7 +560,7 @@ workshop_json() {
 # every run, and only into the participant's copy of the Template; without
 # WORKSHOP_EVENT, nothing is written.
 write_workshop() {
-  if [ -z "${WORKSHOP_EVENT:-}" ] || [ "$REPO_READY" = 0 ]; then return 0; fi
+  if [ -z "${WORKSHOP_EVENT:-}" ] || [ "$HAVE_REPO" = 0 ]; then return 0; fi
   if workshop_json 2>/dev/null >"$REPO_DIR/workshop.json"; then
     ok "Saved your workshop in workshop.json: $WORKSHOP_EVENT."
   else
@@ -574,7 +593,7 @@ ensure_node
 prepare_devtools
 
 heading "Your repo"
-get_repo
+if get_repo; then HAVE_REPO=1; fi
 write_workshop
 open_in_ide
 

@@ -27,10 +27,9 @@
     $nodeMin = 22
     $nodeHome = Join-Path $env:LOCALAPPDATA 'Programs\node'
     $next = New-Object System.Collections.Generic.List[string]
-    # RepoReady: the repo folder holds the participant's copy of the
-    # Template. Only then does the script write workshop.json into it and
-    # open it.
-    $state = @{ NewTerminal = $false; HaveGit = $false; IdeExe = $null; RepoReady = $false }
+    # HaveRepo: the repo folder holds the participant's copy of the Template.
+    # Only then does the script write workshop.json into it and open it.
+    $state = @{ NewTerminal = $false; HaveGit = $false; IdeExe = $null; HaveRepo = $false }
 
     function Write-Ok($text) { Write-Host "  [ok]    $text" -ForegroundColor Green }
     function Write-Info($text) { Write-Host "          $text" }
@@ -287,7 +286,8 @@
     }
 
     # The origin of the Git folder $dir, as its .git\config names it: this
-    # needs no Git.
+    # needs no Git. Like Git, -match reads the section and key names in any
+    # case.
     function Get-Origin($dir) {
         $inside = $false
         foreach ($line in (Get-Content (Join-Path $dir '.git\config') -ErrorAction SilentlyContinue)) {
@@ -297,13 +297,15 @@
         return ''
     }
 
-    # An origin as a plain address: https://github.com/owner/name for a repo
-    # on GitHub, however Git wrote it (with .git at the end, as an SSH
-    # address, with a name or a token in it); any other origin as it is.
+    # An origin as a plain address, to compare and to show: for a repo on
+    # GitHub, https://github.com/owner/name in lower case, however Git wrote it
+    # (with .git at the end, as an SSH address, with a name or a token in it);
+    # any other origin as it is, but without a name or a token, which must not
+    # show on the screen.
     function Get-PlainAddress($origin) {
-        $address = $origin -creplace '/+$', '' -creplace '\.git$', '' -creplace '^[A-Za-z+]*://', '' -creplace '^[^@/]*@', '' -creplace '^github\.com:', 'github.com/'
-        if ($address -clike 'github.com/*') { return "https://$address" }
-        return $origin
+        $address = $origin.ToLowerInvariant() -replace '/+$', '' -replace '\.git$', '' -replace '^[a-z+]*://', '' -replace '^[^@/]*@', '' -replace '^github\.com:', 'github.com/'
+        if ($address -like 'github.com/*') { return "https://$address" }
+        return ($origin -replace '://[^@/]*@', '://')
     }
 
     # Whether the origin is the repo the participant named. GitHub ignores
@@ -312,8 +314,8 @@
         (Get-PlainAddress $origin) -eq $repo.Url
     }
 
-    # The repo is not the participant's copy of the Template: perhaps a live
-    # site, named by mistake.
+    # The to-do for a repo that is not the participant's copy of the Template:
+    # perhaps a live site, named by mistake.
     function Write-NotACopy($repo) {
         Write-Todo "Your repo at $($repo.Url) is not a copy of the Template." 'Run this command again with your copy of the Template: the repo you made with Use this template, such as portfolio-2026.'
     }
@@ -329,7 +331,8 @@
     # The finished copy replaces the repo folder only if that folder is missing
     # or empty, so a half-finished run never ends up inside an existing folder.
     # A repo that is not a copy of the Template never gets there: it is
-    # removed again. Says 'moved', 'not a copy' or 'failed'.
+    # removed again. Says 'moved', 'not a copy', or 'failed' when the folder
+    # is in the way.
     function Move-IntoPlace($from, $repo) {
         if (-not (Test-LooksLikeTemplate $from)) {
             Remove-Item $from -Recurse -Force
@@ -343,7 +346,8 @@
         return 'moved'
     }
 
-    # Says 'moved', 'not a copy' or 'failed', as Move-IntoPlace does.
+    # Says what Move-IntoPlace says, or 'failed' when Git could not copy the
+    # repo.
     function Copy-RepoWithGit($repo) {
         $partial = "$($repo.Dir).partial"
         if (Test-Path $partial) { Remove-Item $partial -Recurse -Force }
@@ -352,17 +356,25 @@
     }
 
     # A folder downloaded while Git was missing gets Git's history added; the
-    # files in it, including any changes, stay as they are.
+    # files in it, including any changes, stay as they are. Only the history
+    # of a copy of the Template: with another repo's history, a push would
+    # overwrite that repo. Says 'connected', 'not a copy', or 'failed' when
+    # Git could not get the history.
     function Connect-DownloadToGit($repo) {
         $partial = "$($repo.Dir).partial"
         if (Test-Path $partial) { Remove-Item $partial -Recurse -Force }
-        if (-not (Invoke-Git clone -q --no-checkout "$($repo.Url).git" $partial)) { return $false }
+        if (-not (Invoke-Git clone -q --no-checkout "$($repo.Url).git" $partial)) { return 'failed' }
+        if (-not (Invoke-Git -C $partial cat-file -e HEAD:tools/check.mjs) -or -not (Invoke-Git -C $partial cat-file -e HEAD:site/content.json)) {
+            Remove-Item $partial -Recurse -Force
+            return 'not a copy'
+        }
         Move-Item (Join-Path $partial '.git') (Join-Path $repo.Dir '.git') -Force
         Remove-Item $partial -Recurse -Force
-        return (Invoke-Git -C $repo.Dir reset -q)
+        if (Invoke-Git -C $repo.Dir reset -q) { return 'connected' }
+        return 'failed'
     }
 
-    # Says 'moved', 'not a copy' or 'failed', as Move-IntoPlace does.
+    # Says what Move-IntoPlace says, or 'failed' when the download failed.
     function Copy-RepoWithoutGit($repo) {
         try {
             $work = Join-Path ([IO.Path]::GetTempPath()) "portfolio-repo-$PID"
@@ -380,6 +392,10 @@
         }
     }
 
+    # Puts the participant's copy of the Template into the repo folder, or
+    # finds it there. True when the folder holds their copy, also with a to-do
+    # about Git left; false when the script stopped at the repo, with a to-do,
+    # and left the folder as it was.
     function Get-Repo($repo) {
         $dir = $repo.Dir
         if (Test-Path (Join-Path $dir '.git')) {
@@ -387,54 +403,53 @@
             if (-not (Test-NamedRepo $origin $repo)) {
                 $found = if ($origin) { ": $(Get-PlainAddress $origin)" } else { ', not connected to GitHub' }
                 Write-Todo "The folder $dir holds another repo$found." "Rename or move the folder $dir, then run this command again."
-                return
+                return $false
             }
             if (-not (Test-LooksLikeTemplate $dir)) {
-                Write-NotACopy $repo
                 Write-Info "I left the folder $dir as it is."
-                return
+                Write-NotACopy $repo
+                return $false
             }
             Write-Ok "Your repo is already in $dir."
-            $state.RepoReady = $true
-            return
+            return $true
         }
         if ((Test-Path $dir) -and (Get-ChildItem $dir -Force | Select-Object -First 1)) {
             if (-not (Test-LooksLikeTemplate $dir)) {
                 Write-Todo "There is already a folder $dir, and it is not your portfolio repo." "Rename or move the folder $dir, then run this command again."
-                return
+                return $false
             }
-            $state.RepoReady = $true
             if (-not $state.HaveGit) {
                 Write-Ok "Your repo is already in $dir (downloaded without Git)."
-                return
+                return $true
             }
-            if (Connect-DownloadToGit $repo) {
-                Write-Ok "Connected your repo folder to Git: $dir"
-                return
+            switch (Connect-DownloadToGit $repo) {
+                'connected' { Write-Ok "Connected your repo folder to Git: $dir"; return $true }
+                'not a copy' { Write-NotACopy $repo; return $false }
             }
             Write-Todo 'Your repo folder could not be connected to Git yet.' 'Check your internet connection, then run this command again.'
-            return
+            return $true
         }
         if (-not (Test-Page $repo.Url)) {
             Write-Todo "I could not find your repo at $($repo.Url)." "Check your username, and that you created your copy from the template, named it `"$($repo.Name)`" and made it Public. Then run this command again."
-            return
+            return $false
         }
         if ($state.HaveGit) {
             switch (Copy-RepoWithGit $repo) {
-                'moved' { Write-Ok "Copied your repo to $dir."; $state.RepoReady = $true; return }
-                'not a copy' { Write-NotACopy $repo; return }
+                'moved' { Write-Ok "Copied your repo to $dir."; return $true }
+                'not a copy' { Write-NotACopy $repo; return $false }
             }
             Write-Info 'Git could not copy your repo; downloading it instead.'
         }
         switch (Copy-RepoWithoutGit $repo) {
-            'moved' { Write-Ok "Downloaded your repo to $dir (without Git for now; it gets connected once Git is installed)."; $state.RepoReady = $true; return }
-            'not a copy' { Write-NotACopy $repo; return }
+            'moved' { Write-Ok "Downloaded your repo to $dir (without Git for now; it gets connected once Git is installed)."; return $true }
+            'not a copy' { Write-NotACopy $repo; return $false }
         }
         Write-Todo "Your repo could not be downloaded from $($repo.Url)." 'Check your internet connection, then run this command again.'
+        return $false
     }
 
     function Open-InIde($repo) {
-        if (-not $state.IdeExe -or -not $state.RepoReady) { return }
+        if (-not $state.IdeExe -or -not $state.HaveRepo) { return }
         try {
             Start-Process -FilePath $state.IdeExe -ArgumentList "`"$($repo.Dir)`""
             Write-Ok 'Opened your repo in Antigravity IDE.'
@@ -450,7 +465,7 @@
     # again on every run, and only into the participant's copy of the
     # Template; without WORKSHOP_EVENT, nothing is written.
     function Save-Workshop($repo) {
-        if (-not $env:WORKSHOP_EVENT -or -not $state.RepoReady) { return }
+        if (-not $env:WORKSHOP_EVENT -or -not $state.HaveRepo) { return }
         $workshop = [ordered]@{ event = $env:WORKSHOP_EVENT }
         if ($env:WORKSHOP_DATE) { $workshop.date = $env:WORKSHOP_DATE }
         if ($env:WORKSHOP_CITY) { $workshop.city = $env:WORKSHOP_CITY }
@@ -481,7 +496,7 @@
     Install-DevToolsServer
 
     Write-Heading 'Your repo'
-    Get-Repo $repo
+    $state.HaveRepo = Get-Repo $repo
     Save-Workshop $repo
     Open-InIde $repo
 
