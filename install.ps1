@@ -27,7 +27,10 @@
     $nodeMin = 22
     $nodeHome = Join-Path $env:LOCALAPPDATA 'Programs\node'
     $next = New-Object System.Collections.Generic.List[string]
-    $state = @{ NewTerminal = $false; HaveGit = $false; IdeExe = $null }
+    # RepoReady: the repo folder holds the participant's copy of the
+    # Template. Only then does the script write workshop.json into it and
+    # open it.
+    $state = @{ NewTerminal = $false; HaveGit = $false; IdeExe = $null; RepoReady = $false }
 
     function Write-Ok($text) { Write-Host "  [ok]    $text" -ForegroundColor Green }
     function Write-Info($text) { Write-Host "          $text" }
@@ -278,8 +281,41 @@
 
     # ---------------------------------------------------------------- repo
 
+    # A copy of the Template has its Check and its content file.
     function Test-LooksLikeTemplate($dir) {
-        (Test-Path (Join-Path $dir 'tools\check.mjs')) -or (Test-Path (Join-Path $dir 'site\content.json'))
+        (Test-Path (Join-Path $dir 'tools\check.mjs')) -and (Test-Path (Join-Path $dir 'site\content.json'))
+    }
+
+    # The origin of the Git folder $dir, as its .git\config names it: this
+    # needs no Git.
+    function Get-Origin($dir) {
+        $inside = $false
+        foreach ($line in (Get-Content (Join-Path $dir '.git\config') -ErrorAction SilentlyContinue)) {
+            if ($line -match '^[ \t]*\[') { $inside = $line -match '^[ \t]*\[remote "origin"\]'; continue }
+            if ($inside -and $line -match '^[ \t]*url[ \t]*=[ \t]*(.*?)[ \t\r]*$') { return $Matches[1] }
+        }
+        return ''
+    }
+
+    # An origin as a plain address: https://github.com/owner/name for a repo
+    # on GitHub, however Git wrote it (with .git at the end, as an SSH
+    # address, with a name or a token in it); any other origin as it is.
+    function Get-PlainAddress($origin) {
+        $address = $origin -creplace '/+$', '' -creplace '\.git$', '' -creplace '^[A-Za-z+]*://', '' -creplace '^[^@/]*@', '' -creplace '^github\.com:', 'github.com/'
+        if ($address -clike 'github.com/*') { return "https://$address" }
+        return $origin
+    }
+
+    # Whether the origin is the repo the participant named. GitHub ignores
+    # the case of owner and repo names, and so does -eq.
+    function Test-NamedRepo($origin, $repo) {
+        (Get-PlainAddress $origin) -eq $repo.Url
+    }
+
+    # The repo is not the participant's copy of the Template: perhaps a live
+    # site, named by mistake.
+    function Write-NotACopy($repo) {
+        Write-Todo "Your repo at $($repo.Url) is not a copy of the Template." 'Run this command again with your copy of the Template: the repo you made with Use this template, such as portfolio-2026.'
     }
 
     function Invoke-Git {
@@ -292,19 +328,26 @@
 
     # The finished copy replaces the repo folder only if that folder is missing
     # or empty, so a half-finished run never ends up inside an existing folder.
+    # A repo that is not a copy of the Template never gets there: it is
+    # removed again. Says 'moved', 'not a copy' or 'failed'.
     function Move-IntoPlace($from, $repo) {
+        if (-not (Test-LooksLikeTemplate $from)) {
+            Remove-Item $from -Recurse -Force
+            return 'not a copy'
+        }
         if (Test-Path $repo.Dir) {
-            if (Get-ChildItem $repo.Dir -Force | Select-Object -First 1) { return $false }
+            if (Get-ChildItem $repo.Dir -Force | Select-Object -First 1) { return 'failed' }
             Remove-Item $repo.Dir -Force
         }
         Move-Item $from $repo.Dir
-        return $true
+        return 'moved'
     }
 
+    # Says 'moved', 'not a copy' or 'failed', as Move-IntoPlace does.
     function Copy-RepoWithGit($repo) {
         $partial = "$($repo.Dir).partial"
         if (Test-Path $partial) { Remove-Item $partial -Recurse -Force }
-        if (-not (Invoke-Git clone -q "$($repo.Url).git" $partial)) { return $false }
+        if (-not (Invoke-Git clone -q "$($repo.Url).git" $partial)) { return 'failed' }
         return (Move-IntoPlace $partial $repo)
     }
 
@@ -319,6 +362,7 @@
         return (Invoke-Git -C $repo.Dir reset -q)
     }
 
+    # Says 'moved', 'not a copy' or 'failed', as Move-IntoPlace does.
     function Copy-RepoWithoutGit($repo) {
         try {
             $work = Join-Path ([IO.Path]::GetTempPath()) "portfolio-repo-$PID"
@@ -332,21 +376,34 @@
             Remove-Item $work -Recurse -Force
             return $moved
         } catch {
-            return $false
+            return 'failed'
         }
     }
 
     function Get-Repo($repo) {
         $dir = $repo.Dir
         if (Test-Path (Join-Path $dir '.git')) {
+            $origin = Get-Origin $dir
+            if (-not (Test-NamedRepo $origin $repo)) {
+                $found = if ($origin) { ": $(Get-PlainAddress $origin)" } else { ', not connected to GitHub' }
+                Write-Todo "The folder $dir holds another repo$found." "Rename or move the folder $dir, then run this command again."
+                return
+            }
+            if (-not (Test-LooksLikeTemplate $dir)) {
+                Write-NotACopy $repo
+                Write-Info "I left the folder $dir as it is."
+                return
+            }
             Write-Ok "Your repo is already in $dir."
+            $state.RepoReady = $true
             return
         }
         if ((Test-Path $dir) -and (Get-ChildItem $dir -Force | Select-Object -First 1)) {
             if (-not (Test-LooksLikeTemplate $dir)) {
-                Write-Todo "There is already a folder $dir, and it is not your portfolio repo." 'Rename or move that folder, then run this command again.'
+                Write-Todo "There is already a folder $dir, and it is not your portfolio repo." "Rename or move the folder $dir, then run this command again."
                 return
             }
+            $state.RepoReady = $true
             if (-not $state.HaveGit) {
                 Write-Ok "Your repo is already in $dir (downloaded without Git)."
                 return
@@ -363,21 +420,21 @@
             return
         }
         if ($state.HaveGit) {
-            if (Copy-RepoWithGit $repo) {
-                Write-Ok "Copied your repo to $dir."
-                return
+            switch (Copy-RepoWithGit $repo) {
+                'moved' { Write-Ok "Copied your repo to $dir."; $state.RepoReady = $true; return }
+                'not a copy' { Write-NotACopy $repo; return }
             }
             Write-Info 'Git could not copy your repo; downloading it instead.'
         }
-        if (Copy-RepoWithoutGit $repo) {
-            Write-Ok "Downloaded your repo to $dir (without Git for now; it gets connected once Git is installed)."
-            return
+        switch (Copy-RepoWithoutGit $repo) {
+            'moved' { Write-Ok "Downloaded your repo to $dir (without Git for now; it gets connected once Git is installed)."; $state.RepoReady = $true; return }
+            'not a copy' { Write-NotACopy $repo; return }
         }
         Write-Todo "Your repo could not be downloaded from $($repo.Url)." 'Check your internet connection, then run this command again.'
     }
 
     function Open-InIde($repo) {
-        if (-not $state.IdeExe -or -not (Test-Path $repo.Dir)) { return }
+        if (-not $state.IdeExe -or -not $state.RepoReady) { return }
         try {
             Start-Process -FilePath $state.IdeExe -ArgumentList "`"$($repo.Dir)`""
             Write-Ok 'Opened your repo in Antigravity IDE.'
@@ -390,9 +447,10 @@
 
     # The event this laptop is set up for, as the guide's line names it, saved
     # in workshop.json in the repo: the Analyst adds it to the site. Written
-    # again on every run; without WORKSHOP_EVENT, nothing is written.
+    # again on every run, and only into the participant's copy of the
+    # Template; without WORKSHOP_EVENT, nothing is written.
     function Save-Workshop($repo) {
-        if (-not $env:WORKSHOP_EVENT -or -not (Test-LooksLikeTemplate $repo.Dir)) { return }
+        if (-not $env:WORKSHOP_EVENT -or -not $state.RepoReady) { return }
         $workshop = [ordered]@{ event = $env:WORKSHOP_EVENT }
         if ($env:WORKSHOP_DATE) { $workshop.date = $env:WORKSHOP_DATE }
         if ($env:WORKSHOP_CITY) { $workshop.city = $env:WORKSHOP_CITY }
