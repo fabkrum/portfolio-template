@@ -160,6 +160,54 @@ jobs:
         run: >
           WORKSHOP_EVENT="DevFest Milano 2026" WORKSHOP_DATE=2026-10-10 WORKSHOP_CITY=Milan
           bash under-test/tests/install/assert-ready.sh "$HOME/$PORTFOLIO_REPO" "$ORIGIN"
+      # A repo that is not a copy of the Template, such as a live site the
+      # participant named by mistake: here GitHub's own sample repo. Git
+      # copies it, and the script stops before it reaches the home folder.
+      - name: Fourth run, with a repo that is not a copy of the Template
+        run: >
+          wget -qO- "$INSTALL_URL"
+          | PORTFOLIO_GITHUB_USER=octocat PORTFOLIO_REPO=Hello-World WORKSHOP_EVENT="$EVENT" sh 2>&1
+          | tee "$RUNNER_TEMP/fourth-run.log"
+      - name: Fourth run stopped at the repo and left nothing behind
+        run: |
+          bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/fourth-run.log" \
+            "Your repo at https://github.com/octocat/Hello-World is not a copy of the Template." "Run this command again any time"
+          bash under-test/tests/install/assert-stopped.sh "$RUNNER_TEMP/fourth-run.log" "$HOME/Hello-World"
+      # The same repo, already in the home folder, like a live site the
+      # participant cloned there before the workshop: the script leaves it
+      # as it is, workshop.json included.
+      - name: The repo that is not a copy is in the home folder already
+        run: |
+          git clone -q https://github.com/octocat/Hello-World.git "$HOME/Hello-World"
+          git -C "$HOME/Hello-World" rev-parse HEAD > "$RUNNER_TEMP/hello-world-commit"
+      - name: Fifth run, with that folder in place
+        run: >
+          wget -qO- "$INSTALL_URL"
+          | PORTFOLIO_GITHUB_USER=octocat PORTFOLIO_REPO=Hello-World WORKSHOP_EVENT="$EVENT" sh 2>&1
+          | tee "$RUNNER_TEMP/fifth-run.log"
+      - name: Fifth run stopped at the repo and left the folder as it was
+        run: |
+          bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/fifth-run.log" \
+            "Your repo at https://github.com/octocat/Hello-World is not a copy of the Template." "I left the folder $HOME/Hello-World as it is."
+          bash under-test/tests/install/assert-stopped.sh "$RUNNER_TEMP/fifth-run.log" "$HOME/Hello-World" "$(cat "$RUNNER_TEMP/hello-world-commit")"
+      # A folder of that name that holds another repo, even a copy of the
+      # Template: someone else's, or one named by mistake. The script names
+      # it and leaves it as it is.
+      - name: The folder holds another repo
+        run: |
+          rm -rf "$HOME/Hello-World"
+          git clone -q "$ORIGIN" "$HOME/Hello-World"
+          git -C "$HOME/Hello-World" rev-parse HEAD > "$RUNNER_TEMP/another-repo-commit"
+      - name: Sixth run, with the other repo in that folder
+        run: >
+          wget -qO- "$INSTALL_URL"
+          | PORTFOLIO_GITHUB_USER=octocat PORTFOLIO_REPO=Hello-World WORKSHOP_EVENT="$EVENT" sh 2>&1
+          | tee "$RUNNER_TEMP/sixth-run.log"
+      - name: Sixth run named the other repo and left the folder as it was
+        run: |
+          bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/sixth-run.log" \
+            "The folder $HOME/Hello-World holds another repo: ${ORIGIN%.git}." "Rename or move the folder $HOME/Hello-World, then run this command again."
+          bash under-test/tests/install/assert-stopped.sh "$RUNNER_TEMP/sixth-run.log" "$HOME/Hello-World" "$(cat "$RUNNER_TEMP/another-repo-commit")"
 
   install-macos:
     if: github.repository == 'fabkrum/portfolio-template'
@@ -207,6 +255,19 @@ jobs:
         run: >
           WORKSHOP_EVENT="$EVENT" WORKSHOP_DATE="$EVENT_DATE" WORKSHOP_CITY="$EVENT_CITY"
           bash under-test/tests/install/assert-ready.sh "$HOME/$PORTFOLIO_REPO" "$ORIGIN" --without-git
+      # Without Git the script downloads a repo instead of copying it with
+      # Git, and checks the download the same way: GitHub's sample repo is no
+      # copy of the Template.
+      - name: Without Git, a repo that is not a copy of the Template
+        run: >
+          curl -fsSL "$INSTALL_URL"
+          | PATH="$RUNNER_TEMP/fresh-mac:$PATH" PORTFOLIO_GITHUB_USER=octocat PORTFOLIO_REPO=Hello-World WORKSHOP_EVENT="$EVENT" sh 2>&1
+          | tee "$RUNNER_TEMP/not-a-copy.log"
+      - name: It stopped at the repo and left nothing behind
+        run: |
+          bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/not-a-copy.log" \
+            "Your repo at https://github.com/octocat/Hello-World is not a copy of the Template." "Run this command again any time"
+          bash under-test/tests/install/assert-stopped.sh "$RUNNER_TEMP/not-a-copy.log" "$HOME/Hello-World"
       # The README's line, without an event: workshop.json stays as it was.
       - name: Second run (developer tools now installed)
         run: curl -fsSL "$INSTALL_URL" | sh 2>&1 | tee "$RUNNER_TEMP/second-run.log"
@@ -270,11 +331,29 @@ jobs:
       - name: "With winget: ready after the first run, and no workshop.json (the line named no event)"
         if: matrix.winget == 'present'
         run: under-test/tests/install/assert-ready.ps1 -RepoDir "$HOME\$env:PORTFOLIO_REPO" -Origin $env:ORIGIN
+      # pwsh fails a step only on its last command's exit code: each check
+      # but the last stops the step itself.
       - name: "Without winget: told about Git, downloaded the repo, Node from nodejs.org, and no workshop.json"
         if: matrix.winget == 'missing'
         run: |
           under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\first-run.log" -Message 'Git could not be installed', 'Downloading Node from nodejs.org'
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
           under-test/tests/install/assert-ready.ps1 -RepoDir "$HOME\$env:PORTFOLIO_REPO" -Origin $env:ORIGIN -WithoutGit
+      # Without Git the script downloads a repo instead of copying it with
+      # Git, and checks the download the same way: GitHub's sample repo is no
+      # copy of the Template. winget stays hidden, so Git stays missing.
+      - name: "Without winget: a repo that is not a copy of the Template, downloaded without Git"
+        if: matrix.winget == 'missing'
+        run: |
+          $env:Path = "$env:RUNNER_TEMP\no-winget;$env:Path"
+          $env:PORTFOLIO_GITHUB_USER = 'octocat'; $env:PORTFOLIO_REPO = 'Hello-World'; $env:WORKSHOP_EVENT = $env:EVENT
+          powershell.exe -NoProfile -ExecutionPolicy Restricted -Command "irm $env:INSTALL_URL | iex" *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\not-a-copy.log"
+      - name: "Without winget: it stopped at the repo and left nothing behind"
+        if: matrix.winget == 'missing'
+        run: |
+          under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\not-a-copy.log" -Message 'Your repo at https://github.com/octocat/Hello-World is not a copy of the Template.', 'Run this command again any time'
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          under-test/tests/install/assert-stopped.ps1 -Log "$env:RUNNER_TEMP\not-a-copy.log" -RepoDir "$HOME\Hello-World"
       # The workshop guide's line sets the event in the window, then runs irm.
       - name: Second run, from the workshop guide (winget available again in the missing case)
         run: |
@@ -300,3 +379,59 @@ jobs:
       - name: Third run said QA works without it, and finished
         if: matrix.winget == 'present'
         run: under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\third-run.log" -Message 'Downloading Chrome DevTools for agents', 'the QA role works without it', 'Run this command again any time'
+      # A repo that is not a copy of the Template, such as a live site the
+      # participant named by mistake: here GitHub's own sample repo. Git
+      # copies it, and the script stops before it reaches the home folder.
+      - name: Fourth run, with a repo that is not a copy of the Template
+        if: matrix.winget == 'present'
+        run: |
+          $env:PORTFOLIO_GITHUB_USER = 'octocat'; $env:PORTFOLIO_REPO = 'Hello-World'; $env:WORKSHOP_EVENT = $env:EVENT
+          powershell.exe -NoProfile -ExecutionPolicy Restricted -Command "irm $env:INSTALL_URL | iex" *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\fourth-run.log"
+      - name: Fourth run stopped at the repo and left nothing behind
+        if: matrix.winget == 'present'
+        run: |
+          under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\fourth-run.log" -Message 'Your repo at https://github.com/octocat/Hello-World is not a copy of the Template.', 'Run this command again any time'
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          under-test/tests/install/assert-stopped.ps1 -Log "$env:RUNNER_TEMP\fourth-run.log" -RepoDir "$HOME\Hello-World"
+      # The same repo, already in the home folder, like a live site the
+      # participant cloned there before the workshop: the script leaves it
+      # as it is, workshop.json included. Git comes from the first run.
+      - name: The repo that is not a copy is in the home folder already
+        if: matrix.winget == 'present'
+        run: |
+          $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
+          git clone -q https://github.com/octocat/Hello-World.git "$HOME\Hello-World"
+          git -C "$HOME\Hello-World" rev-parse HEAD | Set-Content "$env:RUNNER_TEMP\hello-world-commit"
+      - name: Fifth run, with that folder in place
+        if: matrix.winget == 'present'
+        run: |
+          $env:PORTFOLIO_GITHUB_USER = 'octocat'; $env:PORTFOLIO_REPO = 'Hello-World'; $env:WORKSHOP_EVENT = $env:EVENT
+          powershell.exe -NoProfile -ExecutionPolicy Restricted -Command "irm $env:INSTALL_URL | iex" *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\fifth-run.log"
+      - name: Fifth run stopped at the repo and left the folder as it was
+        if: matrix.winget == 'present'
+        run: |
+          under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\fifth-run.log" -Message 'Your repo at https://github.com/octocat/Hello-World is not a copy of the Template.', "I left the folder $HOME\Hello-World as it is."
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          under-test/tests/install/assert-stopped.ps1 -Log "$env:RUNNER_TEMP\fifth-run.log" -RepoDir "$HOME\Hello-World" -Commit (Get-Content "$env:RUNNER_TEMP\hello-world-commit")
+      # A folder of that name that holds another repo, even a copy of the
+      # Template: someone else's, or one named by mistake. The script names
+      # it and leaves it as it is.
+      - name: The folder holds another repo
+        if: matrix.winget == 'present'
+        run: |
+          $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
+          Remove-Item "$HOME\Hello-World" -Recurse -Force
+          git clone -q $env:ORIGIN "$HOME\Hello-World"
+          git -C "$HOME\Hello-World" rev-parse HEAD | Set-Content "$env:RUNNER_TEMP\another-repo-commit"
+      - name: Sixth run, with the other repo in that folder
+        if: matrix.winget == 'present'
+        run: |
+          $env:PORTFOLIO_GITHUB_USER = 'octocat'; $env:PORTFOLIO_REPO = 'Hello-World'; $env:WORKSHOP_EVENT = $env:EVENT
+          powershell.exe -NoProfile -ExecutionPolicy Restricted -Command "irm $env:INSTALL_URL | iex" *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\sixth-run.log"
+      - name: Sixth run named the other repo and left the folder as it was
+        if: matrix.winget == 'present'
+        run: |
+          $other = $env:ORIGIN -replace '\.git$', ''
+          under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\sixth-run.log" -Message "The folder $HOME\Hello-World holds another repo: $other.", "Rename or move the folder $HOME\Hello-World, then run this command again."
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          under-test/tests/install/assert-stopped.ps1 -Log "$env:RUNNER_TEMP\sixth-run.log" -RepoDir "$HOME\Hello-World" -Commit (Get-Content "$env:RUNNER_TEMP\another-repo-commit")

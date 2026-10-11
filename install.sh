@@ -342,13 +342,57 @@ prepare_devtools() {
 
 # -------------------------------------------------------------------- repo
 
+# A copy of the Template has its Check and its content file.
 looks_like_the_template() {
-  [ -f "$1/tools/check.mjs" ] || [ -f "$1/site/content.json" ]
+  [ -f "$1/tools/check.mjs" ] && [ -f "$1/site/content.json" ]
+}
+
+# The origin of the Git folder $1, as its .git/config names it: this needs no
+# Git.
+origin_of() {
+  awk '
+    /^[ \t]*\[/ { inside = /^[ \t]*\[remote "origin"\]/; next }
+    inside && /^[ \t]*url[ \t]*=/ {
+      sub(/^[ \t]*url[ \t]*=[ \t]*/, "")
+      sub(/[ \t\r]+$/, "")
+      print
+      exit
+    }' "$1/.git/config" 2>/dev/null
+}
+
+# An origin as a plain address: https://github.com/owner/name for a repo on
+# GitHub, however Git wrote it (with .git at the end, as an SSH address, with
+# a name or a token in it); any other origin as it is.
+plain_address() {
+  address=$(printf '%s' "$1" | sed -e 's#/*$##' -e 's#\.git$##' -e 's#^[A-Za-z+]*://##' -e 's#^[^@/]*@##' -e 's#^github\.com:#github.com/#')
+  case $address in
+    github.com/*) printf 'https://%s' "$address" ;;
+    *) printf '%s' "$1" ;;
+  esac
+}
+
+# Whether the origin $1 is the repo the participant named. GitHub ignores the
+# case of owner and repo names.
+is_named_repo() {
+  [ "$(plain_address "$1" | tr '[:upper:]' '[:lower:]')" = "$(printf '%s' "$REPO_URL" | tr '[:upper:]' '[:lower:]')" ]
+}
+
+# The repo is not the participant's copy of the Template: perhaps a live site,
+# named by mistake.
+not_a_copy() {
+  todo "Your repo at $REPO_URL is not a copy of the Template." \
+    "Run this command again with your copy of the Template: the repo you made with Use this template, such as portfolio-2026."
 }
 
 # The finished copy replaces the repo folder only if that folder is missing or
-# empty, so a half-finished run never ends up inside an existing folder.
+# empty, so a half-finished run never ends up inside an existing folder. A
+# repo that is not a copy of the Template never gets there: it is removed
+# again, and the status is 2.
 move_into_place() {
+  if ! looks_like_the_template "$REPO_DIR.partial"; then
+    rm -rf "$REPO_DIR.partial"
+    return 2
+  fi
   rmdir "$REPO_DIR" 2>/dev/null
   if [ -e "$REPO_DIR" ]; then return 1; fi
   mv "$REPO_DIR.partial" "$REPO_DIR"
@@ -378,17 +422,34 @@ download_repo() {
   move_into_place
 }
 
+# 1 once the repo folder holds the participant's copy of the Template: only
+# then does the script write workshop.json into it and open it.
+REPO_READY=0
 get_repo() {
   if [ -d "$REPO_DIR/.git" ]; then
+    origin=$(origin_of "$REPO_DIR")
+    if ! is_named_repo "$origin"; then
+      if [ -n "$origin" ]; then found=": $(plain_address "$origin")"; else found=", not connected to GitHub"; fi
+      todo "The folder $REPO_DIR holds another repo$found." \
+        "Rename or move the folder $REPO_DIR, then run this command again."
+      return 1
+    fi
+    if ! looks_like_the_template "$REPO_DIR"; then
+      not_a_copy
+      info "I left the folder $REPO_DIR as it is."
+      return 1
+    fi
     ok "Your repo is already in $REPO_DIR."
+    REPO_READY=1
     return 0
   fi
   if [ -d "$REPO_DIR" ] && [ -n "$(ls -A "$REPO_DIR")" ]; then
     if ! looks_like_the_template "$REPO_DIR"; then
       todo "There is already a folder $REPO_DIR, and it is not your portfolio repo." \
-        "Rename or move that folder, then run this command again."
+        "Rename or move the folder $REPO_DIR, then run this command again."
       return 1
     fi
+    REPO_READY=1
     if [ "$HAVE_GIT" = 0 ]; then
       ok "Your repo is already in $REPO_DIR (downloaded without Git)."
       return 0
@@ -407,22 +468,24 @@ get_repo() {
     return 1
   fi
   if [ "$HAVE_GIT" = 1 ]; then
-    if clone_repo; then
-      ok "Copied your repo to $REPO_DIR."
-      return 0
-    fi
+    clone_repo
+    case $? in
+      0) ok "Copied your repo to $REPO_DIR."; REPO_READY=1; return 0 ;;
+      2) not_a_copy; return 1 ;;
+    esac
     info "Git could not copy your repo; downloading it instead."
   fi
-  if download_repo; then
-    ok "Downloaded your repo to $REPO_DIR (without Git for now; it gets connected once Git is installed)."
-    return 0
-  fi
+  download_repo
+  case $? in
+    0) ok "Downloaded your repo to $REPO_DIR (without Git for now; it gets connected once Git is installed)."; REPO_READY=1; return 0 ;;
+    2) not_a_copy; return 1 ;;
+  esac
   todo "Your repo could not be downloaded from $REPO_URL." \
     "Check your internet connection, then run this command again."
 }
 
 open_in_ide() {
-  if [ -z "$IDE_APP" ] || [ ! -d "$REPO_DIR" ]; then return 0; fi
+  if [ -z "$IDE_APP" ] || [ "$REPO_READY" = 0 ]; then return 0; fi
   if [ "$OS" = darwin ]; then
     opened=$(open -a "$IDE_APP" "$REPO_DIR" >/dev/null 2>&1 && echo yes)
   else
@@ -475,9 +538,10 @@ workshop_json() {
 
 # The event this laptop is set up for, as the guide's line names it, saved in
 # workshop.json in the repo: the Analyst adds it to the site. Written again on
-# every run; without WORKSHOP_EVENT, nothing is written.
+# every run, and only into the participant's copy of the Template; without
+# WORKSHOP_EVENT, nothing is written.
 write_workshop() {
-  if [ -z "${WORKSHOP_EVENT:-}" ] || ! looks_like_the_template "$REPO_DIR"; then return 0; fi
+  if [ -z "${WORKSHOP_EVENT:-}" ] || [ "$REPO_READY" = 0 ]; then return 0; fi
   if workshop_json 2>/dev/null >"$REPO_DIR/workshop.json"; then
     ok "Saved your workshop in workshop.json: $WORKSHOP_EVENT."
   else
