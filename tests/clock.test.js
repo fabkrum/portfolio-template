@@ -85,7 +85,8 @@ test("the clock writes only workshop-clock.json, which Git ignores", async () =>
   await withRepo(async (dir) => {
     await startRole(dir, "developer", at(17, 1));
     assert.deepEqual(JSON.parse(await readFile(join(dir, CLOCK_FILE), "utf8")), { role: "developer", startedAt: at(17, 1).toISOString() });
-    const ignored = (await readFile(join(templateDir, ".gitignore"), "utf8")).split("\n");
+    // Git for Windows checks files out with CRLF line endings.
+    const ignored = (await readFile(join(templateDir, ".gitignore"), "utf8")).split(/\r?\n/);
     assert.ok(ignored.includes(`/${CLOCK_FILE}`));
   });
 });
@@ -155,11 +156,11 @@ test("AGENTS.md says how to read the pace, and every Role skill starts its clock
     const skill = await readFile(join(templateDir, ".agents", "skills", SKILL_OF[role], "SKILL.md"), "utf8");
     const clock = skill.split("## The clock")[1]?.split("\n## ")[0] ?? "";
     assert.ok(clock, `${role}: a section "The clock"`);
-    assert.ok(clock.includes(`node tools/clock.mjs start ${role}\n`), `${role}: starts its clock`);
+    assert.match(clock, new RegExp(`node tools/clock\\.mjs start ${role}\\r?\\n`), `${role}: starts its clock`);
     assert.match(clock, /`AGENTS\.md`, under "The Role clock"/, `${role}: points at the rules`);
     assert.match(clock, /This Role's must-do: /, `${role}: names its must-do`);
     for (const step of steps) {
-      const row = clock.split("\n").find((line) => line.startsWith(`| \`${step.id}\` |`));
+      const row = clock.split(/\r?\n/).find((line) => line.startsWith(`| \`${step.id}\` |`));
       assert.ok(row, `${role}: a row for ${step.id}`);
       assert.ok(row.includes(step.tool ? `node tools/${step.tool}.mjs` : `node tools/clock.mjs status ${step.id}`), `${role}: where ${step.id}'s pace comes from`);
     }
