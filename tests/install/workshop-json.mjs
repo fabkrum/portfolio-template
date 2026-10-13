@@ -11,12 +11,12 @@ import { join } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 
 const file = join(process.argv[2], "workshop.json");
-const { WORKSHOP_EVENT: event, WORKSHOP_DATE: date, WORKSHOP_CITY: city } = process.env;
+const { WORKSHOP_EVENT: event, WORKSHOP_DATE: date, WORKSHOP_CITY: city, WORKSHOP_START: start, WORKSHOP_END: end } = process.env;
 
 // What was expected, and what was found instead (null if it was right).
 function check() {
   if (!event) return { expected: "no workshop.json without an event", instead: existsSync(file) ? "there is one" : null };
-  const values = { event, ...(date && { date }), ...(city && { city }) };
+  const values = { event, ...(date && { date }), ...(city && { city }), ...(start && { start }), ...(end && { end }) };
   const expected = `workshop.json holds exactly ${JSON.stringify(values)}`;
   if (!existsSync(file)) return { expected, instead: "there is none" };
   const bytes = readFileSync(file);

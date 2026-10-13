@@ -16,6 +16,16 @@ The site is built by five roles, always in this order. Each role has a skill in 
 - One role per chat. When a role is finished, tell the person to start a fresh chat for the next role. A fresh chat keeps your context clean.
 - **Optional modules** come after the five roles: a section for YouTube videos, podcasts, a blog, resources or project ideas, added with the skill `portfolio-add-module`. One module per chat. When the person asks to add a section or something more to their site, that is this skill. A change to the legal page later, such as an address, a VAT number, a phone number or a translation, is the skill `legal`.
 
+## The Role clock
+
+Each role starts its clock before its first message, as its skill says: `node tools/clock.mjs start <role>`. The clock says how much time the role has. At the steps the skill names, a line that starts with `Pace:` says how the time is going: **time to spare**, **on plan**, **short on time**, or **at home**. Choose how deep to go from it:
+
+- **on plan** or **at home**: the normal path, as the skill describes it.
+- **time to spare**: the normal path, then offer one stretch from the skill's table, as an offer the person may turn down: "We have time to spare. Want to … ? It's optional." One offer at a time, and only when the step is done.
+- **short on time**: take the shortcut in the skill's table. Do more of the work yourself, say in one sentence what you do and why, and leave out what is optional.
+
+Whatever the pace, the role ends with its must-do, which the next role builds on. Talk about the time, never about the person: never tell them they are slow or behind, say for example "Let's keep this short, so you're ready for the Designer." If the clock command fails, or prints no `Pace:` line, take the normal path and say nothing about time.
+
 ## Fell behind? Checkpoints
 
 The room works through the roles together, one block per role. When the person fell behind, is lost or wants to catch up, or asks for a checkpoint, use the skill `checkpoint`. It runs one command, with the role whose block the room has just finished, that brings the site to the end of that block and keeps the person's own content file, design brief and spec:

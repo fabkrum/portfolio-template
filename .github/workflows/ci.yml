@@ -130,16 +130,16 @@ jobs:
       - name: Second run, from the workshop guide, answering the question in a terminal
         run: >
           printf '%s\n' "https://github.com/$PORTFOLIO_GITHUB_USER/$PORTFOLIO_REPO"
-          | env -u PORTFOLIO_GITHUB_USER -u PORTFOLIO_REPO script -qec 'wget -qO- "$INSTALL_URL" | WORKSHOP_EVENT="$EVENT" WORKSHOP_DATE="$EVENT_DATE" WORKSHOP_CITY="$EVENT_CITY" sh' /dev/null
+          | env -u PORTFOLIO_GITHUB_USER -u PORTFOLIO_REPO script -qec 'wget -qO- "$INSTALL_URL" | WORKSHOP_EVENT="$EVENT" WORKSHOP_DATE="$EVENT_DATE" WORKSHOP_CITY="$EVENT_CITY" WORKSHOP_START=11:45 WORKSHOP_END=13:15 sh' /dev/null
           | tee "$RUNNER_TEMP/second-run.log"
       - name: Second run asked, then found everything in place and saved the event
         run: >
           bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/second-run.log"
           "What is your GitHub username?" "Chrome DevTools for agents is ready"
           "Your repo is already in" "Saved your workshop in workshop.json" "Run this command again any time"
-      - name: Still ready after the second run, with the event in workshop.json
+      - name: Still ready after the second run, with the event and its times in workshop.json
         run: >
-          WORKSHOP_EVENT="$EVENT" WORKSHOP_DATE="$EVENT_DATE" WORKSHOP_CITY="$EVENT_CITY"
+          WORKSHOP_EVENT="$EVENT" WORKSHOP_DATE="$EVENT_DATE" WORKSHOP_CITY="$EVENT_CITY" WORKSHOP_START=11:45 WORKSHOP_END=13:15
           bash under-test/tests/install/assert-ready.sh "$HOME/$PORTFOLIO_REPO" "$ORIGIN"
       # No npm registry and nothing in npm's cache: Chrome DevTools for agents
       # cannot be had, and the script says so and carries on to the end. The

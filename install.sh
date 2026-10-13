@@ -14,7 +14,9 @@
 #
 # In a workshop, the guide's line also names the event, in front of sh:
 # WORKSHOP_EVENT, WORKSHOP_DATE (YYYY-MM-DD) and WORKSHOP_CITY. The script
-# saves them in workshop.json in your repo, where the Analyst finds them:
+# saves them in workshop.json in your repo, where the Analyst finds them.
+# WORKSHOP_START and WORKSHOP_END (HH:MM), when the line names them, let the
+# Role clock follow the room (tools/clock.mjs):
 #
 #   ... | WORKSHOP_EVENT="DevFest Milano 2026" WORKSHOP_DATE=2026-10-10 WORKSHOP_CITY=Milan sh
 
@@ -464,12 +466,15 @@ json_string() {
     END { printf "%s", "\"" }'
 }
 
-# The content of workshop.json: the event, and its date and city if the line
-# names them.
+# The content of workshop.json: the event, and its date, city, start and end
+# if the line names them. The start and end (HH:MM) let the Role clock follow
+# the room (tools/clock.mjs).
 workshop_json() {
   printf '{\n  "event": %s' "$(json_string "$WORKSHOP_EVENT")"
   if [ -n "${WORKSHOP_DATE:-}" ]; then printf ',\n  "date": %s' "$(json_string "$WORKSHOP_DATE")"; fi
   if [ -n "${WORKSHOP_CITY:-}" ]; then printf ',\n  "city": %s' "$(json_string "$WORKSHOP_CITY")"; fi
+  if [ -n "${WORKSHOP_START:-}" ]; then printf ',\n  "start": %s' "$(json_string "$WORKSHOP_START")"; fi
+  if [ -n "${WORKSHOP_END:-}" ]; then printf ',\n  "end": %s' "$(json_string "$WORKSHOP_END")"; fi
   printf '\n}\n'
 }
 

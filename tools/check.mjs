@@ -10,6 +10,7 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runCheck } from "./check/run-check.mjs";
+import { clockFooter } from "./clock/clock.mjs";
 
 const ATTENTION = "NEEDS ATTENTION";
 const PASS = "PASS".padEnd(ATTENTION.length);
@@ -50,5 +51,9 @@ try {
   console.log(`The Check itself ran into a problem: ${error.message}`);
 }
 console.log("This Check only reports. It never stops you from publishing.");
+// The Role clock's lines, when a Role's clock runs and this ends one of its
+// steps (tools/clock/clock.mjs).
+const clockLines = await clockFooter(fileURLToPath(new URL("..", import.meta.url)), "check");
+if (clockLines) console.log(clockLines);
 // Always 0: the Check reports, it never gates.
 process.exitCode = 0;

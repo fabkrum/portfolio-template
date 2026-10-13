@@ -12,7 +12,9 @@
 #
 # In a workshop, the guide's line also names the event, before irm:
 # WORKSHOP_EVENT, WORKSHOP_DATE (YYYY-MM-DD) and WORKSHOP_CITY. The script
-# saves them in workshop.json in your repo, where the Analyst finds them:
+# saves them in workshop.json in your repo, where the Analyst finds them.
+# WORKSHOP_START and WORKSHOP_END (HH:MM), when the line names them, let the
+# Role clock follow the room (tools/clock.mjs):
 #
 #   $env:WORKSHOP_EVENT="DevFest Milano 2026"; $env:WORKSHOP_DATE="2026-10-10"; $env:WORKSHOP_CITY="Milan"; irm ... | iex
 #
@@ -396,6 +398,9 @@
         $workshop = [ordered]@{ event = $env:WORKSHOP_EVENT }
         if ($env:WORKSHOP_DATE) { $workshop.date = $env:WORKSHOP_DATE }
         if ($env:WORKSHOP_CITY) { $workshop.city = $env:WORKSHOP_CITY }
+        # The start and end (HH:MM) let the Role clock follow the room.
+        if ($env:WORKSHOP_START) { $workshop.start = $env:WORKSHOP_START }
+        if ($env:WORKSHOP_END) { $workshop.end = $env:WORKSHOP_END }
         try {
             # ConvertTo-Json escapes what JSON needs. The file is UTF-8 without
             # a byte order mark: Set-Content in Windows PowerShell would write

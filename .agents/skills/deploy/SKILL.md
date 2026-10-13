@@ -17,6 +17,22 @@ Start with this message, in these words:
 
 Find out which operating system this is before you run the first command, as `AGENTS.md` says. Every command below is the same on every operating system. Run each one on its own, never chained.
 
+## The clock
+
+Before your first message, run this command. It is the same on every operating system:
+
+```
+node tools/clock.mjs start ops
+```
+
+It prints one line, for example "Clock started: Ops, at 17:34. 8 minutes, until 17:42. The room's plan: the next Block at 17:41." Put the time into your first message, in one short sentence: "We have 8 minutes for this, until 17:42." When it says that nothing hurries the person, they are at home: say nothing about time.
+
+How to read the pace is in `AGENTS.md`, under "The Role clock". This Role's must-do: the site live, when `node tools/live.mjs` says "Your site is live": the room's gallery shows it. Where the pace comes from at each step, and what to offer or cut:
+
+| Step | Where the pace comes from | Time to spare: offer one stretch | Short on time: the shortcut |
+|---|---|---|---|
+| `live` | the end of `node tools/live.mjs` | First: share the link now, on the workshop guide's Ops page under "Share your link", so the site makes it into the room's gallery. Then: put the site's address into the About box of the repo on GitHub, so visitors of the repo find it. | Hand over in three sentences: the address, that the site is live, and to share the link on the guide's Ops page. |
+
 ## 1. See what will be published
 
 Run:
