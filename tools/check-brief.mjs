@@ -12,6 +12,7 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { briefNotes, checkBrief } from "./brief/check-brief.mjs";
 import { bundledFonts } from "./fonts/bundled-fonts.mjs";
+import { clockFooter } from "./clock/clock.mjs";
 
 const repoDir = fileURLToPath(new URL("..", import.meta.url));
 const shownPath = process.argv[2] ?? "design/brief.md";
@@ -38,5 +39,9 @@ try {
       : `The brief could not be read: ${error.message}`,
   );
 }
+// The Role clock's lines, when a Role's clock runs and this ends one of its
+// steps (tools/clock/clock.mjs).
+const clockLines = await clockFooter(repoDir, "check-brief");
+if (clockLines) console.log(clockLines);
 // Always 0: this reports, it never gates.
 process.exitCode = 0;

@@ -10,6 +10,7 @@
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { customDomain, githubRepo, pagesAddress } from "./build/public-address.mjs";
+import { clockFooter } from "./clock/clock.mjs";
 
 const repoDir = fileURLToPath(new URL("..", import.meta.url));
 const siteDir = fileURLToPath(new URL("../site", import.meta.url));
@@ -158,5 +159,9 @@ try {
 } catch (error) {
   console.log(`Could not find out whether your site is live: ${error.message}`);
 }
+// The Role clock's lines, when a Role's clock runs and this ends one of its
+// steps (tools/clock/clock.mjs).
+const clockLines = await clockFooter(repoDir, "live");
+if (clockLines) console.log(clockLines);
 // Always 0: this reports, it never gates.
 process.exitCode = 0;

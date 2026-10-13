@@ -15,6 +15,7 @@ import { fileURLToPath } from "node:url";
 import { BuildError } from "./build/build-site.mjs";
 import { findChrome } from "./check/chrome.mjs";
 import { GOOD, lookAtSite } from "./look/look-at-site.mjs";
+import { clockFooter } from "./clock/clock.mjs";
 
 const ATTENTION = "NEEDS ATTENTION";
 const PASS = "PASS".padEnd(ATTENTION.length);
@@ -74,4 +75,8 @@ try {
   );
 }
 console.log("\nThis only reports. It never stops you from publishing.");
+// The Role clock's lines, when a Role's clock runs and this ends one of its
+// steps (tools/clock/clock.mjs).
+const clockLines = await clockFooter(fileURLToPath(new URL("..", import.meta.url)), "look");
+if (clockLines) console.log(clockLines);
 process.exitCode = 0;

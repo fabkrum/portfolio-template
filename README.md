@@ -136,12 +136,13 @@ Once your site is live, you can add Optional modules: a section for YouTube vide
 - `tools/legal.mjs` – writes your legal page, `site/privacy.html`, from your content file.
 - `tools/checkpoint.mjs` – jumps to a checkpoint.
 - `tools/where.mjs` – which roles are done and which comes next. Ask your agent "Where am I?" and it runs it for you.
+- `tools/clock.mjs` – the Role clock. Each role's agent runs `node tools/clock.mjs start <role>` when it starts, and learns at each step how the time is going: with time to spare, it offers you an optional extra; short on time, it takes the shortcuts and does more of the work itself, so you still finish the role in time. `tools/clock/plan.json` holds each role's minutes and steps; `AGENTS.md`, "The Role clock", the rules. The Check, the content and brief checks, look and live print the clock's lines at their end. At home nothing hurries you. The time it started stays on your laptop in `workshop-clock.json`, which is not in Git.
 - `checkpoints/` – one checkpoint per block of the workshop: the repo at the end of that block. `checkpoints/README.md` explains them.
 - `.agents/skills/` – one skill per role, plus `portfolio-add-module` for Optional modules, `legal` for changes to your legal page later, `checkpoint` for catching up, and `help`, `explain` and `recap` for when you are stuck, want something explained, or want the story of your site written down. Antigravity IDE finds them when you open the repo.
 - `.agents/skills/modern-web-guidance/` – Modern Web Guidance by the Chrome team: current best practices the Developer reads before building. Stored in the repo, so nothing is downloaded.
 - `.agents/mcp_config.json` – switches on Chrome DevTools for agents for your agent in Antigravity IDE.
 - `install.sh`, `install.ps1` – the Install script for macOS/Linux and for Windows.
-- `workshop.json` – the event of your workshop, if you set up your laptop with the line from the workshop guide: the Install script saves it, and the Analyst adds the event to your site. It stays on your laptop: it is not in Git.
+- `workshop.json` – the event of your workshop, if you set up your laptop with the line from the workshop guide: the Install script saves it, and the Analyst adds the event to your site. With the workshop's end time in the line, no role's clock runs past it, and the start time lets the clock name the room's next Block. It stays on your laptop: it is not in Git.
 - `AGENTS.md` – the rules your agent follows.
 
 Every push to `main` builds and publishes the site again.

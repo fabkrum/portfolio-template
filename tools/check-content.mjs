@@ -7,6 +7,8 @@
 // to check another file: node tools/check-content.mjs my-content.json
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { clockFooter } from "./clock/clock.mjs";
 import { validateContent } from "./check/schema.mjs";
 
 const shownPath = process.argv[2] ?? "site/content.json";
@@ -48,5 +50,9 @@ try {
 } catch (error) {
   console.log(`The content file could not be checked: ${error.message}`);
 }
+// The Role clock's lines, when a Role's clock runs and this ends one of its
+// steps (tools/clock/clock.mjs).
+const clockLines = await clockFooter(fileURLToPath(new URL("..", import.meta.url)), "check-content");
+if (clockLines) console.log(clockLines);
 // Always 0: this reports, it never gates.
 process.exitCode = 0;

@@ -1,0 +1,45 @@
+{
+  "workshop": "AI-Native Web Development, Hands-On: the 2-hour version",
+  "about": "Per Role: minutes is its time box, counted from the moment its clock starts; startsAt the minute its Block starts after the workshop's start, for the room's plan; steps the minute each step should be done by, and the tool that ends it, if one does. The same times as the instructor guide's run of show.",
+  "roles": {
+    "analyst": {
+      "startsAt": 28,
+      "minutes": 15,
+      "steps": [
+        { "id": "content-shown", "by": 5 },
+        { "id": "content-written", "by": 12, "tool": "check-content" }
+      ]
+    },
+    "designer": {
+      "startsAt": 43,
+      "minutes": 18,
+      "steps": [
+        { "id": "interview", "by": 6 },
+        { "id": "brief-written", "by": 16, "tool": "check-brief" }
+      ]
+    },
+    "developer": {
+      "startsAt": 61,
+      "minutes": 22,
+      "steps": [
+        { "id": "built", "by": 12 },
+        { "id": "checked", "by": 18, "tool": "check" }
+      ]
+    },
+    "qa": {
+      "startsAt": 83,
+      "minutes": 10,
+      "steps": [
+        { "id": "audited", "by": 5, "tool": "look" },
+        { "id": "checked", "by": 8, "tool": "check" }
+      ]
+    },
+    "ops": {
+      "startsAt": 93,
+      "minutes": 8,
+      "steps": [
+        { "id": "live", "by": 6, "tool": "live" }
+      ]
+    }
+  }
+}
