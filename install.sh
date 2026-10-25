@@ -154,10 +154,18 @@ TEMPLATE_REPO=fabkrum/portfolio-template
 GH_HOME="$HOME/.local/gh"
 GH_SIGNED_IN=0
 
+GH_REPO_STATE=""
+
+# Someone is at the keyboard: the script runs in a terminal, and no test or
+# robot runs it.
+in_terminal() {
+  [ -z "${PORTFOLIO_UNATTENDED:-}" ] && [ -t 1 ] && (: </dev/tty) 2>/dev/null
+}
+
 # The GitHub CLI does the GitHub steps when someone is there to click
-# "Authorize" in the browser: in a terminal, and with no username given up front.
+# "Authorize" in the browser, and no username was given up front.
 wants_github_cli() {
-  [ -z "${PORTFOLIO_GITHUB_USER:-}" ] && [ -z "${PORTFOLIO_UNATTENDED:-}" ] && [ -t 1 ] && (: </dev/tty) 2>/dev/null
+  [ -z "${PORTFOLIO_GITHUB_USER:-}" ] && in_terminal
 }
 
 # The newest release from github.com/cli/cli, checked against its checksums,
@@ -231,12 +239,22 @@ open_in_browser() {
 
 github_sign_in() {
   if ! gh auth status --hostname github.com >/dev/null 2>&1; then
-    info "Now sign in to GitHub. Your browser opens github.com/login/device: paste the code shown below (on a Mac it is copied already), click Continue, then Authorize."
+    info "Now sign in to GitHub. Your browser opens github.com/login/device: paste or type the code shown below, click Continue, then Authorize."
     info "If the browser does not open, open https://github.com/login/device yourself."
-    ( sleep 2; open_in_browser https://github.com/login/device ) &
-    GH_PROMPT_DISABLED=1 gh auth login --hostname github.com --git-protocol https --web --scopes workflow </dev/null
+    open_in_browser https://github.com/login/device
+    # The GitHub CLI waits until the code is used or runs out, after 15
+    # minutes; this script waits 5 at most.
+    GH_PROMPT_DISABLED=1 gh auth login --hostname github.com --git-protocol https --web --scopes workflow </dev/null &
+    login=$!
+    waited=0
+    while kill -0 "$login" 2>/dev/null && [ "$waited" -lt 300 ]; do
+      sleep 1
+      waited=$((waited + 1))
+    done
+    kill "$login" 2>/dev/null
+    wait "$login" 2>/dev/null
     if ! gh auth status --hostname github.com >/dev/null 2>&1; then
-      info "The sign-in to GitHub did not work. That is fine: you do the GitHub steps on github.com instead."
+      info "The sign-in to GitHub did not finish. That is fine: you do the GitHub steps on github.com instead."
       return 1
     fi
   fi
@@ -249,34 +267,39 @@ github_sign_in() {
 # The participant's repo on GitHub: used when it is a copy of the template,
 # created from the template when it is missing. A repo of that name that is
 # something else, such as a live site, stays as it is: the new repo gets
-# another name. Says "existing" or "created", or nothing after a to-do.
+# another name; a later run finds that name by itself. Leaves GH_REPO_STATE at
+# "existing", "created" or "failed" (after a to-do).
 github_repo() {
+  GH_REPO_STATE=failed
   tries=0
   while [ "$tries" -lt 3 ]; do
     tries=$((tries + 1))
     if made_from=$(gh api "repos/$GH_USER/$REPO" --jq '.template_repository.full_name // ""' 2>"$WORK/gh-repo.err"); then
       if [ "$made_from" = "$TEMPLATE_REPO" ]; then
-        ok "Your repo is on GitHub: $REPO_URL" >&2
-        echo existing
+        ok "Your repo is on GitHub: $REPO_URL"
+        GH_REPO_STATE=existing
         return 0
       fi
-      info "You already have a repo called $REPO on GitHub, and it is not a copy of the workshop's template. It stays as it is." >&2
       suggested="$REPO-2026"
-      printf '          Name for your new repo [%s]: ' "$suggested" >&2
+      if [ "$(gh api "repos/$GH_USER/$suggested" --jq '.template_repository.full_name // ""' 2>/dev/null)" = "$TEMPLATE_REPO" ]; then
+        set_repo "$suggested"
+        continue
+      fi
+      info "You already have a repo called $REPO on GitHub, and it is not a copy of the workshop's template. It stays as it is."
+      printf '          Name for your new repo [%s]: ' "$suggested"
       answer=""
       read -r answer </dev/tty
-      printf '\n' >&2
       answer=$(printf '%s' "${answer:-$suggested}" | tr -d ' ')
       if ! valid_repo_name "$answer"; then answer=$suggested; fi
       set_repo "$answer"
       continue
     fi
     if ! grep -q "404" "$WORK/gh-repo.err"; then
-      todo "GitHub did not answer about your repo." "Check your internet connection, then run this command again." >&2
+      todo "GitHub did not answer about your repo." "Check your internet connection, then run this command again."
       return 1
     fi
     if ! gh repo create "$REPO" --template "$TEMPLATE_REPO" --public >/dev/null 2>&1; then
-      todo "Your repo could not be created on GitHub." "Check your internet connection, then run this command again." >&2
+      todo "Your repo could not be created on GitHub." "Check your internet connection, then run this command again."
       return 1
     fi
     # GitHub copies the template's files a moment after the repo exists.
@@ -285,20 +308,26 @@ github_repo() {
       sleep 1
       waited=$((waited + 1))
     done
-    ok "Created your repo $REPO_URL from the workshop's template." >&2
-    echo created
+    ok "Created your repo $REPO_URL from the workshop's template."
+    GH_REPO_STATE=created
     return 0
   done
-  todo "No free name for your repo was found." "Run this command again and type another name when it asks." >&2
+  todo "No free name for your repo was found." "Run this command again and type another name when it asks."
   return 1
 }
 
-# Pages publishes the site with the repo's deploy workflow. Creating the repo
-# already started that deploy, possibly before Pages was on, so a new repo
-# gets one more.
+# Pages publishes the site with the repo's deploy workflow. A deploy that ran
+# before Pages was on, such as the one creating the repo starts, published
+# nothing, so switching Pages on starts one more. GitHub answers 409 when
+# Pages is on already.
 switch_on_pages() {
-  gh api --method POST "repos/$GH_USER/$REPO/pages" -f build_type=workflow >/dev/null 2>&1
-  if [ "$1" = created ]; then gh workflow run deploy.yml -R "$GH_USER/$REPO" >/dev/null 2>&1; fi
+  if gh api --method POST "repos/$GH_USER/$REPO/pages" -f build_type=workflow >/dev/null 2>"$WORK/pages.err"; then
+    gh workflow run deploy.yml -R "$GH_USER/$REPO" >/dev/null 2>&1
+  elif ! grep -q "409" "$WORK/pages.err"; then
+    todo "GitHub Pages could not be switched on." \
+      "On github.com, open your repo, then Settings > Pages, and pick GitHub Actions as the source."
+    return 1
+  fi
   ok "GitHub Pages is on: your site goes live at $(site_url) a minute after each push."
 }
 
@@ -306,15 +335,16 @@ set_up_github() {
   if wants_github_cli && ensure_gh && github_sign_in; then
     set_repo "${PORTFOLIO_REPO:-portfolio}"
     valid_repo_name "$REPO" || set_repo portfolio
-    github_repo >"$WORK/gh-repo.state"
-    state=$(cat "$WORK/gh-repo.state")
-    if [ -n "$state" ]; then switch_on_pages "$state"; fi
+    if github_repo; then switch_on_pages; fi
     return 0
   fi
   if ! ask_github_user; then
     printf '\nThat does not look like a GitHub username: "%s".\n' "$GH_USER${REPO:+/$REPO}"
     printf 'Run this command again and type just your username, for example: ada-lovelace\n'
     exit 1
+  fi
+  if in_terminal; then
+    info "Without the GitHub sign-in, the guide's Setup page shows how to switch GitHub Pages on yourself."
   fi
 }
 
@@ -575,9 +605,9 @@ ensure_agy() {
 # Every other setting stays as it is; a file that is not JSON is left alone.
 set_up_agy() {
   have agy && node_is_new_enough node || return 0
-  trust=""
-  if [ -d "$REPO_DIR" ]; then trust=$REPO_DIR; fi
-  if AGY_SETTINGS="$AGY_SETTINGS" AGY_MODEL="$AGY_MODEL" AGY_TRUST="$trust" node -e '
+  trust_dir=""
+  if [ -d "$REPO_DIR" ]; then trust_dir=$REPO_DIR; fi
+  if AGY_SETTINGS="$AGY_SETTINGS" AGY_MODEL="$AGY_MODEL" AGY_TRUST="$trust_dir" node -e '
     const fs = require("fs"), path = require("path");
     const file = process.env.AGY_SETTINGS;
     let settings = {};
@@ -684,6 +714,8 @@ download_repo() {
 }
 
 get_repo() {
+  # The GitHub step already said what to do.
+  if [ "$GH_REPO_STATE" = failed ]; then return 1; fi
   if [ -d "$REPO_DIR/.git" ]; then
     ok "Your repo is already in $REPO_DIR."
     return 0
@@ -729,7 +761,7 @@ get_repo() {
 # The last step: the Antigravity CLI, started in the repo folder, takes over
 # this window. Only in a terminal, and only when nothing is left to do.
 can_start_agent() {
-  [ -z "$NEXT" ] && [ -z "${PORTFOLIO_UNATTENDED:-}" ] && have agy && [ -d "$REPO_DIR" ] && [ -t 1 ] && (: </dev/tty) 2>/dev/null
+  [ -z "$NEXT" ] && have agy && [ -d "$REPO_DIR" ] && in_terminal
 }
 
 start_agent() {

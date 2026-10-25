@@ -100,7 +100,7 @@
             Write-Host 'Run this command again and type just your username, for example: ada-lovelace'
             return $null
         }
-        return (New-RepoTarget $user $repo)
+        return (ConvertTo-RepoTarget $user $repo)
     }
 
     # --------------------------------------------------------- desktop apps
@@ -122,7 +122,7 @@
     $ghHome = Join-Path $env:LOCALAPPDATA 'Programs\gh'
 
     # The repo, its folder in the home folder and its address on GitHub.
-    function New-RepoTarget($user, $name) {
+    function ConvertTo-RepoTarget($user, $name) {
         return @{ User = $user; Name = $name; Dir = (Join-Path $HOME $name); Url = "https://github.com/$user/$name" }
     }
 
@@ -134,19 +134,23 @@
         return "https://$($repo.User).github.io/$($repo.Name)/"
     }
 
-    # The GitHub CLI does the GitHub steps when someone is there to click
-    # "Authorize" in the browser: in a window, and with no username given up
-    # front.
-    function Test-WantsGitHubCli {
-        (-not $env:PORTFOLIO_GITHUB_USER) -and (-not $env:PORTFOLIO_UNATTENDED) -and
-            [Environment]::UserInteractive -and -not [Console]::IsInputRedirected -and -not [Console]::IsOutputRedirected
+    # Someone is at the keyboard: the script runs in a window, and no test or
+    # robot runs it.
+    function Test-Interactive {
+        (-not $env:PORTFOLIO_UNATTENDED) -and [Environment]::UserInteractive -and
+            -not [Console]::IsInputRedirected -and -not [Console]::IsOutputRedirected
     }
+
+    # The GitHub CLI does the GitHub steps when someone is there to click
+    # "Authorize" in the browser, and no username was given up front.
+    function Test-WantsGitHubCli { (-not $env:PORTFOLIO_GITHUB_USER) -and (Test-Interactive) }
 
     # Fallback when winget is missing or fails: the newest release from
     # github.com/cli/cli, checked against its checksums, into your user folder.
     # The version comes from where the releases/latest page leads, not from
     # GitHub's API, which allows a room behind one address only 60 calls an hour.
     function Install-GhZip {
+        $work = Join-Path ([IO.Path]::GetTempPath()) "portfolio-gh-$PID"
         try {
             $request = [Net.WebRequest]::Create('https://github.com/cli/cli/releases/latest')
             $request.Method = 'HEAD'
@@ -158,7 +162,6 @@
             $arch = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'arm64' } else { 'amd64' }
             $name = "gh_$($version)_windows_$arch.zip"
             $base = "https://github.com/cli/cli/releases/download/v$version"
-            $work = Join-Path ([IO.Path]::GetTempPath()) "portfolio-gh-$PID"
             New-Item -ItemType Directory -Force -Path $work | Out-Null
             $zip = Join-Path $work $name
             Invoke-WebRequest -Uri "$base/$name" -OutFile $zip -UseBasicParsing
@@ -168,7 +171,6 @@
             if (-not $expected -or ((Get-FileHash $zip -Algorithm SHA256).Hash -ne $expected.ToUpper())) { return $false }
             if (Test-Path $ghHome) { Remove-Item $ghHome -Recurse -Force }
             Expand-Archive -Path $zip -DestinationPath $ghHome -Force
-            Remove-Item $work -Recurse -Force
             $bin = Join-Path $ghHome 'bin'
             $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
             if (($userPath -split ';') -notcontains $bin) {
@@ -179,6 +181,8 @@
             return (Test-Command gh)
         } catch {
             return $false
+        } finally {
+            Remove-Item $work -Recurse -Force -ErrorAction SilentlyContinue
         }
     }
 
@@ -214,14 +218,17 @@
     # Windows credential store, and git push uses it at Ops.
     function Connect-GitHub {
         if (-not (Test-GitHubSignedIn)) {
-            Write-Info 'Now sign in to GitHub. Your browser opens github.com/login/device: type the code shown below, click Continue, then Authorize.'
+            Write-Info 'Now sign in to GitHub. Your browser opens github.com/login/device: paste or type the code shown below, click Continue, then Authorize.'
             Write-Info 'If the browser does not open, open https://github.com/login/device yourself.'
             try { Start-Process 'https://github.com/login/device' } catch { Write-Verbose "browser: $_" }
+            # The GitHub CLI waits until the code is used or runs out, after 15
+            # minutes; this script waits 5 at most.
             $env:GH_PROMPT_DISABLED = '1'
-            & gh auth login --hostname github.com --git-protocol https --web --scopes workflow
+            $login = Start-Process -FilePath (Get-Command gh).Source -ArgumentList 'auth', 'login', '--hostname', 'github.com', '--git-protocol', 'https', '--web', '--scopes', 'workflow' -NoNewWindow -PassThru
+            if (-not $login.WaitForExit(300000)) { & taskkill.exe /pid $login.Id /t /f 2>&1 | Out-Null }
             Remove-Item Env:GH_PROMPT_DISABLED -ErrorAction SilentlyContinue
             if (-not (Test-GitHubSignedIn)) {
-                Write-Info 'The sign-in to GitHub did not work. That is fine: you do the GitHub steps on github.com instead.'
+                Write-Info 'The sign-in to GitHub did not finish. That is fine: you do the GitHub steps on github.com instead.'
                 return $null
             }
         }
@@ -235,8 +242,8 @@
     # The participant's repo on GitHub: used when it is a copy of the
     # template, created from the template when it is missing. A repo of that
     # name that is something else, such as a live site, stays as it is: the
-    # new repo gets another name. Returns the repo and 'existing' or
-    # 'created', or $null after a to-do.
+    # new repo gets another name; a later run finds that name by itself.
+    # Returns the repo and 'existing' or 'created', or $null after a to-do.
     function Get-GitHubRepo($repo) {
         for ($try = 0; $try -lt 3; $try++) {
             # No double quotes in the arguments: Windows PowerShell would drop them.
@@ -246,11 +253,16 @@
                     Write-Ok "Your repo is on GitHub: $($repo.Url)"
                     return @{ Repo = $repo; State = 'existing' }
                 }
-                Write-Info "You already have a repo called $($repo.Name) on GitHub, and it is not a copy of the workshop's template. It stays as it is."
                 $suggested = "$($repo.Name)-2026"
+                $suggestedFrom = (& gh api "repos/$($repo.User)/$suggested" --jq .template_repository.full_name 2>$null)
+                if ($LASTEXITCODE -eq 0 -and "$suggestedFrom".Trim() -eq $templateRepo) {
+                    $repo = ConvertTo-RepoTarget $repo.User $suggested
+                    continue
+                }
+                Write-Info "You already have a repo called $($repo.Name) on GitHub, and it is not a copy of the workshop's template. It stays as it is."
                 $name = (Read-Host "          Name for your new repo [$suggested]") -replace '\s', ''
                 if (-not (Test-RepoName $name)) { $name = $suggested }
-                $repo = New-RepoTarget $repo.User $name
+                $repo = ConvertTo-RepoTarget $repo.User $name
                 continue
             }
             if ("$answer" -notmatch '404') {
@@ -275,12 +287,18 @@
         return $null
     }
 
-    # Pages publishes the site with the repo's deploy workflow. Creating the
-    # repo already started that deploy, possibly before Pages was on, so a new
-    # repo gets one more.
-    function Enable-Pages($repo, $repoState) {
-        & gh api --method POST "repos/$($repo.User)/$($repo.Name)/pages" -f build_type=workflow *> $null
-        if ($repoState -eq 'created') { & gh workflow run deploy.yml -R "$($repo.User)/$($repo.Name)" *> $null }
+    # Pages publishes the site with the repo's deploy workflow. A deploy that
+    # ran before Pages was on, such as the one creating the repo starts,
+    # published nothing, so switching Pages on starts one more. GitHub answers
+    # 409 when Pages is on already.
+    function Enable-GitHubPage($repo) {
+        $answer = (& gh api --method POST "repos/$($repo.User)/$($repo.Name)/pages" -f build_type=workflow 2>&1)
+        if ($LASTEXITCODE -eq 0) {
+            & gh workflow run deploy.yml -R "$($repo.User)/$($repo.Name)" *> $null
+        } elseif ("$answer" -notmatch '409') {
+            Write-Todo 'GitHub Pages could not be switched on.' "On github.com, open your repo, then Settings > Pages, and pick GitHub Actions as the source."
+            return
+        }
         Write-Ok "GitHub Pages is on: your site goes live at $(Get-SiteUrl $repo) a minute after each push."
     }
 
@@ -291,13 +309,22 @@
             $user = Connect-GitHub
             if ($user) {
                 $name = if ($env:PORTFOLIO_REPO -and (Test-RepoName $env:PORTFOLIO_REPO)) { $env:PORTFOLIO_REPO } else { 'portfolio' }
-                $found = Get-GitHubRepo (New-RepoTarget $user $name)
-                if (-not $found) { return (New-RepoTarget $user $name) }
-                Enable-Pages $found.Repo $found.State
+                $found = Get-GitHubRepo (ConvertTo-RepoTarget $user $name)
+                if (-not $found) {
+                    # The GitHub step already said what to do.
+                    $repo = ConvertTo-RepoTarget $user $name
+                    $repo.Failed = $true
+                    return $repo
+                }
+                Enable-GitHubPage $found.Repo
                 return $found.Repo
             }
         }
-        return (Get-RepoTarget)
+        $repo = Get-RepoTarget
+        if ($repo -and (Test-Interactive)) {
+            Write-Info "Without the GitHub sign-in, the guide's Setup page shows how to switch GitHub Pages on yourself."
+        }
+        return $repo
     }
 
     # git push uses the GitHub CLI's sign-in, and commits get the account's
@@ -669,6 +696,7 @@ fs.writeFileSync(file, JSON.stringify({ ...settings, ...workshop }, null, 2) + "
     }
 
     function Get-Repo($repo) {
+        if ($repo.Failed) { return }
         $dir = $repo.Dir
         if (Test-Path (Join-Path $dir '.git')) {
             Write-Ok "Your repo is already in $dir."
@@ -712,8 +740,7 @@ fs.writeFileSync(file, JSON.stringify({ ...settings, ...workshop }, null, 2) + "
     # over this window. Only in a terminal, and only when nothing is left to
     # do.
     function Test-CanStartAgent($repo) {
-        ($next.Count -eq 0) -and (-not $env:PORTFOLIO_UNATTENDED) -and (Test-Command agy) -and (Test-Path $repo.Dir) -and
-            [Environment]::UserInteractive -and -not [Console]::IsInputRedirected -and -not [Console]::IsOutputRedirected
+        ($next.Count -eq 0) -and (Test-Command agy) -and (Test-Path $repo.Dir) -and (Test-Interactive)
     }
 
     # ------------------------------------------------------------ workshop

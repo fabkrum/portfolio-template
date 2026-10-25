@@ -81,7 +81,7 @@ test("a name Git has already stays", { skip }, () => {
 test("sign-in refused (a company account): asks for the username, as without the GitHub CLI", { skip }, () => {
   const laptop = setUp({ gh: { refuses: true } });
   const { said } = run(laptop, viaGitHubCli);
-  assert.match(said, /The sign-in to GitHub did not work/);
+  assert.match(said, /The sign-in to GitHub did not finish/);
   assert.match(said, /What is your GitHub username\?/);
   assert.ok(!ghCalls(laptop.home).some((call) => call.startsWith("repo create")));
   rmSync(laptop.home, { recursive: true });
@@ -100,5 +100,21 @@ test("the repo folder is trusted in the Antigravity CLI as well", { skip }, () =
   const laptop = setUp({ gh: { signedIn: true, repos: { portfolio: TEMPLATE } } });
   run(laptop, viaGitHubCli);
   assert.deepEqual(settingsIn(laptop.home).trustedWorkspaces, [laptop.repo]);
+  rmSync(laptop.home, { recursive: true });
+});
+
+test("a later run finds the repo made under the suggested name, without asking again", { skip }, () => {
+  const laptop = setUp({ gh: { signedIn: true, repos: { portfolio: "", "portfolio-2026": TEMPLATE } } });
+  const { said } = run(laptop, viaGitHubCli);
+  assert.doesNotMatch(said, /Name for your new repo/);
+  assert.match(said, /Your repo is on GitHub: https:\/\/github\.com\/ada\/portfolio-2026/);
+  assert.match(said, /cd portfolio-2026, then agy/);
+  rmSync(laptop.home, { recursive: true });
+});
+
+test("Pages just switched on for a repo that was there: the site is deployed once", { skip }, () => {
+  const laptop = setUp({ gh: { signedIn: true, repos: { portfolio: TEMPLATE } } });
+  run(laptop, viaGitHubCli);
+  assert.ok(ghCalls(laptop.home).includes("workflow run deploy.yml -R ada/portfolio"), ghCalls(laptop.home).join("\n"));
   rmSync(laptop.home, { recursive: true });
 });
