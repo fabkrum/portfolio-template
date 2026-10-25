@@ -239,8 +239,8 @@ open_in_browser() {
 
 github_sign_in() {
   if ! gh auth status --hostname github.com >/dev/null 2>&1; then
-    info "Now sign in to GitHub. Your browser opens github.com/login/device: paste or type the code shown below, click Continue, then Authorize."
-    info "If the browser does not open, open https://github.com/login/device yourself."
+    info "Now sign in to GitHub. Your browser opens github.com/login/device: type the code shown below (eight characters, such as ABCD-1234), click Continue, then Authorize."
+    info "If the browser does not open, or it is not signed in to your own GitHub account, open https://github.com/login/device in any browser that is."
     open_in_browser https://github.com/login/device
     # The GitHub CLI waits until the code is used or runs out, after 15
     # minutes; this script waits 5 at most.
