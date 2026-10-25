@@ -121,7 +121,7 @@ for (let finished = 0; finished <= ROLES.length; finished++) {
         assert.deepEqual(nextLines(stdout), [
           "Next: Guide page 8: Feedback.",
           "To see whether your site is live, run node tools/live.mjs.",
-          "To add a section to your site, type /clear for a fresh chat and type: Add a YouTube section to my portfolio.",
+          "To add a section to your site, type /clear for a fresh chat. Then type: Add a YouTube section to my portfolio.",
         ]);
         return;
       }
@@ -129,7 +129,7 @@ for (let finished = 0; finished <= ROLES.length; finished++) {
       const orDefault = role === "Designer" ? ["Already said default to the Designer? Then the Developer is next: Start the Developer step."] : [];
       assert.deepEqual(nextLines(stdout), [
         `Next: ${CALLED[role]}. Guide page ${PAGE[role]}: ${role}.`,
-        `Type /clear for a fresh chat and type: Start the ${role} step.`,
+        `Type /clear for a fresh chat. Then type: Start the ${role} step.`,
         ...orDefault,
         CATCH_UP,
       ]);

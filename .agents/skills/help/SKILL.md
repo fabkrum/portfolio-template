@@ -21,8 +21,8 @@ It lists the five Roles, each done, to fix or not yet, and ends with the next st
 
 If the person pasted an error, start with it: say in plain words what it means, then give the smallest fix, as one step, one command or one sentence to type. The person or the Role makes the fix, never you. If you are not sure, send them to "If something goes wrong" on the guide page of the Role they are in. These come up in the room:
 
-- "command not found: node" or "node is not recognized": close this terminal window, open a new one, type `cd portfolio`, then `agy`, and ask again.
-- "Cannot find module": the Antigravity CLI was started outside the `portfolio` folder. Close this terminal window, open a new one, type `cd portfolio`, then `agy`.
+- "command not found: node" or "node is not recognized": the terminal was open while Node was installed. Close this terminal window and open a new one. Then type `cd portfolio`, press Enter, type `agy`, press Enter, and ask again.
+- "Cannot find module": the Antigravity CLI was started outside the `portfolio` folder. Type `/exit`. Then type `cd portfolio`, press Enter, type `agy`, press Enter.
 - The agent stopped after the person answered **No** to a question such as "Allow this command?": No stops the whole step. Type `go on`, and answer Yes next time if the command is one the step needs.
 - "Permission denied" or "403" when pushing: another GitHub account is signed in. Raise your hand: the instructor helps.
 - "Your site could not be built": the message says what is wrong. A content file that is not valid JSON is the Analyst's to fix; a mistake in `site/assets/render.js` is the Developer's.
@@ -32,7 +32,7 @@ If the person pasted an error, start with it: say in plain words what it means, 
 
 - Which Roles are done, in one sentence.
 - A Role marked "to fix": what is wrong, in plain words.
-- The next step: its guide page, and the sentence that starts it in a fresh chat.
+- The next step: its guide page, and the sentence that starts it after /clear, in a fresh chat.
 - The line "Behind the room?" as the output gives it. The person puts in the Role the room has just finished.
 
 Put each sentence to type into a text block of its own, word for word, so the person can copy it. Do not start the next Role in this chat. Run a checkpoint only if the person asks you to catch them up; then follow the skill `checkpoint`.

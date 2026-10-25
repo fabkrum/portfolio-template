@@ -34,12 +34,12 @@ function report({ roles, next }) {
   if (!next) {
     console.log("Next: Guide page 8: Feedback.");
     console.log("To see whether your site is live, run node tools/live.mjs.");
-    console.log("To add a section to your site, type /clear for a fresh chat and type: Add a YouTube section to my portfolio.");
+    console.log("To add a section to your site, type /clear for a fresh chat. Then type: Add a YouTube section to my portfolio.");
     return;
   }
   const role = ROLES[next];
   console.log(`Next: ${role.called}. Guide page ${role.page}: ${role.name}.`);
-  console.log(`Type /clear for a fresh chat and type: ${start(next)}`);
+  console.log(`Type /clear for a fresh chat. Then type: ${start(next)}`);
   // Saying "default" to the Designer keeps the default brief, so the files cannot tell.
   if (next === "designer" && roles[1].defaultBrief) {
     console.log(`Already said default to the Designer? Then the Developer is next: ${start("developer")}`);
