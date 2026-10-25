@@ -330,7 +330,7 @@ fs.mkdirSync(path.dirname(file), { recursive: true });
 fs.writeFileSync(file, JSON.stringify({ ...settings, ...workshop }, null, 2) + "\n");
 '@
 
-    function Set-AgyForWorkshop {
+    function Initialize-AgyForWorkshop {
         if (-not (Test-Command agy) -or (Get-NodeMajor node) -lt $nodeMin) { return }
         $settingsFile = Join-Path ([IO.Path]::GetTempPath()) "portfolio-agy-settings-$PID.js"
         [IO.File]::WriteAllText($settingsFile, $agySettingsScript)
@@ -545,7 +545,7 @@ fs.writeFileSync(file, JSON.stringify({ ...settings, ...workshop }, null, 2) + "
 
     Write-Heading 'Antigravity CLI'
     Install-Agy
-    Set-AgyForWorkshop
+    Initialize-AgyForWorkshop
     Test-Quota
 
     Write-Heading 'Your repo'
