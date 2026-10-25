@@ -2,13 +2,16 @@
 #
 #   irm https://raw.githubusercontent.com/fabkrum/portfolio-template/main/install.ps1 | iex
 #
-# It checks Google Chrome and Antigravity IDE, installs Git and Node where they
-# are missing, downloads Chrome DevTools for agents for the QA role, puts your
-# own portfolio repo in your home folder and opens it in Antigravity IDE. It is
-# safe to run again at any time.
+# It checks Google Chrome, installs Git, Node and the Antigravity CLI where they
+# are missing, sets the Antigravity CLI up for the workshop, checks your Gemini
+# quota, downloads Chrome DevTools for agents for the QA role, puts your own
+# portfolio repo in your home folder and starts the Antigravity CLI in it. It
+# is safe to run again at any time.
 #
 # It asks for your GitHub username. PORTFOLIO_GITHUB_USER and PORTFOLIO_REPO
-# answer that up front (the automated tests use them).
+# answer that up front (the automated tests use them). PORTFOLIO_NO_AGENT=1
+# leaves the Antigravity CLI unstarted at the end, and PORTFOLIO_AGY_INSTALLER
+# names another installer for it (the automated tests use both).
 #
 # In a workshop, the guide's line also names the event, before irm:
 # WORKSHOP_EVENT, WORKSHOP_DATE (YYYY-MM-DD) and WORKSHOP_CITY. The script
@@ -29,7 +32,7 @@
     $nodeMin = 22
     $nodeHome = Join-Path $env:LOCALAPPDATA 'Programs\node'
     $next = New-Object System.Collections.Generic.List[string]
-    $state = @{ NewTerminal = $false; HaveGit = $false; IdeExe = $null }
+    $state = @{ NewTerminal = $false; HaveGit = $false }
 
     function Write-Ok($text) { Write-Host "  [ok]    $text" -ForegroundColor Green }
     function Write-Info($text) { Write-Host "          $text" }
@@ -105,21 +108,6 @@
             }
         }
         Write-Todo 'Google Chrome is not installed.' 'Install Google Chrome from https://www.google.com/chrome/ (the Check uses it), then run this command again.'
-    }
-
-    function Test-Ide {
-        foreach ($root in (Join-Path $env:LOCALAPPDATA 'Programs'), $env:ProgramFiles) {
-            $exe = Join-Path $root 'Antigravity IDE\Antigravity IDE.exe'
-            if ($root -and (Test-Path $exe)) {
-                $state.IdeExe = $exe
-                Write-Ok 'Antigravity IDE is installed.'
-                return
-            }
-        }
-        if (Test-Path (Join-Path $env:LOCALAPPDATA 'Programs\Antigravity\Antigravity.exe')) {
-            Write-Info 'You have Antigravity 2.0, the agent dashboard. Today you need the editor, Antigravity IDE.'
-        }
-        Write-Todo 'Antigravity IDE is not installed.' 'Download "Antigravity IDE" (not "Antigravity 2.0") from https://antigravity.google/download and install it, then run this command again.'
     }
 
     # ----------------------------------------------------------------- Git
@@ -252,8 +240,8 @@
         Invoke-AtMost 300 "npx.cmd --offline -y $devtoolsPackage --version"
     }
 
-    # Antigravity IDE starts Chrome DevTools for agents with npx, from the npm
-    # cache. Putting it there now means nothing is downloaded during the QA
+    # The Antigravity CLI starts Chrome DevTools for agents with npx, from the
+    # npm cache. Putting it there now means nothing is downloaded during the QA
     # block. If it is there already, nothing is downloaded now either. The
     # download runs on its own, so stopping it half-way, at the time limit or
     # with Ctrl+C, leaves nothing broken behind. QA works without it, so this
@@ -275,6 +263,137 @@
             Write-Ok 'Chrome DevTools for agents is ready.'
         } else {
             Write-Info 'Chrome DevTools for agents could not be set up. That is fine: the QA role works without it.'
+        }
+    }
+
+    # ---------------------------------------------------- Antigravity CLI
+
+    $agyInstaller = if ($env:PORTFOLIO_AGY_INSTALLER) { $env:PORTFOLIO_AGY_INSTALLER } else { 'https://antigravity.google/cli/install.ps1' }
+    $agyBin = Join-Path $env:LOCALAPPDATA 'agy\bin'
+    $agySettings = Join-Path $HOME '.gemini\antigravity-cli\settings.json'
+    # The workshop's model, as agy's own /model menu saves it: Flash, low
+    # effort, so a free account's weekly quota lasts the whole workshop.
+    $agyModel = 'Gemini 3.8 Flash (Low)'
+    $quotaMin = 60
+
+    # Antigravity's own installer puts agy.exe in your user folder and adds
+    # that folder to PATH; this window finds it too.
+    function Use-AgyBin {
+        $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+        if (($userPath -split ';') -notcontains $agyBin) {
+            [Environment]::SetEnvironmentVariable('Path', (@($userPath, $agyBin) | Where-Object { $_ }) -join ';', 'User')
+            $state.NewTerminal = $true
+        }
+        if (($env:Path -split ';') -notcontains $agyBin) { $env:Path = "$env:Path;$agyBin" }
+    }
+
+    function Install-Agy {
+        if (-not (Test-Command agy) -and (Test-Path (Join-Path $agyBin 'agy.exe'))) { Use-AgyBin }
+        if (Test-Command agy) {
+            Write-Ok "The Antigravity CLI is installed (agy $(& agy --version 2>$null))."
+            return
+        }
+        Write-Info 'Installing the Antigravity CLI...'
+        $before = Get-SavedPath
+        try {
+            # Run here, the way its own line runs it (irm ... | iex), with its
+            # messages left out.
+            $installer = Invoke-RestMethod -Uri $agyInstaller -UseBasicParsing
+            & ([scriptblock]::Create($installer)) *> $null
+        } catch {
+            Write-Verbose "agy installer: $_"
+        }
+        Sync-SessionPath $before
+        if (Test-Path (Join-Path $agyBin 'agy.exe')) { Use-AgyBin }
+        if (Test-Command agy) {
+            Write-Ok "Installed the Antigravity CLI (agy $(& agy --version 2>$null))."
+            return
+        }
+        Write-Todo 'The Antigravity CLI could not be installed.' 'Check your internet connection, then run this command again.'
+    }
+
+    # Auto mode and the workshop's model, written into agy's settings. Every
+    # other setting stays as it is; a file that is not JSON is left alone. Node
+    # does it, as on macOS and Linux, from a file: Windows PowerShell would
+    # drop the double quotes of a script given to node on the command line.
+    $agySettingsScript = @'
+const fs = require("fs"), path = require("path");
+const file = process.env.AGY_SETTINGS;
+let settings = {};
+if (fs.existsSync(file)) {
+  try { settings = JSON.parse(fs.readFileSync(file, "utf8").replace(/^\uFEFF/, "")); } catch { process.exit(1); }
+  if (settings === null || typeof settings !== "object" || Array.isArray(settings)) process.exit(1);
+}
+const workshop = { agentMode: "auto", model: process.env.AGY_MODEL };
+if (Object.entries(workshop).every(([key, value]) => settings[key] === value)) process.exit(0);
+fs.mkdirSync(path.dirname(file), { recursive: true });
+fs.writeFileSync(file, JSON.stringify({ ...settings, ...workshop }, null, 2) + "\n");
+'@
+
+    function Set-AgyForWorkshop {
+        if (-not (Test-Command agy) -or (Get-NodeMajor node) -lt $nodeMin) { return }
+        $settingsFile = Join-Path ([IO.Path]::GetTempPath()) "portfolio-agy-settings-$PID.js"
+        [IO.File]::WriteAllText($settingsFile, $agySettingsScript)
+        $env:AGY_SETTINGS = $agySettings
+        $env:AGY_MODEL = $agyModel
+        & node $settingsFile 2>$null
+        $written = ($LASTEXITCODE -eq 0)
+        Remove-Item $settingsFile -Force -ErrorAction SilentlyContinue
+        Remove-Item Env:AGY_SETTINGS, Env:AGY_MODEL -ErrorAction SilentlyContinue
+        if ($written) {
+            Write-Ok "The Antigravity CLI starts in auto mode, with Gemini 3.8 Flash, the workshop's model."
+        } else {
+            Write-Info "The settings of the Antigravity CLI could not be read, so they stay as they are: $agySettings"
+            Write-Info 'In the Antigravity CLI, press Shift+Tab until it shows auto, and pick Gemini 3.8 Flash with /model.'
+        }
+    }
+
+    # Asks agy for the quota left, which costs none of it: the percentage, or
+    # 'signed-out', or $null. Not signed in, agy asks for the sign-in at once
+    # and then waits for it; that is not waited for.
+    function Read-Quota {
+        $work = Join-Path ([IO.Path]::GetTempPath()) "portfolio-usage-$PID"
+        New-Item -ItemType Directory -Force -Path $work | Out-Null
+        $out = Join-Path $work 'usage.json'
+        $empty = Join-Path $work 'empty.txt'
+        [IO.File]::WriteAllText($empty, '')
+        try {
+            $errors = Join-Path $work 'errors.txt'
+            $usageRun = Start-Process -FilePath (Get-Command agy).Source -ArgumentList '-p', '/usage', '--output-format', 'json' -WorkingDirectory $work -RedirectStandardInput $empty -RedirectStandardOutput $out -RedirectStandardError $errors -NoNewWindow -PassThru
+            $asksToSignIn = { Select-String -Path $out, $errors -Pattern 'Authentication required' -Quiet -ErrorAction SilentlyContinue }
+            for ($waited = 0; $waited -lt 30 -and -not $usageRun.HasExited; $waited++) {
+                if (& $asksToSignIn) { break }
+                Start-Sleep -Seconds 1
+            }
+            if (-not $usageRun.HasExited) { & taskkill.exe /pid $usageRun.Id /t /f 2>&1 | Out-Null }
+            if (& $asksToSignIn) { return 'signed-out' }
+            $usage = Get-Content $out -Raw | ConvertFrom-Json
+            $gemini = $usage.command.data.groups | Where-Object { $_.name -like 'Gemini*' } | Select-Object -First 1
+            $weekly = $gemini.buckets | Where-Object { $_.window -eq 'weekly' } | Select-Object -First 1
+            if ($null -eq $weekly) { return $null }
+            return [int][Math]::Floor([double]$weekly.remaining_fraction * 100)
+        } catch {
+            return $null
+        } finally {
+            Remove-Item $work -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+
+    # The workshop uses up to 30% of a free account's weekly Gemini quota.
+    # Below twice that, the participant hears it now, not in the middle of
+    # the Developer.
+    function Test-Quota {
+        if (-not (Test-Command agy)) { return }
+        $left = Read-Quota
+        if ($left -eq 'signed-out') {
+            Write-Info 'When the Antigravity CLI starts, it asks you to sign in with your Google account, in the browser.'
+        } elseif ($null -eq $left) {
+            Write-Info 'Your Gemini quota could not be read. That is fine: the workshop works without this check.'
+        } elseif ($left -ge $quotaMin) {
+            Write-Ok "Your Google account has $left% of this week's Gemini quota left."
+        } else {
+            Write-Info "Your Google account has $left% of this week's Gemini quota left, and the workshop can use up to 30%."
+            Write-Info 'It may run out before the end. To be safe, sign in with another Google account: in the Antigravity CLI, type /logout.'
         }
     }
 
@@ -378,14 +497,12 @@
         Write-Todo "Your repo could not be downloaded from $($repo.Url)." 'Check your internet connection, then run this command again.'
     }
 
-    function Open-InIde($repo) {
-        if (-not $state.IdeExe -or -not (Test-Path $repo.Dir)) { return }
-        try {
-            Start-Process -FilePath $state.IdeExe -ArgumentList "`"$($repo.Dir)`""
-            Write-Ok 'Opened your repo in Antigravity IDE.'
-        } catch {
-            Write-Todo 'Antigravity IDE did not open by itself.' "Open Antigravity IDE, choose File > Open Folder and pick $($repo.Dir)."
-        }
+    # The last step: the Antigravity CLI, started in the repo folder, takes
+    # over this window. Only in a terminal, and only when nothing is left to
+    # do.
+    function Test-CanStartAgent($repo) {
+        ($next.Count -eq 0) -and (-not $env:PORTFOLIO_NO_AGENT) -and (Test-Command agy) -and (Test-Path $repo.Dir) -and
+            [Environment]::UserInteractive -and -not [Console]::IsInputRedirected -and -not [Console]::IsOutputRedirected
     }
 
     # ------------------------------------------------------------ workshop
@@ -420,17 +537,20 @@
 
     Write-Heading 'Apps'
     Test-Chrome
-    Test-Ide
 
     Write-Heading 'Tools'
     Install-Git
     Install-Node
     Install-DevToolsServer
 
+    Write-Heading 'Antigravity CLI'
+    Install-Agy
+    Set-AgyForWorkshop
+    Test-Quota
+
     Write-Heading 'Your repo'
     Get-Repo $repo
     Save-Workshop $repo
-    Open-InIde $repo
 
     Write-Heading 'Summary'
     if ($next.Count -eq 0) {
@@ -439,8 +559,18 @@
         Write-Host 'Still to do:'
         for ($i = 0; $i -lt $next.Count; $i++) { Write-Host "  $($i + 1). $($next[$i])" }
     }
+    Write-Host 'Run this command again any time; it only does what is still missing.'
+    if (Test-CanStartAgent $repo) {
+        Write-Host "To come back later, open a new terminal window and type: cd $($repo.Name), then agy"
+        Write-Host ''
+        Write-Host 'Starting the Antigravity CLI in your repo folder.'
+        Write-Host ''
+        Set-Location $repo.Dir
+        & agy
+        return
+    }
     if ($state.NewTerminal) {
         Write-Host 'New programs were added: close this window and open a new terminal window before you continue.'
     }
-    Write-Host 'Run this command again any time; it only does what is still missing.'
+    Write-Host "To start the workshop, type: cd $($repo.Name), then agy"
 }
