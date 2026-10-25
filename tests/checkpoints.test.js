@@ -218,7 +218,7 @@ for (const role of BLOCKS) {
       const { status, stdout } = jumpTo(dir, role);
       assert.equal(status, 0, stdout);
       assert.match(stdout, new RegExp(`end of the ${BLOCK_NAME[role]} block`));
-      assert.match(stdout, new RegExp(`start a fresh chat and ask for ${NEXT_ROLE[role]}`));
+      assert.match(stdout, new RegExp(`type /clear for a fresh chat and ask for ${NEXT_ROLE[role]}`));
     });
   });
 }
@@ -407,7 +407,7 @@ test("Antigravity finds the checkpoint skill, and its description matches a pers
 test("the checkpoint skill runs the one command after at most one question, reads it back and hands over to a fresh chat", async () => {
   const skill = await checkpointSkill();
   assert.deepEqual(commandsIn(skill), ["node tools/checkpoint.mjs developer"]);
-  for (const needed of [/Ask nothing/, /ask once/i, /use the one before it/, /word for word/, /add nothing to it/, /"You are back in step with the room\. Start a fresh chat and ask for QA\."/, /do not start it/]) {
+  for (const needed of [/Ask nothing/, /ask once/i, /use the one before it/, /word for word/, /add nothing to it/, /"You are back in step with the room\. Type \/clear for a fresh chat and ask for QA\."/, /do not start it/]) {
     assert.match(skill, needed);
   }
   for (const needed of [/Never catch up by doing a role's work/, /never use Git/]) assert.match(skill, needed);
@@ -627,7 +627,7 @@ test("without an address, the Developer's checkpoint leaves the legal notice's o
     const { stdout } = jumpTo(dir, "developer");
     const page = await readText(join(dir, "site", "privacy.html"));
     assert.doesNotMatch(page, /Address:|Phone:|VAT number:|\[\[/);
-    assert.match(stdout, /If your site offers services, the law also asks for a postal address, and in Italy for your Partita IVA: to add them, start a fresh chat and ask to add an address to your legal page/);
+    assert.match(stdout, /If your site offers services, the law also asks for a postal address, and in Italy for your Partita IVA: to add them, type \/clear for a fresh chat and ask to add an address to your legal page/);
     assert.doesNotMatch(stdout, /Lawyer/);
   });
 });

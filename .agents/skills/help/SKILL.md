@@ -21,11 +21,12 @@ It lists the five Roles, each done, to fix or not yet, and ends with the next st
 
 If the person pasted an error, start with it: say in plain words what it means, then give the smallest fix, as one step, one command or one sentence to type. The person or the Role makes the fix, never you. If you are not sure, send them to "If something goes wrong" on the guide page of the Role they are in. These come up in the room:
 
-- "command not found: node" or "node is not recognized": quit Antigravity IDE completely, open it again, then open a new terminal.
-- "Cannot find module": the terminal is not in the `portfolio` folder. Open a new one in Antigravity IDE with Terminal → New Terminal.
+- "command not found: node" or "node is not recognized": close this terminal window, open a new one, type `cd portfolio`, then `agy`, and ask again.
+- "Cannot find module": the Antigravity CLI was started outside the `portfolio` folder. Close this terminal window, open a new one, type `cd portfolio`, then `agy`.
+- The agent stopped after the person answered **No** to a question such as "Allow this command?": No stops the whole step. Type `go on`, and answer Yes next time if the command is one the step needs.
 - "Permission denied" or "403" when pushing: another GitHub account is signed in. Raise your hand: the instructor helps.
 - "Your site could not be built": the message says what is wrong. A content file that is not valid JSON is the Analyst's to fix; a mistake in `site/assets/render.js` is the Developer's.
-- The agent goes round in circles: after two tries, stop it, start a fresh chat and say in one sentence what you need.
+- The agent goes round in circles: after two tries, stop it, type /clear for a fresh chat and say in one sentence what you need.
 
 ## 3. Then the next step, in a few lines
 

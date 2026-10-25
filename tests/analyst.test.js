@@ -182,15 +182,15 @@ test("the Analyst takes certifications and events from LinkedIn's sections, with
   }
 });
 
-// The guide's photo step: + → Media in the chat box. Copying the photo into
+// The guide's photo step: the photo file dragged into the terminal window. Copying the photo into
 // the repo folder is the way when the agent cannot open the attachment.
-test("the Analyst takes a photo attached with + → Media, runs the photo tool, and puts the photo on the page", async () => {
+test("the Analyst takes a photo dragged into the window, runs the photo tool, and puts the photo on the page", async () => {
   const skill = await analystSkill();
   const offer = skill.match(/^"Would you like a photo of yourself on your site\? (.*)"$/m)?.[1] ?? "";
-  assert.match(offer, /Click the \*\*\+\*\* in the chat box, then \*\*Media\*\*, pick your photo/);
+  assert.match(offer, /Drag your photo file from your folder into this window/);
   assert.match(offer, /not one made by AI/);
   for (const needed of [
-    "When the person attaches a photo, copy the attached file into the repo folder",
+    "When the person drags a photo into the window, its file's path arrives in their message: copy that file into the repo folder",
     "Never into `site/`",
     "Copy the photo into your repo folder",
     "node tools/photo.mjs",
@@ -346,7 +346,7 @@ test("CV run: it asked only about the gaps, and the site is in Italian, its head
 // so the hand-off must not send them to Stitch on their own.
 test("the Analyst hands over to the Designer in a fresh chat, without sending the person to Stitch first", async () => {
   const handOff = (await analystSkill()).match(/^"The Analyst is done\. (.*)"$/m)?.[1] ?? "";
-  assert.match(handOff, /^Start a fresh chat and ask for the Designer: it asks you a few questions about your style/);
+  assert.match(handOff, /^Type \/clear for a fresh chat and ask for the Designer: it asks you a few questions about your style/);
   assert.doesNotMatch(handOff, /Stitch design|open Stitch|go to Stitch/i);
 });
 

@@ -5,7 +5,7 @@ description: The Ops role. Publishes the portfolio on GitHub Pages. Commits the 
 
 # Ops
 
-Ops starts in a fresh chat. If you already ran a checkpoint or played another role in this chat, do not start: tell the person to start a fresh chat and ask for Ops there.
+Ops starts in a fresh chat. If you already ran a checkpoint or played another role in this chat, do not start: tell the person to type /clear for a fresh chat and ask for Ops there.
 
 You are Ops. You publish the site: you save the person's changes in a commit, push it to GitHub, and tell them the address where their site is live. Every push to the branch `main` builds the site and publishes it again through GitHub Actions; nothing else is needed.
 
@@ -91,7 +91,7 @@ What it can say, and what to do:
 
 - **It worked** (it ends with a line such as `main -> main`): go to step 4.
 - **"has no upstream branch"**: run `git push -u origin main` instead.
-- **A sign-in window opens**, in the browser or in Antigravity: tell the person to sign in to GitHub with the account that owns the repo, then run `git push` again.
+- **A sign-in page opens in the browser**: tell the person to sign in to GitHub with the account that owns the repo, then run `git push` again. (The Install script signs `git push` in with the GitHub CLI, so this happens only on a laptop it did not set up.)
 - **It asks for a password in the terminal**: GitHub no longer accepts passwords there. Stop and tell the person to ask the instructor for help with signing in.
 - **"rejected" and "fetch first"**: the repo on GitHub has a change this computer does not have yet, for example an edit made on github.com. Run `git pull --no-rebase --no-edit`, then `git push` again. If the pull says **CONFLICT**, the same lines were changed in both places: run `git merge --abort`, which puts everything back as it was, and tell the person to ask the instructor.
 - **"Permission denied" or "403"**: the account signed in is not the one that owns the repo. Tell the person to ask the instructor.
@@ -130,4 +130,4 @@ Tell the person, in one message:
 
 Then end the role:
 
-"Ops is done, and so is your site. To add a section for YouTube videos, podcasts, a blog, resources or project ideas, start a fresh chat and ask to add an Optional module."
+"Ops is done, and so is your site. To add a section for YouTube videos, podcasts, a blog, resources or project ideas, type /clear for a fresh chat and ask to add an Optional module."

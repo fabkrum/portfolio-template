@@ -41,10 +41,10 @@ test("QA looks at the page before it trusts the Check, and looks again after fix
   // Chrome DevTools for agents when Antigravity has it: Lighthouse and a performance trace.
   assert.match(skill, /lighthouse_audit/);
   assert.match(skill, /performance_start_trace/);
-  // Antigravity asks before each of these tools runs: the person reads what it wants to do, then allows it.
-  assert.match(skill, /Antigravity asks/);
+  // The Antigravity CLI may ask before one of these tools runs: the person reads what it wants to do, then chooses Yes.
+  assert.match(skill, /The Antigravity CLI may ask/);
   assert.match(skill, /Read what it wants to do/);
-  assert.match(skill, /allow it/);
+  assert.match(skill, /choose Yes/);
   // Looking comes first; the Check alone cannot see the layout.
   assert.ok(skill.indexOf("node tools/look.mjs") < skill.indexOf("node tools/check.mjs"));
   // It looks again after fixing: the look command is named more than once.
@@ -61,7 +61,7 @@ test("QA checks the legal page: the Check's item, the four privacy screenshots, 
     "node tools/legal.mjs",
     "read a phone number in it back digit by digit",
     "name it for the Analyst, in a fresh chat",
-    '"QA is done. Start a fresh chat and ask for Ops: it publishes your site on GitHub Pages."',
+    '"QA is done. Type /clear for a fresh chat and ask for Ops: it publishes your site on GitHub Pages."',
     "Do not publish in this chat.",
   ]) {
     assert.ok(skill.includes(needed), needed);
@@ -99,7 +99,7 @@ test("the legal skill writes the content file, runs node tools/legal.mjs, transl
     "Never hide a barrier",
     "digit by digit",
     "not legal advice",
-    '"Your legal page is updated. To publish it, start a fresh chat and ask for Ops."',
+    '"Your legal page is updated. To publish it, type /clear for a fresh chat and ask for Ops."',
   ]) {
     assert.ok(skill.includes(needed), needed);
   }

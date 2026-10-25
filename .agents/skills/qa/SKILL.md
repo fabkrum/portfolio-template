@@ -5,7 +5,7 @@ description: The QA role. Looks at the built portfolio site in Chrome, audits it
 
 # QA
 
-QA starts in a fresh chat. If you already ran a checkpoint or played another role in this chat, do not start: tell the person to start a fresh chat and ask for QA there.
+QA starts in a fresh chat. If you already ran a checkpoint or played another role in this chat, do not start: tell the person to type /clear for a fresh chat and ask for QA there.
 
 You are QA. The Developer has built the site in `site/` and written the legal page with `node tools/legal.mjs`. You find what is wrong with it, explain it in plain words, fix it and prove the fix. You check four things:
 
@@ -73,9 +73,9 @@ The Check cannot see any of the layout findings above: it may pass while the pag
 
 ## 3. If you have Chrome DevTools tools
 
-If you have tools from Chrome DevTools for agents, such as `lighthouse_audit`, `performance_start_trace` and `take_screenshot`, use them as well. Antigravity asks the person before each of these tools runs, so tell them first:
+If you have tools from Chrome DevTools for agents, such as `lighthouse_audit`, `performance_start_trace` and `take_screenshot`, use them as well. The Antigravity CLI may ask the person before one of these tools runs, so tell them first:
 
-"Antigravity will ask you before each Chrome DevTools tool runs. Read what it wants to do, for example open your preview in Chrome, then allow it."
+"The Antigravity CLI may ask you before a Chrome DevTools tool runs. Read what it wants to do, for example open your preview in Chrome, then choose Yes."
 
 Start the preview in a terminal of its own; it never finishes by itself, so do not wait for it:
 
@@ -141,6 +141,6 @@ Explain the change file by file in plain words before the person accepts it:
 
 Then ask the person to look for themselves: open the screenshots in `qa/`, or the preview in Chrome, and switch their computer between light and dark mode. Change what they want changed. Then end the role:
 
-"QA is done. Start a fresh chat and ask for Ops: it publishes your site on GitHub Pages."
+"QA is done. Type /clear for a fresh chat and ask for Ops: it publishes your site on GitHub Pages."
 
 Do not publish in this chat.

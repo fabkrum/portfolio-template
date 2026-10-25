@@ -13,7 +13,7 @@ The site is built by five roles, always in this order. Each role has a skill in 
 5. **Ops** (skill `deploy`) – publishes the site by pushing to GitHub.
 
 - Do only the role the person asked for. Never jump ahead to a later role, even if it looks helpful.
-- One role per chat. When a role is finished, tell the person to start a fresh chat for the next role. A fresh chat keeps your context clean.
+- One role per chat. When a role is finished, tell the person to type /clear, which starts a fresh chat, and then ask for the next role. A fresh chat keeps your context clean.
 - **Optional modules** come after the five roles: a section for YouTube videos, podcasts, a blog, resources or project ideas, added with the skill `portfolio-add-module`. One module per chat. When the person asks to add a section or something more to their site, that is this skill. A change to the legal page later, such as an address, a VAT number, a phone number or a translation, is the skill `legal`.
 
 ## The Role clock
@@ -38,7 +38,7 @@ Never catch up by doing a role's work yourself, and never use Git to go back or 
 
 The command's output is the read-back: it says in plain words, file by file, what it kept, what it changed and what needs attention. Reply with all of it, copied word for word into a text block. Do not retell it in your own words, and add nothing to it.
 
-A checkpoint is a chat of its own. After it, the person starts a fresh chat for the next role. If they ask you for that role, or any other, in the same chat, do not start it: tell them again to start a fresh chat.
+A checkpoint is a chat of its own. After it, the person starts a fresh chat for the next role. If they ask you for that role, or any other, in the same chat, do not start it: tell them again to type /clear for a fresh chat.
 
 ## Stuck, curious or done?
 

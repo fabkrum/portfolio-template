@@ -17,6 +17,6 @@ What it does:
 - Files you added to `site/` yourself, such as fonts or a photo, stay as they are.
 - It says in plain words what it kept, what it changed and which role comes next.
 
-Then start a fresh chat and ask for the next role.
+Then type /clear for a fresh chat and ask for the next role.
 
 Each folder here holds only what its block adds, and its `README.md` says what that is. A checkpoint lays the folders of every block up to its own over each other, in the order of the blocks.
