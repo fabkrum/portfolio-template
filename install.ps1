@@ -2,16 +2,21 @@
 #
 #   irm https://raw.githubusercontent.com/fabkrum/portfolio-template/main/install.ps1 | iex
 #
-# It checks Google Chrome, installs Git, Node and the Antigravity CLI where they
-# are missing, sets the Antigravity CLI up for the workshop, checks your Gemini
-# quota, downloads Chrome DevTools for agents for the QA role, puts your own
-# portfolio repo in your home folder and starts the Antigravity CLI in it. It
-# is safe to run again at any time.
+# It checks Google Chrome and installs the GitHub CLI, Git, Node and the
+# Antigravity CLI where they are missing. With one sign-in to GitHub in the
+# browser, it creates your portfolio repo from the workshop's template,
+# switches GitHub Pages on and lets git push use that sign-in. It downloads
+# Chrome DevTools for agents for the QA role, puts your repo in your home
+# folder, sets the Antigravity CLI up for the workshop, checks your Gemini
+# quota and starts the Antigravity CLI in your repo. It is safe to run again at
+# any time.
 #
-# It asks for your GitHub username. PORTFOLIO_GITHUB_USER and PORTFOLIO_REPO
-# answer that up front (the automated tests use them). PORTFOLIO_NO_AGENT=1
-# leaves the Antigravity CLI unstarted at the end, and PORTFOLIO_AGY_INSTALLER
-# names another installer for it (the automated tests use both).
+# Without a terminal, or when the GitHub sign-in does not work, it asks for
+# your GitHub username instead, and you make the repo on github.com.
+# PORTFOLIO_GITHUB_USER and PORTFOLIO_REPO answer that up front, without the
+# GitHub CLI. PORTFOLIO_UNATTENDED=1 signs in to nothing and starts nothing,
+# and PORTFOLIO_AGY_INSTALLER names another installer for the Antigravity CLI
+# (the automated tests use all four).
 #
 # In a workshop, the guide's line also names the event, before irm:
 # WORKSHOP_EVENT, WORKSHOP_DATE (YYYY-MM-DD) and WORKSHOP_CITY. The script
@@ -32,7 +37,7 @@
     $nodeMin = 22
     $nodeHome = Join-Path $env:LOCALAPPDATA 'Programs\node'
     $next = New-Object System.Collections.Generic.List[string]
-    $state = @{ NewTerminal = $false; HaveGit = $false }
+    $state = @{ NewTerminal = $false; HaveGit = $false; GhSignedIn = $false }
 
     function Write-Ok($text) { Write-Host "  [ok]    $text" -ForegroundColor Green }
     function Write-Info($text) { Write-Host "          $text" }
@@ -89,13 +94,13 @@
             $user = $Matches[1]
             $repo = $Matches[2] -replace '\.git$', ''
         }
-        if ($user -notmatch '^[A-Za-z0-9-]+$' -or $repo -notmatch '^[A-Za-z0-9._-]+$' -or $repo -match '^\.\.?$') {
+        if ($user -notmatch '^[A-Za-z0-9-]+$' -or -not (Test-RepoName $repo)) {
             Write-Host ''
             Write-Host "That does not look like a GitHub username: `"$user/$repo`"."
             Write-Host 'Run this command again and type just your username, for example: ada-lovelace'
             return $null
         }
-        return @{ User = $user; Name = $repo; Dir = (Join-Path $HOME $repo); Url = "https://github.com/$user/$repo" }
+        return (New-RepoTarget $user $repo)
     }
 
     # --------------------------------------------------------- desktop apps
@@ -108,6 +113,206 @@
             }
         }
         Write-Todo 'Google Chrome is not installed.' 'Install Google Chrome from https://www.google.com/chrome/ (the Check uses it), then run this command again.'
+    }
+
+    # -------------------------------------------------------------- GitHub
+
+    # The workshop's template, which every participant's repo is a copy of.
+    $templateRepo = 'fabkrum/portfolio-template'
+    $ghHome = Join-Path $env:LOCALAPPDATA 'Programs\gh'
+
+    # The repo, its folder in the home folder and its address on GitHub.
+    function New-RepoTarget($user, $name) {
+        return @{ User = $user; Name = $name; Dir = (Join-Path $HOME $name); Url = "https://github.com/$user/$name" }
+    }
+
+    function Test-RepoName($name) { ($name -match '^[A-Za-z0-9._-]+$') -and ($name -notmatch '^\.\.?$') }
+
+    # The address GitHub Pages publishes the repo at.
+    function Get-SiteUrl($repo) {
+        if ($repo.Name -eq "$($repo.User).github.io") { return "https://$($repo.User).github.io/" }
+        return "https://$($repo.User).github.io/$($repo.Name)/"
+    }
+
+    # The GitHub CLI does the GitHub steps when someone is there to click
+    # "Authorize" in the browser: in a window, and with no username given up
+    # front.
+    function Test-WantsGitHubCli {
+        (-not $env:PORTFOLIO_GITHUB_USER) -and (-not $env:PORTFOLIO_UNATTENDED) -and
+            [Environment]::UserInteractive -and -not [Console]::IsInputRedirected -and -not [Console]::IsOutputRedirected
+    }
+
+    # Fallback when winget is missing or fails: the newest release from
+    # github.com/cli/cli, checked against its checksums, into your user folder.
+    # The version comes from where the releases/latest page leads, not from
+    # GitHub's API, which allows a room behind one address only 60 calls an hour.
+    function Install-GhZip {
+        try {
+            $request = [Net.WebRequest]::Create('https://github.com/cli/cli/releases/latest')
+            $request.Method = 'HEAD'
+            $response = $request.GetResponse()
+            $latest = $response.ResponseUri.AbsoluteUri
+            $response.Close()
+            $version = $latest -replace '^.*/v', ''
+            if ($version -notmatch '^[0-9.]+$') { return $false }
+            $arch = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'arm64' } else { 'amd64' }
+            $name = "gh_$($version)_windows_$arch.zip"
+            $base = "https://github.com/cli/cli/releases/download/v$version"
+            $work = Join-Path ([IO.Path]::GetTempPath()) "portfolio-gh-$PID"
+            New-Item -ItemType Directory -Force -Path $work | Out-Null
+            $zip = Join-Path $work $name
+            Invoke-WebRequest -Uri "$base/$name" -OutFile $zip -UseBasicParsing
+            $sums = (Invoke-WebRequest -Uri "$base/gh_$($version)_checksums.txt" -UseBasicParsing).Content
+            if ($sums -is [byte[]]) { $sums = [Text.Encoding]::UTF8.GetString($sums) }
+            $expected = (($sums -split "`n") | Where-Object { $_ -match " $([regex]::Escape($name))$" }) -replace ' .*$', ''
+            if (-not $expected -or ((Get-FileHash $zip -Algorithm SHA256).Hash -ne $expected.ToUpper())) { return $false }
+            if (Test-Path $ghHome) { Remove-Item $ghHome -Recurse -Force }
+            Expand-Archive -Path $zip -DestinationPath $ghHome -Force
+            Remove-Item $work -Recurse -Force
+            $bin = Join-Path $ghHome 'bin'
+            $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+            if (($userPath -split ';') -notcontains $bin) {
+                [Environment]::SetEnvironmentVariable('Path', (@($userPath, $bin) | Where-Object { $_ }) -join ';', 'User')
+                $state.NewTerminal = $true
+            }
+            $env:Path = "$env:Path;$bin"
+            return (Test-Command gh)
+        } catch {
+            return $false
+        }
+    }
+
+    function Get-GhVersion { ((& gh --version | Select-Object -First 1) -replace '^gh version (\S+).*$', 'gh $1') }
+
+    function Install-Gh {
+        $bin = Join-Path $ghHome 'bin'
+        if (-not (Test-Command gh) -and (Test-Path (Join-Path $bin 'gh.exe'))) { $env:Path = "$env:Path;$bin" }
+        if (Test-Command gh) {
+            Write-Ok "The GitHub CLI is installed ($(Get-GhVersion))."
+            return $true
+        }
+        Write-Info 'Installing the GitHub CLI...'
+        Invoke-Winget 'GitHub.cli'
+        if (-not (Test-Command gh)) { Install-GhZip | Out-Null }
+        if (Test-Command gh) {
+            Write-Ok "Installed the GitHub CLI ($(Get-GhVersion))."
+            return $true
+        }
+        Write-Info 'The GitHub CLI could not be installed. That is fine: you do the GitHub steps on github.com instead.'
+        return $false
+    }
+
+    function Test-GitHubSignedIn {
+        & gh auth status --hostname github.com *> $null
+        return ($LASTEXITCODE -eq 0)
+    }
+
+    # One sign-in in the browser: the GitHub CLI shows a code, the browser
+    # opens GitHub's page for it, the participant types it and clicks
+    # Authorize. Without its questions, the GitHub CLI asks nothing in this
+    # window; Git gets the sign-in afterwards. It keeps the sign-in in the
+    # Windows credential store, and git push uses it at Ops.
+    function Connect-GitHub {
+        if (-not (Test-GitHubSignedIn)) {
+            Write-Info 'Now sign in to GitHub. Your browser opens github.com/login/device: type the code shown below, click Continue, then Authorize.'
+            Write-Info 'If the browser does not open, open https://github.com/login/device yourself.'
+            try { Start-Process 'https://github.com/login/device' } catch { Write-Verbose "browser: $_" }
+            $env:GH_PROMPT_DISABLED = '1'
+            & gh auth login --hostname github.com --git-protocol https --web --scopes workflow
+            Remove-Item Env:GH_PROMPT_DISABLED -ErrorAction SilentlyContinue
+            if (-not (Test-GitHubSignedIn)) {
+                Write-Info 'The sign-in to GitHub did not work. That is fine: you do the GitHub steps on github.com instead.'
+                return $null
+            }
+        }
+        $user = (& gh api user --jq .login 2>$null)
+        if (-not $user) { return $null }
+        $state.GhSignedIn = $true
+        Write-Ok "Signed in to GitHub as $user."
+        return $user
+    }
+
+    # The participant's repo on GitHub: used when it is a copy of the
+    # template, created from the template when it is missing. A repo of that
+    # name that is something else, such as a live site, stays as it is: the
+    # new repo gets another name. Returns the repo and 'existing' or
+    # 'created', or $null after a to-do.
+    function Get-GitHubRepo($repo) {
+        for ($try = 0; $try -lt 3; $try++) {
+            # No double quotes in the arguments: Windows PowerShell would drop them.
+            $answer = (& gh api "repos/$($repo.User)/$($repo.Name)" --jq .template_repository.full_name 2>&1)
+            if ($LASTEXITCODE -eq 0) {
+                if ("$answer".Trim() -eq $templateRepo) {
+                    Write-Ok "Your repo is on GitHub: $($repo.Url)"
+                    return @{ Repo = $repo; State = 'existing' }
+                }
+                Write-Info "You already have a repo called $($repo.Name) on GitHub, and it is not a copy of the workshop's template. It stays as it is."
+                $suggested = "$($repo.Name)-2026"
+                $name = (Read-Host "          Name for your new repo [$suggested]") -replace '\s', ''
+                if (-not (Test-RepoName $name)) { $name = $suggested }
+                $repo = New-RepoTarget $repo.User $name
+                continue
+            }
+            if ("$answer" -notmatch '404') {
+                Write-Todo 'GitHub did not answer about your repo.' 'Check your internet connection, then run this command again.'
+                return $null
+            }
+            & gh repo create $repo.Name --template $templateRepo --public *> $null
+            if ($LASTEXITCODE -ne 0) {
+                Write-Todo 'Your repo could not be created on GitHub.' 'Check your internet connection, then run this command again.'
+                return $null
+            }
+            # GitHub copies the template's files a moment after the repo exists.
+            for ($waited = 0; $waited -lt 30; $waited++) {
+                & gh api "repos/$($repo.User)/$($repo.Name)/contents/site/content.json" *> $null
+                if ($LASTEXITCODE -eq 0) { break }
+                Start-Sleep -Seconds 1
+            }
+            Write-Ok "Created your repo $($repo.Url) from the workshop's template."
+            return @{ Repo = $repo; State = 'created' }
+        }
+        Write-Todo 'No free name for your repo was found.' 'Run this command again and type another name when it asks.'
+        return $null
+    }
+
+    # Pages publishes the site with the repo's deploy workflow. Creating the
+    # repo already started that deploy, possibly before Pages was on, so a new
+    # repo gets one more.
+    function Enable-Pages($repo, $repoState) {
+        & gh api --method POST "repos/$($repo.User)/$($repo.Name)/pages" -f build_type=workflow *> $null
+        if ($repoState -eq 'created') { & gh workflow run deploy.yml -R "$($repo.User)/$($repo.Name)" *> $null }
+        Write-Ok "GitHub Pages is on: your site goes live at $(Get-SiteUrl $repo) a minute after each push."
+    }
+
+    # The repo to set up: with the GitHub CLI when it can sign in, otherwise
+    # the username question.
+    function Get-RepoWithGitHub {
+        if ((Test-WantsGitHubCli) -and (Install-Gh)) {
+            $user = Connect-GitHub
+            if ($user) {
+                $name = if ($env:PORTFOLIO_REPO -and (Test-RepoName $env:PORTFOLIO_REPO)) { $env:PORTFOLIO_REPO } else { 'portfolio' }
+                $found = Get-GitHubRepo (New-RepoTarget $user $name)
+                if (-not $found) { return (New-RepoTarget $user $name) }
+                Enable-Pages $found.Repo $found.State
+                return $found.Repo
+            }
+        }
+        return (Get-RepoTarget)
+    }
+
+    # git push uses the GitHub CLI's sign-in, and commits get the account's
+    # name and its noreply address, which keeps the participant's own email
+    # address out of the public repo. A name and address Git has already stay.
+    function Initialize-GitForGitHub($repo) {
+        if (-not $state.GhSignedIn -or -not $state.HaveGit) { return }
+        & gh auth setup-git *> $null
+        if (-not (& git config --global user.name)) {
+            & git config --global user.name (& gh api user --jq '.name // .login')
+        }
+        if (-not (& git config --global user.email)) {
+            & git config --global user.email "$(& gh api user --jq .id)+$($repo.User)@users.noreply.github.com"
+        }
+        Write-Ok 'git push uses your GitHub sign-in.'
     }
 
     # ----------------------------------------------------------------- Git
@@ -312,8 +517,10 @@
         Write-Todo 'The Antigravity CLI could not be installed.' 'Check your internet connection, then run this command again.'
     }
 
-    # Auto mode and the workshop's model, written into agy's settings. Every
-    # other setting stays as it is; a file that is not JSON is left alone. Node
+    # Auto mode and the workshop's model, written into agy's settings, and the
+    # repo folder added to the trusted folders, so agy starts there without
+    # asking. Every other setting stays as it is; a file that is not JSON is
+    # left alone. Node
     # does it, as on macOS and Linux, from a file: Windows PowerShell would
     # drop the double quotes of a script given to node on the command line.
     $agySettingsScript = @'
@@ -325,21 +532,25 @@ if (fs.existsSync(file)) {
   if (settings === null || typeof settings !== "object" || Array.isArray(settings)) process.exit(1);
 }
 const workshop = { agentMode: "auto", model: process.env.AGY_MODEL };
-if (Object.entries(workshop).every(([key, value]) => settings[key] === value)) process.exit(0);
+const trusted = Array.isArray(settings.trustedWorkspaces) ? settings.trustedWorkspaces : [];
+const trust = process.env.AGY_TRUST;
+if (trust) workshop.trustedWorkspaces = trusted.includes(trust) ? trusted : [...trusted, trust];
+if (JSON.stringify({ ...settings, ...workshop }) === JSON.stringify(settings)) process.exit(0);
 fs.mkdirSync(path.dirname(file), { recursive: true });
 fs.writeFileSync(file, JSON.stringify({ ...settings, ...workshop }, null, 2) + "\n");
 '@
 
-    function Initialize-AgyForWorkshop {
+    function Initialize-AgyForWorkshop($repo) {
         if (-not (Test-Command agy) -or (Get-NodeMajor node) -lt $nodeMin) { return }
         $settingsFile = Join-Path ([IO.Path]::GetTempPath()) "portfolio-agy-settings-$PID.js"
         [IO.File]::WriteAllText($settingsFile, $agySettingsScript)
         $env:AGY_SETTINGS = $agySettings
         $env:AGY_MODEL = $agyModel
+        $env:AGY_TRUST = if (Test-Path $repo.Dir) { $repo.Dir } else { '' }
         & node $settingsFile 2>$null
         $written = ($LASTEXITCODE -eq 0)
         Remove-Item $settingsFile -Force -ErrorAction SilentlyContinue
-        Remove-Item Env:AGY_SETTINGS, Env:AGY_MODEL -ErrorAction SilentlyContinue
+        Remove-Item Env:AGY_SETTINGS, Env:AGY_MODEL, Env:AGY_TRUST -ErrorAction SilentlyContinue
         if ($written) {
             Write-Ok "The Antigravity CLI starts in auto mode, with Gemini 3.8 Flash, the workshop's model."
         } else {
@@ -501,7 +712,7 @@ fs.writeFileSync(file, JSON.stringify({ ...settings, ...workshop }, null, 2) + "
     # over this window. Only in a terminal, and only when nothing is left to
     # do.
     function Test-CanStartAgent($repo) {
-        ($next.Count -eq 0) -and (-not $env:PORTFOLIO_NO_AGENT) -and (Test-Command agy) -and (Test-Path $repo.Dir) -and
+        ($next.Count -eq 0) -and (-not $env:PORTFOLIO_UNATTENDED) -and (Test-Command agy) -and (Test-Path $repo.Dir) -and
             [Environment]::UserInteractive -and -not [Console]::IsInputRedirected -and -not [Console]::IsOutputRedirected
     }
 
@@ -532,25 +743,28 @@ fs.writeFileSync(file, JSON.stringify({ ...settings, ...workshop }, null, 2) + "
     # ---------------------------------------------------------------- main
 
     Write-Host 'Setting up your laptop for the portfolio workshop.'
-    $repo = Get-RepoTarget
-    if (-not $repo) { return }
 
     Write-Heading 'Apps'
     Test-Chrome
+
+    Write-Heading 'GitHub'
+    $repo = Get-RepoWithGitHub
+    if (-not $repo) { return }
 
     Write-Heading 'Tools'
     Install-Git
     Install-Node
     Install-DevToolsServer
 
-    Write-Heading 'Antigravity CLI'
-    Install-Agy
-    Initialize-AgyForWorkshop
-    Test-Quota
-
     Write-Heading 'Your repo'
     Get-Repo $repo
     Save-Workshop $repo
+    Initialize-GitForGitHub $repo
+
+    Write-Heading 'Antigravity CLI'
+    Install-Agy
+    Initialize-AgyForWorkshop $repo
+    Test-Quota
 
     Write-Heading 'Summary'
     if ($next.Count -eq 0) {

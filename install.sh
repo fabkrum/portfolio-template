@@ -4,16 +4,21 @@
 #   macOS:  curl -fsSL https://raw.githubusercontent.com/fabkrum/portfolio-template/main/install.sh | sh
 #   Linux:  wget -qO- https://raw.githubusercontent.com/fabkrum/portfolio-template/main/install.sh | sh
 #
-# It checks Google Chrome, installs Git, Node and the Antigravity CLI where they
-# are missing, sets the Antigravity CLI up for the workshop, checks your Gemini
-# quota, downloads Chrome DevTools for agents for the QA role, puts your own
-# portfolio repo in your home folder and starts the Antigravity CLI in it. It
-# is safe to run again at any time.
+# It checks Google Chrome and installs the GitHub CLI, Git, Node and the
+# Antigravity CLI where they are missing. With one sign-in to GitHub in the
+# browser, it creates your portfolio repo from the workshop's template,
+# switches GitHub Pages on and lets git push use that sign-in. It downloads
+# Chrome DevTools for agents for the QA role, puts your repo in your home
+# folder, sets the Antigravity CLI up for the workshop, checks your Gemini
+# quota and starts the Antigravity CLI in your repo. It is safe to run again at
+# any time.
 #
-# It asks for your GitHub username. PORTFOLIO_GITHUB_USER and PORTFOLIO_REPO
-# answer that up front (the automated tests use them). PORTFOLIO_NO_AGENT=1
-# leaves the Antigravity CLI unstarted at the end, and PORTFOLIO_AGY_INSTALLER
-# names another installer for it (the automated tests use both).
+# Without a terminal, or when the GitHub sign-in does not work, it asks for
+# your GitHub username instead, and you make the repo on github.com.
+# PORTFOLIO_GITHUB_USER and PORTFOLIO_REPO answer that up front, without the
+# GitHub CLI. PORTFOLIO_UNATTENDED=1 signs in to nothing and starts nothing,
+# and PORTFOLIO_AGY_INSTALLER names another installer for the Antigravity CLI
+# (the automated tests use all four).
 #
 # In a workshop, the guide's line also names the event, in front of sh:
 # WORKSHOP_EVENT, WORKSHOP_DATE (YYYY-MM-DD) and WORKSHOP_CITY. The script
@@ -100,11 +105,27 @@ ask_github_user() {
   case $GH_USER in
     '' | *[!A-Za-z0-9-]*) return 1 ;;
   esac
-  case $REPO in
+  valid_repo_name "$REPO" || return 1
+  set_repo "$REPO"
+}
+
+valid_repo_name() {
+  case $1 in
     '' | . | .. | *[!A-Za-z0-9._-]*) return 1 ;;
   esac
+}
+
+# The repo, its folder in the home folder and its address on GitHub.
+set_repo() {
+  REPO=$1
   REPO_DIR="$HOME/$REPO"
   REPO_URL="https://github.com/$GH_USER/$REPO"
+}
+
+# The address GitHub Pages publishes the repo at.
+site_url() {
+  if [ "$REPO" = "$GH_USER.github.io" ]; then echo "https://$GH_USER.github.io/"
+  else echo "https://$GH_USER.github.io/$REPO/"; fi
 }
 
 # ------------------------------------------------------------ desktop apps
@@ -124,6 +145,192 @@ check_chrome() {
   fi
   todo "Google Chrome is not installed." \
     "Install Google Chrome from https://www.google.com/chrome/ (the Check uses it), then run this command again."
+}
+
+# ----------------------------------------------------------------- GitHub
+
+# The workshop's template, which every participant's repo is a copy of.
+TEMPLATE_REPO=fabkrum/portfolio-template
+GH_HOME="$HOME/.local/gh"
+GH_SIGNED_IN=0
+
+# The GitHub CLI does the GitHub steps when someone is there to click
+# "Authorize" in the browser: in a terminal, and with no username given up front.
+wants_github_cli() {
+  [ -z "${PORTFOLIO_GITHUB_USER:-}" ] && [ -z "${PORTFOLIO_UNATTENDED:-}" ] && [ -t 1 ] && (: </dev/tty) 2>/dev/null
+}
+
+# The newest release from github.com/cli/cli, checked against its checksums,
+# into ~/.local/gh: no admin rights needed. The version comes from where the
+# releases/latest page leads, not from GitHub's API, which allows a room
+# behind one address only 60 calls an hour.
+download_gh() {
+  if have curl; then
+    latest=$(curl -fsSIL -o /dev/null -w '%{url_effective}' https://github.com/cli/cli/releases/latest)
+  else
+    latest=$(wget -S --spider --max-redirect=0 https://github.com/cli/cli/releases/latest 2>&1 | sed -n 's/^ *Location: *//p' | tr -d '\r' | tail -n 1)
+  fi
+  version=${latest##*/v}
+  case $version in '' | *[!0-9.]*) return 1 ;; esac
+  case "$(uname -m)" in
+    x86_64 | amd64) arch=amd64 ;;
+    arm64 | aarch64) arch=arm64 ;;
+    *) return 1 ;;
+  esac
+  if [ "$OS" = darwin ] && [ "$(sysctl -n hw.optional.arm64 2>/dev/null)" = 1 ]; then arch=arm64; fi
+  if [ "$OS" = darwin ]; then name="gh_${version}_macOS_$arch"; file="$name.zip"; else name="gh_${version}_linux_$arch"; file="$name.tar.gz"; fi
+  base="https://github.com/cli/cli/releases/download/v$version"
+  fetch "$base/$file" "$WORK/$file" || return 1
+  fetch "$base/gh_${version}_checksums.txt" "$WORK/gh-checksums.txt" || return 1
+  expected=$(grep " $file\$" "$WORK/gh-checksums.txt" | cut -d' ' -f1)
+  if [ -z "$expected" ] || [ "$expected" != "$(sha256_of "$WORK/$file")" ]; then return 1; fi
+  rm -rf "$WORK/gh"
+  mkdir "$WORK/gh"
+  if [ "$OS" = darwin ]; then unzip -q "$WORK/$file" -d "$WORK/gh" || return 1
+  else tar -xzf "$WORK/$file" -C "$WORK/gh" || return 1; fi
+  [ -x "$WORK/gh/$name/bin/gh" ] || return 1
+  mkdir -p "$HOME/.local"
+  rm -rf "$GH_HOME"
+  mv "$WORK/gh/$name" "$GH_HOME"
+}
+
+use_gh_home() {
+  add_to_new_terminals .local/gh/bin
+  PATH="$GH_HOME/bin:$PATH"
+  export PATH
+}
+
+gh_version() { gh --version | sed -n '1s/^gh version \([^ ]*\).*/gh \1/p'; }
+
+ensure_gh() {
+  if ! have gh && [ -x "$GH_HOME/bin/gh" ]; then use_gh_home; fi
+  if have gh; then
+    ok "The GitHub CLI is installed ($(gh_version))."
+    return 0
+  fi
+  info "Installing the GitHub CLI..."
+  if download_gh; then
+    use_gh_home
+    ok "Installed the GitHub CLI ($(gh_version))."
+    return 0
+  fi
+  info "The GitHub CLI could not be installed. That is fine: you do the GitHub steps on github.com instead."
+  return 1
+}
+
+# One sign-in in the browser: the GitHub CLI shows a code (on a Mac it is
+# copied already), the browser opens GitHub's page for it, the participant
+# pastes it and clicks Authorize. Without its questions, the GitHub CLI asks
+# nothing in the terminal; Git gets the sign-in afterwards. It keeps the
+# sign-in in the system's keychain, and git push uses it at Ops.
+open_in_browser() {
+  if [ "$OS" = darwin ]; then open "$1" >/dev/null 2>&1
+  elif have xdg-open; then xdg-open "$1" >/dev/null 2>&1
+  else return 1; fi
+}
+
+github_sign_in() {
+  if ! gh auth status --hostname github.com >/dev/null 2>&1; then
+    info "Now sign in to GitHub. Your browser opens github.com/login/device: paste the code shown below (on a Mac it is copied already), click Continue, then Authorize."
+    info "If the browser does not open, open https://github.com/login/device yourself."
+    ( sleep 2; open_in_browser https://github.com/login/device ) &
+    GH_PROMPT_DISABLED=1 gh auth login --hostname github.com --git-protocol https --web --scopes workflow </dev/null
+    if ! gh auth status --hostname github.com >/dev/null 2>&1; then
+      info "The sign-in to GitHub did not work. That is fine: you do the GitHub steps on github.com instead."
+      return 1
+    fi
+  fi
+  GH_USER=$(gh api user --jq .login 2>/dev/null)
+  [ -n "$GH_USER" ] || return 1
+  GH_SIGNED_IN=1
+  ok "Signed in to GitHub as $GH_USER."
+}
+
+# The participant's repo on GitHub: used when it is a copy of the template,
+# created from the template when it is missing. A repo of that name that is
+# something else, such as a live site, stays as it is: the new repo gets
+# another name. Says "existing" or "created", or nothing after a to-do.
+github_repo() {
+  tries=0
+  while [ "$tries" -lt 3 ]; do
+    tries=$((tries + 1))
+    if made_from=$(gh api "repos/$GH_USER/$REPO" --jq '.template_repository.full_name // ""' 2>"$WORK/gh-repo.err"); then
+      if [ "$made_from" = "$TEMPLATE_REPO" ]; then
+        ok "Your repo is on GitHub: $REPO_URL" >&2
+        echo existing
+        return 0
+      fi
+      info "You already have a repo called $REPO on GitHub, and it is not a copy of the workshop's template. It stays as it is." >&2
+      suggested="$REPO-2026"
+      printf '          Name for your new repo [%s]: ' "$suggested" >&2
+      answer=""
+      read -r answer </dev/tty
+      printf '\n' >&2
+      answer=$(printf '%s' "${answer:-$suggested}" | tr -d ' ')
+      if ! valid_repo_name "$answer"; then answer=$suggested; fi
+      set_repo "$answer"
+      continue
+    fi
+    if ! grep -q "404" "$WORK/gh-repo.err"; then
+      todo "GitHub did not answer about your repo." "Check your internet connection, then run this command again." >&2
+      return 1
+    fi
+    if ! gh repo create "$REPO" --template "$TEMPLATE_REPO" --public >/dev/null 2>&1; then
+      todo "Your repo could not be created on GitHub." "Check your internet connection, then run this command again." >&2
+      return 1
+    fi
+    # GitHub copies the template's files a moment after the repo exists.
+    waited=0
+    while [ "$waited" -lt 30 ] && ! gh api "repos/$GH_USER/$REPO/contents/site/content.json" >/dev/null 2>&1; do
+      sleep 1
+      waited=$((waited + 1))
+    done
+    ok "Created your repo $REPO_URL from the workshop's template." >&2
+    echo created
+    return 0
+  done
+  todo "No free name for your repo was found." "Run this command again and type another name when it asks." >&2
+  return 1
+}
+
+# Pages publishes the site with the repo's deploy workflow. Creating the repo
+# already started that deploy, possibly before Pages was on, so a new repo
+# gets one more.
+switch_on_pages() {
+  gh api --method POST "repos/$GH_USER/$REPO/pages" -f build_type=workflow >/dev/null 2>&1
+  if [ "$1" = created ]; then gh workflow run deploy.yml -R "$GH_USER/$REPO" >/dev/null 2>&1; fi
+  ok "GitHub Pages is on: your site goes live at $(site_url) a minute after each push."
+}
+
+set_up_github() {
+  if wants_github_cli && ensure_gh && github_sign_in; then
+    set_repo "${PORTFOLIO_REPO:-portfolio}"
+    valid_repo_name "$REPO" || set_repo portfolio
+    github_repo >"$WORK/gh-repo.state"
+    state=$(cat "$WORK/gh-repo.state")
+    if [ -n "$state" ]; then switch_on_pages "$state"; fi
+    return 0
+  fi
+  if ! ask_github_user; then
+    printf '\nThat does not look like a GitHub username: "%s".\n' "$GH_USER${REPO:+/$REPO}"
+    printf 'Run this command again and type just your username, for example: ada-lovelace\n'
+    exit 1
+  fi
+}
+
+# git push uses the GitHub CLI's sign-in, and commits get the account's name
+# and its noreply address, which keeps the participant's own email address out
+# of the public repo. A name and address Git has already stay.
+set_up_git_for_github() {
+  [ "$GH_SIGNED_IN" = 1 ] && [ "$HAVE_GIT" = 1 ] || return 0
+  gh auth setup-git >/dev/null 2>&1
+  if [ -z "$(git config --global user.name)" ]; then
+    git config --global user.name "$(gh api user --jq '.name // .login')"
+  fi
+  if [ -z "$(git config --global user.email)" ]; then
+    git config --global user.email "$(gh api user --jq .id)+$GH_USER@users.noreply.github.com"
+  fi
+  ok "git push uses your GitHub sign-in."
 }
 
 # --------------------------------------------------------------------- Git
@@ -363,11 +570,14 @@ ensure_agy() {
     "Check your internet connection, then run this command again."
 }
 
-# Auto mode and the workshop's model, written into agy's settings. Every other
-# setting stays as it is; a file that is not JSON is left alone.
+# Auto mode and the workshop's model, written into agy's settings, and the repo
+# folder added to the trusted folders, so agy starts there without asking.
+# Every other setting stays as it is; a file that is not JSON is left alone.
 set_up_agy() {
   have agy && node_is_new_enough node || return 0
-  if AGY_SETTINGS="$AGY_SETTINGS" AGY_MODEL="$AGY_MODEL" node -e '
+  trust=""
+  if [ -d "$REPO_DIR" ]; then trust=$REPO_DIR; fi
+  if AGY_SETTINGS="$AGY_SETTINGS" AGY_MODEL="$AGY_MODEL" AGY_TRUST="$trust" node -e '
     const fs = require("fs"), path = require("path");
     const file = process.env.AGY_SETTINGS;
     let settings = {};
@@ -376,7 +586,10 @@ set_up_agy() {
       if (settings === null || typeof settings !== "object" || Array.isArray(settings)) process.exit(1);
     }
     const workshop = { agentMode: "auto", model: process.env.AGY_MODEL };
-    if (Object.entries(workshop).every(([key, value]) => settings[key] === value)) process.exit(0);
+    const trusted = Array.isArray(settings.trustedWorkspaces) ? settings.trustedWorkspaces : [];
+    const trust = process.env.AGY_TRUST;
+    if (trust) workshop.trustedWorkspaces = trusted.includes(trust) ? trusted : [...trusted, trust];
+    if (JSON.stringify({ ...settings, ...workshop }) === JSON.stringify(settings)) process.exit(0);
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.writeFileSync(file, JSON.stringify({ ...settings, ...workshop }, null, 2) + "\n");
   ' 2>/dev/null; then
@@ -516,7 +729,7 @@ get_repo() {
 # The last step: the Antigravity CLI, started in the repo folder, takes over
 # this window. Only in a terminal, and only when nothing is left to do.
 can_start_agent() {
-  [ -z "$NEXT" ] && [ -z "${PORTFOLIO_NO_AGENT:-}" ] && have agy && [ -d "$REPO_DIR" ] && [ -t 1 ] && (: </dev/tty) 2>/dev/null
+  [ -z "$NEXT" ] && [ -z "${PORTFOLIO_UNATTENDED:-}" ] && have agy && [ -d "$REPO_DIR" ] && [ -t 1 ] && (: </dev/tty) 2>/dev/null
 }
 
 start_agent() {
@@ -586,28 +799,26 @@ if [ "$OS" = other ]; then
   exit 1
 fi
 
-if ! ask_github_user; then
-  printf '\nThat does not look like a GitHub username: "%s".\n' "$GH_USER${REPO:+/$REPO}"
-  printf 'Run this command again and type just your username, for example: ada-lovelace\n'
-  exit 1
-fi
-
 heading "Apps"
 check_chrome
+
+heading "GitHub"
+set_up_github
 
 heading "Tools"
 ensure_git
 ensure_node
 prepare_devtools
 
+heading "Your repo"
+get_repo
+write_workshop
+set_up_git_for_github
+
 heading "Antigravity CLI"
 ensure_agy
 set_up_agy
 check_quota
-
-heading "Your repo"
-get_repo
-write_workshop
 
 heading "Summary"
 if [ -z "$NEXT" ]; then
