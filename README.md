@@ -33,7 +33,7 @@ wget -qO- https://raw.githubusercontent.com/fabkrum/portfolio-template/main/inst
 irm https://raw.githubusercontent.com/fabkrum/portfolio-template/main/install.ps1 | iex
 ```
 
-It checks Google Chrome, installs Git, Node and the Antigravity CLI (`agy`) where they are missing, downloads Chrome DevTools for agents and puts your repo in a `portfolio` folder in your home folder. It sets the Antigravity CLI to auto mode and to Gemini 3.8 Flash, the workshop's model, and tells you how much of this week's free Gemini quota your Google account has left. Whatever it cannot do itself, it tells you in plain words, with what to do next. When everything is ready, it starts the Antigravity CLI in your repo folder; the first time, it asks you to sign in with Google and to trust the folder. Run it again any time; it only does what is still missing. To come back later, open a terminal and type `cd portfolio`, then `agy`.
+It checks Google Chrome and installs the GitHub CLI (`gh`), Git, Node and the Antigravity CLI (`agy`) where they are missing. It asks you to sign in to GitHub once, in the browser (type the code it shows, then Authorize), and then creates your repo from this template, public, switches GitHub Pages on and lets `git push` use that sign-in. If you already have a repo called `portfolio` that is something else, it stays as it is and the script asks for another name. It downloads Chrome DevTools for agents and puts your repo in a `portfolio` folder in your home folder. It sets the Antigravity CLI to auto mode and to Gemini 3.8 Flash, the workshop's model, and tells you how much of this week's free Gemini quota your Google account has left. Whatever it cannot do itself, it tells you in plain words, with what to do next. When everything is ready, it starts the Antigravity CLI in your repo folder; the first time, it asks you to sign in with Google and to trust the folder. Without the GitHub sign-in (a company account, for example), it asks for your GitHub username instead: then create your repo from this template on github.com first, named `portfolio` and Public. Run it again any time; it only does what is still missing. To sign out of GitHub on this laptop after the workshop, type `gh auth logout`. To come back later, open a terminal and type `cd portfolio`, then `agy`.
 
 ## Preview your site
 
@@ -87,7 +87,7 @@ It builds your site and saves screenshots of every page at phone and wide width,
 
 ## Chrome DevTools for agents
 
-Chrome DevTools for agents is a set of tools from the Chrome team that lets your agent work in Chrome: open your site, take screenshots, record how fast it loads and run a Lighthouse audit. This repo switches it on for your agent in `.agents/mcp_config.json`, and the Install script downloads it ahead of time. Antigravity IDE asks you before each of these tools runs: read what the agent wants to do, then allow it. The QA role uses them when they are there; without them, QA works too.
+Chrome DevTools for agents is a set of tools from the Chrome team that lets your agent work in Chrome: open your site, take screenshots, record how fast it loads and run a Lighthouse audit. This repo switches it on for your agent in `.agents/mcp_config.json`, and the Install script downloads it ahead of time. The Antigravity CLI may ask you before one of these tools runs: read what the agent wants to do, then choose Yes. The QA role uses them when they are there; without them, QA works too.
 
 ## Publish your site
 
@@ -111,7 +111,7 @@ Use the block that has just ended, not the one that starts now. It brings your s
 
 ## Add more sections
 
-Once your site is live, you can add Optional modules: a section for YouTube videos, podcasts, a blog, resources or project ideas. Start a fresh chat and ask to add one; the `portfolio-add-module` skill asks you for the entries and writes them into `site/content.json`. The section shows up below your CV. The same skill adds widgets: events with your talks, certifications, a Now list, numbers, or a project told as a case study. Each shows up in its own place on the page.
+Once your site is live, you can add Optional modules: a section for YouTube videos, podcasts, a blog, resources or project ideas. Type /clear for a fresh chat and ask to add one; the `portfolio-add-module` skill asks you for the entries and writes them into `site/content.json`. The section shows up below your CV. The same skill adds widgets: events with your talks, certifications, a Now list, numbers, or a project told as a case study. Each shows up in its own place on the page.
 
 ## What is where
 
@@ -138,9 +138,9 @@ Once your site is live, you can add Optional modules: a section for YouTube vide
 - `tools/where.mjs` – which roles are done and which comes next. Ask your agent "Where am I?" and it runs it for you.
 - `tools/clock.mjs` – the Role clock. Each role's agent runs `node tools/clock.mjs start <role>` when it starts, and learns at each step how the time is going: with time to spare, it offers you an optional extra; short on time, it takes the shortcuts and does more of the work itself, so you still finish the role in time. `tools/clock/plan.json` holds each role's minutes and steps; `AGENTS.md`, "The Role clock", the rules. The Check, the content and brief checks, look and live print the clock's lines at their end. At home nothing hurries you. The time it started stays on your laptop in `workshop-clock.json`, which is not in Git.
 - `checkpoints/` – one checkpoint per block of the workshop: the repo at the end of that block. `checkpoints/README.md` explains them.
-- `.agents/skills/` – one skill per role, plus `portfolio-add-module` for Optional modules, `legal` for changes to your legal page later, `checkpoint` for catching up, and `help`, `explain` and `recap` for when you are stuck, want something explained, or want the story of your site written down. Antigravity IDE finds them when you open the repo.
+- `.agents/skills/` – one skill per role, plus `portfolio-add-module` for Optional modules, `legal` for changes to your legal page later, `checkpoint` for catching up, and `help`, `explain` and `recap` for when you are stuck, want something explained, or want the story of your site written down. The Antigravity CLI finds them when you start it in the repo; each one is also a command, such as `/help`.
 - `.agents/skills/modern-web-guidance/` – Modern Web Guidance by the Chrome team: current best practices the Developer reads before building. Stored in the repo, so nothing is downloaded.
-- `.agents/mcp_config.json` – switches on Chrome DevTools for agents for your agent in Antigravity IDE.
+- `.agents/mcp_config.json` – switches on Chrome DevTools for agents for your agent in the Antigravity CLI.
 - `install.sh`, `install.ps1` – the Install script for macOS/Linux and for Windows.
 - `workshop.json` – the event of your workshop, if you set up your laptop with the line from the workshop guide: the Install script saves it, and the Analyst adds the event to your site. With the workshop's end time in the line, no role's clock runs past it, and the start time lets the clock name the room's next Block. It stays on your laptop: it is not in Git.
 - `AGENTS.md` – the rules your agent follows.

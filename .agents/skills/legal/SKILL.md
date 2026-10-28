@@ -82,4 +82,4 @@ node tools/preview.mjs
 
 The person opens the address it prints in Chrome and clicks **Legal notice & privacy** at the bottom, or its translation. Change what they want changed. When it is right, end with:
 
-"Your legal page is updated. To publish it, start a fresh chat and ask for Ops."
+"Your legal page is updated. To publish it, type /clear for a fresh chat and ask for Ops."

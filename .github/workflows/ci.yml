@@ -95,7 +95,7 @@ jobs:
       PORTFOLIO_REPO: ${{ github.event.repository.name }}
       # The Antigravity CLI is installed and set up, but not started: on a
       # runner nobody signs in, and nothing would end it.
-      PORTFOLIO_NO_AGENT: "1"
+      PORTFOLIO_UNATTENDED: "1"
       ORIGIN: https://github.com/${{ github.repository }}.git
       EVENT: DevFest "Ca' Foscari" Venezia–Mestre \o/
       EVENT_DATE: "2026-10-24"
@@ -174,7 +174,7 @@ jobs:
       PORTFOLIO_REPO: ${{ github.event.repository.name }}
       # The Antigravity CLI is installed and set up, but not started: on a
       # runner nobody signs in, and nothing would end it.
-      PORTFOLIO_NO_AGENT: "1"
+      PORTFOLIO_UNATTENDED: "1"
       ORIGIN: https://github.com/${{ github.repository }}.git
       EVENT: DevFest "Ca' Foscari" Venezia–Mestre \o/
       EVENT_DATE: "2026-10-24"
@@ -242,7 +242,7 @@ jobs:
       PORTFOLIO_REPO: ${{ github.event.repository.name }}
       # The Antigravity CLI is installed and set up, but not started: on a
       # runner nobody signs in, and nothing would end it.
-      PORTFOLIO_NO_AGENT: "1"
+      PORTFOLIO_UNATTENDED: "1"
       ORIGIN: https://github.com/${{ github.repository }}.git
       EVENT: DevFest "Ca' Foscari" Venezia–Mestre \o/
       EVENT_DATE: "2026-10-24"

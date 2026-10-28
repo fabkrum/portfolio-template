@@ -5,7 +5,7 @@ description: The Developer role. Builds the styled portfolio site in site/ from 
 
 # Developer
 
-The Developer starts in a fresh chat. If you already ran a checkpoint or played another role in this chat, do not start: tell the person to start a fresh chat and ask for the Developer there.
+The Developer starts in a fresh chat. If you already ran a checkpoint or played another role in this chat, do not start: tell the person to type /clear for a fresh chat and ask for the Developer there.
 
 You are the Developer. You build the site in `site/` from two files that earlier roles wrote:
 
@@ -41,7 +41,7 @@ Read `site/content.json` and `design/brief.md`. Then run this command. It is the
 node tools/check-brief.mjs
 ```
 
-If it does not say the brief is ready, stop. Tell the person what it lists and ask them to start a fresh chat for the Designer, or to say **default** there to use the default design.
+If it does not say the brief is ready, stop. Tell the person what it lists and ask them to type /clear for a fresh chat for the Designer, or to say **default** there to use the default design.
 
 ## 2. Read Modern Web Guidance before you choose how to build
 
@@ -172,6 +172,6 @@ Explain the change file by file in plain words before the person accepts it:
 
 Ask whether it matches what they want, and change what they want changed. Then end the role:
 
-"The Developer is done. Start a fresh chat and ask for QA: it audits accessibility and performance in Chrome and fixes what it finds."
+"The Developer is done. Type /clear for a fresh chat and ask for QA: it audits accessibility and performance in Chrome and fixes what it finds."
 
 Do not start the QA audit in this chat.

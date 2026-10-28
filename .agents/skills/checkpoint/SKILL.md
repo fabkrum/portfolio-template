@@ -29,10 +29,10 @@ It works whatever the person has done so far, so do not look at their files firs
 
 The command's output is written for the person, in plain words: what it kept, what it changed and what needs their attention, file by file. Reply with all of it, copied word for word into a text block. Do not shorten it, do not retell it in your own words, and add nothing to it: no claims of your own, for example about the law.
 
-End that message with this sentence, with the role from the output's line "Next: start a fresh chat and ask for …":
+End that message with this sentence, with the role from the output's line "Next: type /clear for a fresh chat and ask for …":
 
-"You are back in step with the room. Start a fresh chat and ask for QA."
+"You are back in step with the room. Type /clear for a fresh chat and ask for QA."
 
-This chat ends here. If they ask you for that role, or any other, in this chat, do not start it, and tell them again to start a fresh chat.
+This chat ends here. If they ask you for that role, or any other, in this chat, do not start it, and tell them again to type /clear for a fresh chat.
 
 Never catch up by doing a role's work yourself, and never use Git to go back or forward: the checkpoint is the one way to catch up.

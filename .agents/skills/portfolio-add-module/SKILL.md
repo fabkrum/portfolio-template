@@ -282,4 +282,4 @@ Change what they want changed in `site/content.json`, and run `node tools/check-
 
 Only when the person says it is right, end the role:
 
-"The new section is ready. To publish it, start a fresh chat and ask Ops. To add another module, start a fresh chat and ask for it."
+"The new section is ready. To publish it, type /clear for a fresh chat and ask Ops. To add another module, type /clear for a fresh chat and ask for it."
