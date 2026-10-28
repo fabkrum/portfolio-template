@@ -93,6 +93,9 @@ jobs:
       INSTALL_URL: https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/install.sh
       PORTFOLIO_GITHUB_USER: ${{ github.repository_owner }}
       PORTFOLIO_REPO: ${{ github.event.repository.name }}
+      # The Antigravity CLI is installed and set up, but not started: on a
+      # runner nobody signs in, and nothing would end it.
+      PORTFOLIO_NO_AGENT: "1"
       ORIGIN: https://github.com/${{ github.repository }}.git
       EVENT: DevFest "Ca' Foscari" Venezia–Mestre \o/
       EVENT_DATE: "2026-10-24"
@@ -117,7 +120,8 @@ jobs:
       - name: First run told the participant what is missing
         run: >
           bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/first-run.log"
-          "Google Chrome is not installed" "Antigravity IDE is not installed"
+          "Google Chrome is not installed" "Installed the Antigravity CLI"
+          "auto mode, with Gemini 3.8 Flash" "sign in with your Google account"
           "Chrome DevTools for agents is ready"
           "open a new terminal window" "Run this command again any time"
       - name: Chrome comes back (the participant installed it)
@@ -135,7 +139,7 @@ jobs:
       - name: Second run asked, then found everything in place and saved the event
         run: >
           bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/second-run.log"
-          "What is your GitHub username?" "Chrome DevTools for agents is ready"
+          "What is your GitHub username?" "Chrome DevTools for agents is ready" "The Antigravity CLI is installed"
           "Your repo is already in" "Saved your workshop in workshop.json" "Run this command again any time"
       - name: Still ready after the second run, with the event and its times in workshop.json
         run: >
@@ -168,6 +172,9 @@ jobs:
       INSTALL_URL: https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/install.sh
       PORTFOLIO_GITHUB_USER: ${{ github.repository_owner }}
       PORTFOLIO_REPO: ${{ github.event.repository.name }}
+      # The Antigravity CLI is installed and set up, but not started: on a
+      # runner nobody signs in, and nothing would end it.
+      PORTFOLIO_NO_AGENT: "1"
       ORIGIN: https://github.com/${{ github.repository }}.git
       EVENT: DevFest "Ca' Foscari" Venezia–Mestre \o/
       EVENT_DATE: "2026-10-24"
@@ -200,7 +207,7 @@ jobs:
       - name: First run told the participant what is missing, and saved the event
         run: >
           bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/first-run.log"
-          "command line developer tools" "Antigravity IDE is not installed"
+          "command line developer tools" "Installed the Antigravity CLI"
           "Chrome DevTools for agents is ready" "Saved your workshop in workshop.json"
           "open a new terminal window" "Run this command again any time"
       - name: Downloaded without Git after the first run, with the event in workshop.json
@@ -213,7 +220,7 @@ jobs:
       - name: Second run connected the download to Git
         run: >
           bash under-test/tests/install/assert-said.sh "$RUNNER_TEMP/second-run.log"
-          "Chrome DevTools for agents is ready" "Connected your repo folder to Git"
+          "Chrome DevTools for agents is ready" "Connected your repo folder to Git" "The Antigravity CLI is installed"
           "Run this command again any time"
       - name: Ready after the second run, with workshop.json unchanged
         run: >
@@ -233,6 +240,9 @@ jobs:
       INSTALL_URL: https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}/install.ps1
       PORTFOLIO_GITHUB_USER: ${{ github.repository_owner }}
       PORTFOLIO_REPO: ${{ github.event.repository.name }}
+      # The Antigravity CLI is installed and set up, but not started: on a
+      # runner nobody signs in, and nothing would end it.
+      PORTFOLIO_NO_AGENT: "1"
       ORIGIN: https://github.com/${{ github.repository }}.git
       EVENT: DevFest "Ca' Foscari" Venezia–Mestre \o/
       EVENT_DATE: "2026-10-24"
@@ -266,7 +276,7 @@ jobs:
           if ('${{ matrix.winget }}' -eq 'missing') { $env:Path = "$env:RUNNER_TEMP\no-winget;$env:Path" }
           powershell.exe -NoProfile -ExecutionPolicy Restricted -Command "irm $env:INSTALL_URL | iex" *>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\first-run.log"
       - name: First run told the participant what is missing
-        run: under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\first-run.log" -Message 'Antigravity IDE is not installed', 'Chrome DevTools for agents is ready', 'open a new terminal window', 'Run this command again any time'
+        run: under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\first-run.log" -Message 'Installed the Antigravity CLI', 'auto mode, with Gemini 3.8 Flash', 'sign in with your Google account', 'Chrome DevTools for agents is ready', 'open a new terminal window', 'Run this command again any time'
       - name: "With winget: ready after the first run, and no workshop.json (the line named no event)"
         if: matrix.winget == 'present'
         run: under-test/tests/install/assert-ready.ps1 -RepoDir "$HOME\$env:PORTFOLIO_REPO" -Origin $env:ORIGIN
@@ -283,7 +293,7 @@ jobs:
       - name: Second run found the repo in place, or connected the download to Git, and saved the event
         run: |
           $expected = if ('${{ matrix.winget }}' -eq 'missing') { 'Connected your repo folder to Git' } else { 'Your repo is already in' }
-          under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\second-run.log" -Message $expected, 'Chrome DevTools for agents is ready', 'Saved your workshop in workshop.json', 'Run this command again any time'
+          under-test/tests/install/assert-said.ps1 -Log "$env:RUNNER_TEMP\second-run.log" -Message $expected, 'The Antigravity CLI is installed', 'Chrome DevTools for agents is ready', 'Saved your workshop in workshop.json', 'Run this command again any time'
       - name: Ready after the second run, with the event in workshop.json
         run: |
           $env:WORKSHOP_EVENT = $env:EVENT; $env:WORKSHOP_DATE = $env:EVENT_DATE; $env:WORKSHOP_CITY = $env:EVENT_CITY

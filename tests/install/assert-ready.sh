@@ -61,7 +61,17 @@ fi
 node_path=$(in_fresh_terminal 'command -v node')
 if workshop=$("${node_path:-node}" "$(dirname "$0")/workshop-json.mjs" "$repo_dir" 2>&1); then pass "$workshop"; else fail "$workshop"; fi
 
-# Antigravity IDE starts Chrome DevTools for agents with npx, the version in
+# The Antigravity CLI, in a fresh terminal, set to auto mode and the
+# workshop's model.
+agy_version=$(in_fresh_terminal 'agy --version')
+if printf '%s' "$agy_version" | grep -qE '^[0-9]+\.[0-9]+'; then pass "agy $agy_version in a fresh terminal"; else fail "agy in a fresh terminal (got '${agy_version:-nothing}')"; fi
+settings=$("${node_path:-node}" -e '
+  const s = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+  console.log(s.agentMode + " / " + s.model);
+' "$HOME/.gemini/antigravity-cli/settings.json" 2>&1)
+if [ "$settings" = "auto / Gemini 3.8 Flash (Low)" ]; then pass "agy settings: $settings"; else fail "agy settings: auto / Gemini 3.8 Flash (Low) (got '$settings')"; fi
+
+# The Antigravity CLI starts Chrome DevTools for agents with npx, the version in
 # .agents/mcp_config.json. The Install script put it in the npm cache, so it
 # starts from there without the network.
 devtools=$(sed -n 's/.*"\(chrome-devtools-mcp@[^"]*\)".*/\1/p' "$(dirname "$0")/../../.agents/mcp_config.json")

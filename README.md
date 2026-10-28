@@ -33,7 +33,7 @@ wget -qO- https://raw.githubusercontent.com/fabkrum/portfolio-template/main/inst
 irm https://raw.githubusercontent.com/fabkrum/portfolio-template/main/install.ps1 | iex
 ```
 
-It checks Google Chrome and Antigravity IDE, installs Git and Node where they are missing, downloads Chrome DevTools for agents, puts your repo in a `portfolio` folder in your home folder and opens it in Antigravity IDE. Whatever it cannot do itself, it tells you in plain words, with what to do next. Run it again any time; it only does what is still missing.
+It checks Google Chrome, installs Git, Node and the Antigravity CLI (`agy`) where they are missing, downloads Chrome DevTools for agents and puts your repo in a `portfolio` folder in your home folder. It sets the Antigravity CLI to auto mode and to Gemini 3.8 Flash, the workshop's model, and tells you how much of this week's free Gemini quota your Google account has left. Whatever it cannot do itself, it tells you in plain words, with what to do next. When everything is ready, it starts the Antigravity CLI in your repo folder; the first time, it asks you to sign in with Google and to trust the folder. Run it again any time; it only does what is still missing. To come back later, open a terminal and type `cd portfolio`, then `agy`.
 
 ## Preview your site
 

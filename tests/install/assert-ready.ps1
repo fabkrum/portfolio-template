@@ -56,7 +56,17 @@ if (Get-Command node -ErrorAction SilentlyContinue) {
 }
 if ($workshopExitCode -eq 0) { Write-Pass $workshop } else { Write-Failure $workshop }
 
-# Antigravity IDE starts Chrome DevTools for agents with npx, the version in
+# The Antigravity CLI, in a fresh terminal, set to auto mode and the
+# workshop's model.
+$agyVersion = ''
+if (Get-Command agy -ErrorAction SilentlyContinue) { $agyVersion = (& agy --version 2>$null | Select-Object -First 1) }
+if ($agyVersion -match '^\d+\.\d+') { Write-Pass "agy $agyVersion in a fresh terminal" } else { Write-Failure "agy in a fresh terminal (got '$agyVersion')" }
+$agySettings = $null
+try { $agySettings = Get-Content (Join-Path $HOME '.gemini\antigravity-cli\settings.json') -Raw | ConvertFrom-Json } catch { $agySettings = $null }
+$agyShown = if ($agySettings) { "$($agySettings.agentMode) / $($agySettings.model)" } else { 'no settings file' }
+if ($agyShown -eq 'auto / Gemini 3.8 Flash (Low)') { Write-Pass "agy settings: $agyShown" } else { Write-Failure "agy settings: auto / Gemini 3.8 Flash (Low) (got '$agyShown')" }
+
+# The Antigravity CLI starts Chrome DevTools for agents with npx, the version in
 # .agents/mcp_config.json. The Install script put it in the npm cache, so it
 # starts from there without the network.
 $config = Get-Content (Join-Path $PSScriptRoot '../../.agents/mcp_config.json') -Raw | ConvertFrom-Json

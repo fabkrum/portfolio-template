@@ -4,13 +4,16 @@
 #   macOS:  curl -fsSL https://raw.githubusercontent.com/fabkrum/portfolio-template/main/install.sh | sh
 #   Linux:  wget -qO- https://raw.githubusercontent.com/fabkrum/portfolio-template/main/install.sh | sh
 #
-# It checks Google Chrome and Antigravity IDE, installs Git and Node where they
-# are missing, downloads Chrome DevTools for agents for the QA role, puts your
-# own portfolio repo in your home folder and opens it in Antigravity IDE. It is
-# safe to run again at any time.
+# It checks Google Chrome, installs Git, Node and the Antigravity CLI where they
+# are missing, sets the Antigravity CLI up for the workshop, checks your Gemini
+# quota, downloads Chrome DevTools for agents for the QA role, puts your own
+# portfolio repo in your home folder and starts the Antigravity CLI in it. It
+# is safe to run again at any time.
 #
 # It asks for your GitHub username. PORTFOLIO_GITHUB_USER and PORTFOLIO_REPO
-# answer that up front (the automated tests use them).
+# answer that up front (the automated tests use them). PORTFOLIO_NO_AGENT=1
+# leaves the Antigravity CLI unstarted at the end, and PORTFOLIO_AGY_INSTALLER
+# names another installer for it (the automated tests use both).
 #
 # In a workshop, the guide's line also names the event, in front of sh:
 # WORKSHOP_EVENT, WORKSHOP_DATE (YYYY-MM-DD) and WORKSHOP_CITY. The script
@@ -123,26 +126,6 @@ check_chrome() {
     "Install Google Chrome from https://www.google.com/chrome/ (the Check uses it), then run this command again."
 }
 
-IDE_APP=""
-check_ide() {
-  if [ "$OS" = darwin ]; then
-    for app in "/Applications/Antigravity IDE.app" "$HOME/Applications/Antigravity IDE.app"; do
-      if [ -d "$app" ]; then IDE_APP=$app; fi
-    done
-  elif have antigravity-ide; then
-    IDE_APP=antigravity-ide
-  fi
-  if [ -n "$IDE_APP" ]; then
-    ok "Antigravity IDE is installed."
-    return 0
-  fi
-  if [ -d "/Applications/Antigravity.app" ] || [ -d "$HOME/Applications/Antigravity.app" ]; then
-    info "You have Antigravity 2.0, the agent dashboard. Today you need the editor, Antigravity IDE."
-  fi
-  todo "Antigravity IDE is not installed." \
-    "Download \"Antigravity IDE\" (not \"Antigravity 2.0\") from https://antigravity.google/download and install it, then run this command again."
-}
-
 # --------------------------------------------------------------------- Git
 
 HAVE_GIT=0
@@ -235,17 +218,22 @@ download_node() {
   mv "$NODE_HOME.partial" "$NODE_HOME"
 }
 
-# New terminals find our Node first. Each start-up file gets one line, once.
-add_node_to_new_terminals() {
+# New terminals find a folder in the home folder ($1) first. Each start-up
+# file gets one line for it, once.
+add_to_new_terminals() {
   # shellcheck disable=SC2016 # $HOME and $PATH are meant for the start-up file
-  line='export PATH="$HOME/.local/node/bin:$PATH" '"$MARK"
+  line='export PATH="$HOME/'"$1"':$PATH" '"$MARK"
   for file in "$HOME/.profile" "$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.bash_profile"; do
     # A new ~/.bash_profile would stop bash from reading ~/.profile.
     if [ "$file" = "$HOME/.bash_profile" ] && [ ! -f "$file" ]; then continue; fi
-    if ! grep -qF "$MARK" "$file" 2>/dev/null; then
+    if ! grep -qF "$line" "$file" 2>/dev/null; then
       printf '\n%s\n' "$line" >>"$file"
     fi
   done
+  case ":$STARTING_PATH:" in
+    *":$HOME/$1:"*) ;;
+    *) NEW_TERMINAL=1 ;;
+  esac
 }
 
 ensure_node() {
@@ -264,13 +252,9 @@ ensure_node() {
       return 1
     fi
   fi
-  add_node_to_new_terminals
+  add_to_new_terminals .local/node/bin
   PATH="$NODE_HOME/bin:$PATH"
   export PATH
-  case ":$STARTING_PATH:" in
-    *":$NODE_HOME/bin:"*) ;;
-    *) NEW_TERMINAL=1 ;;
-  esac
   ok "Node is installed ($(node --version))."
 }
 
@@ -315,7 +299,7 @@ devtools_runs() {
   have npx && run_at_most 300 npx --offline -y "$DEVTOOLS_PACKAGE" --version
 }
 
-# Antigravity IDE starts Chrome DevTools for agents with npx, from the npm
+# The Antigravity CLI starts Chrome DevTools for agents with npx, from the npm
 # cache. Putting it there now means nothing is downloaded during the QA block.
 # If it is there already, nothing is downloaded now either. The download runs
 # on its own, so stopping it half-way, at the time limit or with Ctrl+C,
@@ -340,6 +324,112 @@ prepare_devtools() {
   else
     info "Chrome DevTools for agents could not be set up. That is fine: the QA role works without it."
   fi
+}
+
+# ------------------------------------------------------ Antigravity CLI
+
+AGY_INSTALLER=${PORTFOLIO_AGY_INSTALLER:-https://antigravity.google/cli/install.sh}
+AGY_BIN="$HOME/.local/bin"
+AGY_SETTINGS="$HOME/.gemini/antigravity-cli/settings.json"
+# The workshop's model, as agy's own /model menu saves it: Flash, low effort,
+# so a free account's weekly quota lasts the whole workshop.
+AGY_MODEL="Gemini 3.8 Flash (Low)"
+QUOTA_MIN=60
+
+# Antigravity's own installer puts agy in ~/.local/bin. It adds that folder
+# only to start-up files that are already there, and a new Mac has none, so
+# this script adds it for new terminals as well; this window finds it too.
+use_agy_bin() {
+  add_to_new_terminals .local/bin
+  PATH="$AGY_BIN:$PATH"
+  export PATH
+}
+
+ensure_agy() {
+  if ! have agy && [ -x "$AGY_BIN/agy" ]; then use_agy_bin; fi
+  if have agy; then
+    ok "The Antigravity CLI is installed (agy $(agy --version 2>/dev/null))."
+    return 0
+  fi
+  info "Installing the Antigravity CLI..."
+  # Antigravity's installer is written for bash, which macOS and Linux have.
+  if fetch "$AGY_INSTALLER" "$WORK/agy-install.sh" && bash "$WORK/agy-install.sh" </dev/null >"$WORK/agy-install.log" 2>&1 && [ -x "$AGY_BIN/agy" ]; then
+    use_agy_bin
+    ok "Installed the Antigravity CLI (agy $(agy --version 2>/dev/null))."
+    return 0
+  fi
+  if [ -s "$WORK/agy-install.log" ]; then info "(agy installer: $(tail -n 1 "$WORK/agy-install.log"))"; fi
+  todo "The Antigravity CLI could not be installed." \
+    "Check your internet connection, then run this command again."
+}
+
+# Auto mode and the workshop's model, written into agy's settings. Every other
+# setting stays as it is; a file that is not JSON is left alone.
+set_up_agy() {
+  have agy && node_is_new_enough node || return 0
+  if AGY_SETTINGS="$AGY_SETTINGS" AGY_MODEL="$AGY_MODEL" node -e '
+    const fs = require("fs"), path = require("path");
+    const file = process.env.AGY_SETTINGS;
+    let settings = {};
+    if (fs.existsSync(file)) {
+      try { settings = JSON.parse(fs.readFileSync(file, "utf8").replace(/^\uFEFF/, "")); } catch { process.exit(1); }
+      if (settings === null || typeof settings !== "object" || Array.isArray(settings)) process.exit(1);
+    }
+    const workshop = { agentMode: "auto", model: process.env.AGY_MODEL };
+    if (Object.entries(workshop).every(([key, value]) => settings[key] === value)) process.exit(0);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, JSON.stringify({ ...settings, ...workshop }, null, 2) + "\n");
+  ' 2>/dev/null; then
+    ok "The Antigravity CLI starts in auto mode, with Gemini 3.8 Flash, the workshop's model."
+  else
+    info "The settings of the Antigravity CLI could not be read, so they stay as they are: $AGY_SETTINGS"
+    info "In the Antigravity CLI, press Shift+Tab until it shows auto, and pick Gemini 3.8 Flash with /model."
+  fi
+}
+
+# Asks agy for the quota left, which costs none of it. Not signed in, agy asks
+# for the sign-in at once and then waits for it; that is not waited for.
+read_quota() {
+  ( cd "$WORK" && exec agy -p /usage --output-format json ) </dev/null >"$WORK/usage.json" 2>&1 &
+  pid=$!
+  waited=0
+  while kill -0 "$pid" 2>/dev/null && [ "$waited" -lt 30 ]; do
+    if grep -q "Authentication required" "$WORK/usage.json" 2>/dev/null; then break; fi
+    sleep 1
+    waited=$((waited + 1))
+  done
+  kill "$pid" 2>/dev/null
+  wait "$pid" 2>/dev/null
+  if grep -q "Authentication required" "$WORK/usage.json" 2>/dev/null; then echo signed-out; return 0; fi
+  node -e '
+    const usage = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+    const gemini = usage.command.data.groups.find((group) => /^Gemini/.test(group.name));
+    const weekly = gemini.buckets.find((bucket) => bucket.window === "weekly");
+    console.log(Math.floor(weekly.remaining_fraction * 100));
+  ' "$WORK/usage.json" 2>/dev/null
+}
+
+# The workshop uses up to 30% of a free account's weekly Gemini quota. Below
+# twice that, the participant hears it now, not in the middle of the Developer.
+check_quota() {
+  have agy && node_is_new_enough node || return 0
+  left=$(read_quota)
+  case $left in
+    signed-out)
+      info "When the Antigravity CLI starts, it asks you to sign in with your Google account, in the browser."
+      ;;
+    '' | *[!0-9]*)
+      info "Your Gemini quota could not be read. That is fine: the workshop works without this check."
+      ;;
+    *)
+      if [ "$left" -ge "$QUOTA_MIN" ]; then
+        ok "Your Google account has $left% of this week's Gemini quota left."
+      else
+        info "Your Google account has $left% of this week's Gemini quota left, and the workshop can use up to 30%."
+        info "It may run out before the end. To be safe, sign in with another Google account: in the Antigravity CLI, type /logout."
+      fi
+      ;;
+  esac
 }
 
 # -------------------------------------------------------------------- repo
@@ -423,21 +513,18 @@ get_repo() {
     "Check your internet connection, then run this command again."
 }
 
-open_in_ide() {
-  if [ -z "$IDE_APP" ] || [ ! -d "$REPO_DIR" ]; then return 0; fi
-  if [ "$OS" = darwin ]; then
-    opened=$(open -a "$IDE_APP" "$REPO_DIR" >/dev/null 2>&1 && echo yes)
-  else
-    nohup "$IDE_APP" "$REPO_DIR" >/dev/null 2>&1 &
-    ok "Opening your repo in Antigravity IDE."
-    return 0
-  fi
-  if [ "$opened" = yes ]; then
-    ok "Opened your repo in Antigravity IDE."
-  else
-    todo "Antigravity IDE did not open by itself." \
-      "Open Antigravity IDE, choose File > Open Folder and pick $REPO_DIR."
-  fi
+# The last step: the Antigravity CLI, started in the repo folder, takes over
+# this window. Only in a terminal, and only when nothing is left to do.
+can_start_agent() {
+  [ -z "$NEXT" ] && [ -z "${PORTFOLIO_NO_AGENT:-}" ] && have agy && [ -d "$REPO_DIR" ] && [ -t 1 ] && (: </dev/tty) 2>/dev/null
+}
+
+start_agent() {
+  printf '\nStarting the Antigravity CLI in your repo folder.\n\n'
+  cd "$REPO_DIR" || exit 1
+  rm -rf "$WORK"
+  trap - EXIT
+  exec agy </dev/tty
 }
 
 # ---------------------------------------------------------------- workshop
@@ -507,17 +594,20 @@ fi
 
 heading "Apps"
 check_chrome
-check_ide
 
 heading "Tools"
 ensure_git
 ensure_node
 prepare_devtools
 
+heading "Antigravity CLI"
+ensure_agy
+set_up_agy
+check_quota
+
 heading "Your repo"
 get_repo
 write_workshop
-open_in_ide
 
 heading "Summary"
 if [ -z "$NEXT" ]; then
@@ -526,7 +616,12 @@ else
   printf 'Still to do:\n'
   printf '%s' "$NEXT" | awk '{ print "  " NR ". " $0 }'
 fi
-if [ "$NEW_TERMINAL" = 1 ]; then
-  printf 'Node was added for new terminals: close this terminal and open a new terminal window before you continue.\n'
-fi
 printf 'Run this command again any time; it only does what is still missing.\n'
+if can_start_agent; then
+  printf 'To come back later, open a new terminal window and type: cd %s, then agy\n' "$REPO"
+  start_agent
+fi
+if [ "$NEW_TERMINAL" = 1 ]; then
+  printf 'New programs were added: close this window and open a new terminal window before you continue.\n'
+fi
+printf 'To start the workshop, type: cd %s, then agy\n' "$REPO"
