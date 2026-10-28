@@ -117,7 +117,7 @@ function attention(result) {
     );
     if (!result.privacy.address) {
       notes.push(
-        "Your legal notice shows your name and email address. If your site offers services, the law also asks for a postal address, and in Italy for your Partita IVA: to add them, start a fresh chat and ask to add an address to your legal page.",
+        "Your legal notice shows your name and email address. If your site offers services, the law also asks for a postal address, and in Italy for your Partita IVA: to add them, type /clear for a fresh chat and ask to add an address to your legal page.",
       );
     }
     if (!result.privacy.EMAIL && !result.unreadable) {
@@ -126,7 +126,7 @@ function attention(result) {
       );
     }
     if (!result.language.startsWith("en")) {
-      notes.push(`Your site is in ${languageName(result.language)}, but the legal page is in English. To translate it, start a fresh chat and ask to translate your legal page.`);
+      notes.push(`Your site is in ${languageName(result.language)}, but the legal page is in English. To translate it, type /clear for a fresh chat and ask to translate your legal page.`);
     }
   }
   return notes;
@@ -158,7 +158,7 @@ function report(result) {
     for (const note of notes) console.log(`  - ${note}`);
   }
   if (result.block === "ops") console.log("\nOps changes no file, so this is the same as QA's checkpoint. Your site goes live once Ops publishes it.");
-  console.log(`\nNext: start a fresh chat and ask for ${block.next}.`);
+  console.log(`\nNext: type /clear for a fresh chat and ask for ${block.next}.`);
   console.log("To see your site, run node tools/preview.mjs and open the address it prints in Chrome.");
 }
 
