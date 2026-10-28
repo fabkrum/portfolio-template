@@ -77,8 +77,8 @@ const LEAVES = {
 };
 const ROLES = Object.keys(LEAVES);
 const CALLED = { Analyst: "the Analyst", Designer: "the Designer", Developer: "the Developer", QA: "QA", Ops: "Ops" };
-// Each Role's page in the workshop guide: the two Setup pages come first.
-const PAGE = { Analyst: 3, Designer: 4, Developer: 5, QA: 6, Ops: 7 };
+// Each Role's page in the workshop guide: the Setup page comes first.
+const PAGE = { Analyst: 2, Designer: 3, Developer: 4, QA: 5, Ops: 6 };
 
 // What the command says about Ops at each point of the day: the files not
 // committed yet (QA's screenshots are not among them: qa/ stays on the laptop).
@@ -119,7 +119,7 @@ for (let finished = 0; finished <= ROLES.length; finished++) {
       assert.equal(roleLine(stdout, "Ops").note, OPS_NOTES[finished]);
       if (!role) {
         assert.deepEqual(nextLines(stdout), [
-          "Next: Guide page 8: Feedback.",
+          "Next: Guide page 7: Feedback.",
           "To see whether your site is live, run node tools/live.mjs.",
           "To add a section to your site, type /clear for a fresh chat. Then type: Add a YouTube section to my portfolio.",
         ]);
@@ -152,7 +152,7 @@ test("said default to the Designer, then built: the default design counts, and Q
     const { stdout } = whereIn(dir);
     assert.deepEqual(roleLine(stdout, "Designer"), { state: "done", note: "the default design." });
     assert.deepEqual(roleLine(stdout, "Developer"), { state: "done", note: "the Developer's stylesheet and your legal page, for Giulia Placeholder." });
-    assert.match(stdout, /^Next: QA\. Guide page 6: QA\.$/m);
+    assert.match(stdout, /^Next: QA\. Guide page 5: QA\.$/m);
   });
 });
 
@@ -167,7 +167,7 @@ test("a stylesheet without the legal page: the Developer is to fix, with the com
       state: "to fix",
       note: "the Developer's stylesheet is in site/assets/styles.css, but site/privacy.html is still the placeholder. node tools/legal.mjs writes the legal page.",
     });
-    assert.match(stdout, /^Next: the Developer\. Guide page 5: Developer\.$/m);
+    assert.match(stdout, /^Next: the Developer\. Guide page 4: Developer\.$/m);
     // A legal page written for someone else is named too.
     await cp(join(templateDir, "tests", "fixtures", "finished-privacy", "privacy.html"), join(dir, "site", "privacy.html"));
     assert.deepEqual(roleLine(whereIn(dir).stdout, "Developer"), { state: "to fix", note: "site/privacy.html does not name Giulia Placeholder. node tools/legal.mjs writes it again." });
@@ -180,7 +180,7 @@ test("caught up with the Developer's checkpoint, with no content of their own: Q
     const { stdout } = whereIn(dir);
     assert.deepEqual(statesIn(stdout), { Analyst: "not yet", Designer: "done", Developer: "done", QA: "not yet", Ops: "not yet" });
     assert.deepEqual(roleLine(stdout, "Developer"), { state: "done", note: "the Developer's stylesheet and your legal page, for Ada Example." });
-    assert.match(stdout, /^Next: QA\. Guide page 6: QA\.$/m);
+    assert.match(stdout, /^Next: QA\. Guide page 5: QA\.$/m);
   });
 });
 
@@ -192,7 +192,7 @@ test("a content file that is not valid JSON comes first, even after the Develope
     const { stdout } = whereIn(dir);
     assert.deepEqual(roleLine(stdout, "Analyst"), { state: "to fix", note: "site/content.json is not valid JSON. node tools/check-content.mjs shows where." });
     assert.equal(roleLine(stdout, "Developer").state, "done");
-    assert.match(stdout, /^Next: the Analyst\. Guide page 3: Analyst\.$/m);
+    assert.match(stdout, /^Next: the Analyst\. Guide page 2: Analyst\.$/m);
   });
 });
 
@@ -206,7 +206,7 @@ test("a phone number in the content file's bio leaves the Developer done, and QA
     assert.equal(jumpTo(dir, "developer").status, 0);
     const { stdout } = whereIn(dir);
     assert.equal(roleLine(stdout, "Developer").state, "done");
-    assert.match(stdout, /^Next: QA\. Guide page 6: QA\.$/m);
+    assert.match(stdout, /^Next: QA\. Guide page 5: QA\.$/m);
   });
 });
 
@@ -217,7 +217,7 @@ test("a commit that is not pushed yet is named, and Ops is next", async () => {
     git(dir, "commit", "-q", "-m", "Publish my portfolio");
     const { stdout } = whereIn(dir);
     assert.deepEqual(roleLine(stdout, "Ops"), { state: "not yet", note: "1 commit is not on GitHub yet." });
-    assert.match(stdout, /^Next: Ops\. Guide page 7: Ops\.$/m);
+    assert.match(stdout, /^Next: Ops\. Guide page 6: Ops\.$/m);
   });
 });
 
@@ -265,7 +265,7 @@ test("the command works on its own repo, from whichever folder it is run", async
   await withRepo(async (dir) => {
     const { status, stdout } = whereIn(dir, tmpdir());
     assert.equal(status, 0, stdout);
-    assert.match(stdout, /^Next: the Analyst\. Guide page 3: Analyst\.$/m);
+    assert.match(stdout, /^Next: the Analyst\. Guide page 2: Analyst\.$/m);
   });
 });
 

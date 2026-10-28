@@ -13,11 +13,11 @@ const repoDir = fileURLToPath(new URL("..", import.meta.url));
 
 // Each Role: its name, how a sentence names it, and its page in the guide.
 const ROLES = {
-  analyst: { name: "Analyst", called: "the Analyst", page: 3 },
-  designer: { name: "Designer", called: "the Designer", page: 4 },
-  developer: { name: "Developer", called: "the Developer", page: 5 },
-  qa: { name: "QA", called: "QA", page: 6 },
-  ops: { name: "Ops", called: "Ops", page: 7 },
+  analyst: { name: "Analyst", called: "the Analyst", page: 2 },
+  designer: { name: "Designer", called: "the Designer", page: 3 },
+  developer: { name: "Developer", called: "the Developer", page: 4 },
+  qa: { name: "QA", called: "QA", page: 5 },
+  ops: { name: "Ops", called: "Ops", page: 6 },
 };
 
 // The sentence that starts a Role, as the guide gives it.
@@ -32,7 +32,7 @@ function report({ roles, next }) {
   for (const { block, state, note } of roles) console.log(`  ${state.padEnd(8)} ${ROLES[block].name} – ${note}`);
   console.log("");
   if (!next) {
-    console.log("Next: Guide page 8: Feedback.");
+    console.log("Next: Guide page 7: Feedback.");
     console.log("To see whether your site is live, run node tools/live.mjs.");
     console.log("To add a section to your site, type /clear for a fresh chat. Then type: Add a YouTube section to my portfolio.");
     return;
