@@ -27,6 +27,13 @@
 # Role clock follow the room (tools/clock.mjs):
 #
 #   ... | WORKSHOP_EVENT="DevFest Milano 2026" WORKSHOP_DATE=2026-10-10 WORKSHOP_CITY=Milan sh
+#
+# At home, the prep page's line sets WORKSHOP_PREP=1 instead: the tools, the
+# GitHub sign-in and the Antigravity CLI's sign-in, but no repo. The repo is
+# made in the room by the guide's line, from the template of the event's
+# format, so one prep page serves the 90- and the 120-minute workshop:
+#
+#   ... | WORKSHOP_PREP=1 sh
 
 set -u
 
@@ -36,6 +43,12 @@ MARK="# added by the portfolio install script"
 STARTING_PATH=$PATH
 NEXT=""
 NEW_TERMINAL=0
+PREP=0
+if [ "${WORKSHOP_PREP:-}" = 1 ]; then PREP=1; fi
+# At home the Antigravity CLI starts here for its sign-in, as there is no repo
+# folder yet.
+PREP_DIR="$HOME/.portfolio-prep"
+AGY_SIGNED_OUT=0
 
 case "$(uname -s)" in
   Darwin) OS=darwin ;;
@@ -332,6 +345,11 @@ switch_on_pages() {
 }
 
 set_up_github() {
+  if [ "$PREP" = 1 ]; then
+    if wants_github_cli && ensure_gh && github_sign_in; then return 0; fi
+    info "In the workshop, the guide's line asks for the GitHub sign-in again."
+    return 0
+  fi
   if wants_github_cli && ensure_gh && github_sign_in; then
     set_repo "${PORTFOLIO_REPO:-portfolio}"
     valid_repo_name "$REPO" || set_repo portfolio
@@ -606,7 +624,8 @@ ensure_agy() {
 set_up_agy() {
   have agy && node_is_new_enough node || return 0
   trust_dir=""
-  if [ -d "$REPO_DIR" ]; then trust_dir=$REPO_DIR; fi
+  if [ -n "${REPO_DIR:-}" ] && [ -d "$REPO_DIR" ]; then trust_dir=$REPO_DIR; fi
+  if [ "$PREP" = 1 ] && mkdir -p "$PREP_DIR" 2>/dev/null; then trust_dir=$PREP_DIR; fi
   if AGY_SETTINGS="$AGY_SETTINGS" AGY_MODEL="$AGY_MODEL" AGY_TRUST="$trust_dir" node -e '
     const fs = require("fs"), path = require("path");
     const file = process.env.AGY_SETTINGS;
@@ -659,6 +678,7 @@ check_quota() {
   left=$(read_quota)
   case $left in
     signed-out)
+      AGY_SIGNED_OUT=1
       info "When the Antigravity CLI starts, it asks you to sign in with your Google account, in the browser."
       ;;
     '' | *[!0-9]*)
@@ -761,7 +781,7 @@ get_repo() {
 # The last step: the Antigravity CLI, started in the repo folder, takes over
 # this window. Only in a terminal, and only when nothing is left to do.
 can_start_agent() {
-  [ -z "$NEXT" ] && have agy && [ -d "$REPO_DIR" ] && in_terminal
+  [ -z "$NEXT" ] && have agy && [ -n "${REPO_DIR:-}" ] && [ -d "$REPO_DIR" ] && in_terminal
 }
 
 start_agent() {
@@ -843,8 +863,12 @@ ensure_node
 prepare_devtools
 
 heading "Your repo"
-get_repo
-write_workshop
+if [ "$PREP" = 1 ]; then
+  info "Your repo is made in the workshop: the guide's line there makes it from the workshop's template."
+else
+  get_repo
+  write_workshop
+fi
 set_up_git_for_github
 
 heading "Antigravity CLI"
@@ -860,6 +884,20 @@ else
   printf '%s' "$NEXT" | awk '{ print "  " NR ". " $0 }'
 fi
 printf 'Run this command again any time; it only does what is still missing.\n'
+if [ "$PREP" = 1 ]; then
+  if [ "$NEW_TERMINAL" = 1 ]; then
+    printf 'New programs were added: close this window and open a new terminal window before you continue.\n'
+  fi
+  printf 'In the workshop, the guide gives you one more line: it makes your repo and starts the Antigravity CLI in it.\n'
+  if [ -z "$NEXT" ] && [ "$AGY_SIGNED_OUT" = 1 ] && have agy && in_terminal && mkdir -p "$PREP_DIR" 2>/dev/null; then
+    printf '\nStarting the Antigravity CLI, so you can sign in. When it is ready, type /exit and press Enter.\n\n'
+    cd "$PREP_DIR" || exit 1
+    rm -rf "$WORK"
+    trap - EXIT
+    exec agy </dev/tty
+  fi
+  exit 0
+fi
 if can_start_agent; then
   printf 'To come back later, open a new terminal window and type: cd %s, then agy\n' "$REPO"
   start_agent
