@@ -26,6 +26,13 @@
 #
 #   $env:WORKSHOP_EVENT="DevFest Milano 2026"; $env:WORKSHOP_DATE="2026-10-10"; $env:WORKSHOP_CITY="Milan"; irm ... | iex
 #
+# At home, the prep page's line sets WORKSHOP_PREP=1 instead: the tools, the
+# GitHub sign-in and the Antigravity CLI's sign-in, but no repo. The repo is
+# made in the room by the guide's line, from the template of the event's
+# format, so one prep page serves the 90- and the 120-minute workshop:
+#
+#   $env:WORKSHOP_PREP="1"; irm ... | iex
+#
 # Everything runs inside one script block, so nothing is left behind in your
 # PowerShell window, and it never closes that window.
 
@@ -37,7 +44,11 @@
     $nodeMin = 22
     $nodeHome = Join-Path $env:LOCALAPPDATA 'Programs\node'
     $next = New-Object System.Collections.Generic.List[string]
-    $state = @{ NewTerminal = $false; HaveGit = $false; GhSignedIn = $false }
+    $state = @{ NewTerminal = $false; HaveGit = $false; GhSignedIn = $false; AgySignedOut = $false }
+    $prep = ($env:WORKSHOP_PREP -eq '1')
+    # At home the Antigravity CLI starts here for its sign-in, as there is no
+    # repo folder yet.
+    $prepDir = Join-Path $HOME '.portfolio-prep'
 
     function Write-Ok($text) { Write-Host "  [ok]    $text" -ForegroundColor Green }
     function Write-Info($text) { Write-Host "          $text" }
@@ -305,6 +316,13 @@
     # The repo to set up: with the GitHub CLI when it can sign in, otherwise
     # the username question.
     function Get-RepoWithGitHub {
+        if ($prep) {
+            # At home: the sign-in only. The repo is the room's.
+            $user = $null
+            if ((Test-WantsGitHubCli) -and (Install-Gh)) { $user = Connect-GitHub }
+            if (-not $user) { Write-Info "In the workshop, the guide's line asks for the GitHub sign-in again." }
+            return @{ User = $user; Name = ''; Dir = ''; Failed = $true }
+        }
         if ((Test-WantsGitHubCli) -and (Install-Gh)) {
             $user = Connect-GitHub
             if ($user) {
@@ -573,7 +591,11 @@ fs.writeFileSync(file, JSON.stringify({ ...settings, ...workshop }, null, 2) + "
         [IO.File]::WriteAllText($settingsFile, $agySettingsScript)
         $env:AGY_SETTINGS = $agySettings
         $env:AGY_MODEL = $agyModel
-        $env:AGY_TRUST = if (Test-Path $repo.Dir) { $repo.Dir } else { '' }
+        $env:AGY_TRUST = if ($repo.Dir -and (Test-Path $repo.Dir)) { $repo.Dir } else { '' }
+        if ($prep) {
+            New-Item -ItemType Directory -Force -Path $prepDir -ErrorAction SilentlyContinue | Out-Null
+            if (Test-Path $prepDir) { $env:AGY_TRUST = $prepDir }
+        }
         & node $settingsFile 2>$null
         $written = ($LASTEXITCODE -eq 0)
         Remove-Item $settingsFile -Force -ErrorAction SilentlyContinue
@@ -624,6 +646,7 @@ fs.writeFileSync(file, JSON.stringify({ ...settings, ...workshop }, null, 2) + "
         if (-not (Test-Command agy)) { return }
         $left = Read-Quota
         if ($left -eq 'signed-out') {
+            $state.AgySignedOut = $true
             Write-Info 'When the Antigravity CLI starts, it asks you to sign in with your Google account, in the browser.'
         } elseif ($null -eq $left) {
             Write-Info 'Your Gemini quota could not be read. That is fine: the workshop works without this check.'
@@ -740,7 +763,7 @@ fs.writeFileSync(file, JSON.stringify({ ...settings, ...workshop }, null, 2) + "
     # over this window. Only in a terminal, and only when nothing is left to
     # do.
     function Test-CanStartAgent($repo) {
-        ($next.Count -eq 0) -and (Test-Command agy) -and (Test-Path $repo.Dir) -and (Test-Interactive)
+        ($next.Count -eq 0) -and (Test-Command agy) -and $repo.Dir -and (Test-Path $repo.Dir) -and (Test-Interactive)
     }
 
     # ------------------------------------------------------------ workshop
@@ -784,8 +807,12 @@ fs.writeFileSync(file, JSON.stringify({ ...settings, ...workshop }, null, 2) + "
     Install-DevToolsServer
 
     Write-Heading 'Your repo'
-    Get-Repo $repo
-    Save-Workshop $repo
+    if ($prep) {
+        Write-Info "Your repo is made in the workshop: the guide's line there makes it from the workshop's template."
+    } else {
+        Get-Repo $repo
+        Save-Workshop $repo
+    }
     Initialize-GitForGitHub $repo
 
     Write-Heading 'Antigravity CLI'
@@ -801,6 +828,20 @@ fs.writeFileSync(file, JSON.stringify({ ...settings, ...workshop }, null, 2) + "
         for ($i = 0; $i -lt $next.Count; $i++) { Write-Host "  $($i + 1). $($next[$i])" }
     }
     Write-Host 'Run this command again any time; it only does what is still missing.'
+    if ($prep) {
+        if ($state.NewTerminal) {
+            Write-Host 'New programs were added: close this window and open a new terminal window before you continue.'
+        }
+        Write-Host 'In the workshop, the guide gives you one more line: it makes your repo and starts the Antigravity CLI in it.'
+        if (($next.Count -eq 0) -and $state.AgySignedOut -and (Test-Command agy) -and (Test-Interactive) -and (Test-Path $prepDir)) {
+            Write-Host ''
+            Write-Host 'Starting the Antigravity CLI, so you can sign in. When it is ready, type /exit and press Enter.'
+            Write-Host ''
+            Set-Location $prepDir
+            & agy
+        }
+        return
+    }
     if (Test-CanStartAgent $repo) {
         Write-Host "To come back later, open a new terminal window and type: cd $($repo.Name), then agy"
         Write-Host ''
