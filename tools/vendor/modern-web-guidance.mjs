@@ -12,7 +12,6 @@
 // SKILL.md in that folder is ours and is left alone.
 import { cp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
-import { gunzipSync } from "node:zlib";
 
 const packageDir = resolve(process.argv[2] ?? "package");
 const upstreamSkill = join(packageDir, "skills", "modern-web-guidance");
@@ -21,11 +20,11 @@ const target = new URL("../../.agents/skills/modern-web-guidance/", import.meta.
 const { version } = JSON.parse(await readFile(join(packageDir, "package.json"), "utf8"));
 const skillVersion = (await readFile(join(upstreamSkill, "skill-version.txt"), "utf8")).trim();
 
-// The search index holds several chunks per guide, each with the guide's
-// id, category and description.
-const chunks = JSON.parse(gunzipSync(await readFile(join(upstreamSkill, "use-cases.vectors.gen.json.gz"))));
+// gen/guides.json lists every guide once, with its id, category and
+// description (since 1.0; before, the search index held them).
+const listed = JSON.parse(await readFile(join(upstreamSkill, "gen", "guides.json"), "utf8"));
 const guides = new Map();
-for (const { id, category, description, featuresUsed } of chunks) {
+for (const { id, category, description, featuresUsed = [] } of listed) {
   if (!guides.has(id)) guides.set(id, { id, category, description, featuresUsed });
 }
 // A guide the search index leaves out still gets a line, described by its title.
