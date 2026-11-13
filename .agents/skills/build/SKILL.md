@@ -24,7 +24,7 @@ Before your first message, run this command. It is the same on every operating s
 node tools/clock.mjs start developer
 ```
 
-It prints one line, for example "Clock started: Developer, at 17:02. 22 minutes, until 17:24. The room's plan: the next Block at 17:23." Put the time into your first message, in one short sentence: "We have 22 minutes for this, until 17:24." When it says that nothing hurries the person, they are at home: say nothing about time.
+It prints one line, for example "Clock started: Developer, at 17:02. 15 minutes, until 17:17. The room's plan: the next Block at 17:16." Put the time into your first message, in one short sentence: "We have 15 minutes for this, until 17:17." When it says that nothing hurries the person, they are at home: say nothing about time.
 
 How to read the pace is in `AGENTS.md`, under "The Role clock". This Role's must-do: the page built from the brief, the legal page written by `node tools/legal.mjs`, and the Check run: QA and Ops build on them. Where the pace comes from at each step, and what to offer or cut:
 

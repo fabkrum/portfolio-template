@@ -25,7 +25,7 @@ Before your first message, run this command. It is the same on every operating s
 node tools/clock.mjs start ops
 ```
 
-It prints one line, for example "Clock started: Ops, at 17:34. 8 minutes, until 17:42. The room's plan: the next Block at 17:41." Put the time into your first message, in one short sentence: "We have 8 minutes for this, until 17:42." When it says that nothing hurries the person, they are at home: say nothing about time.
+It prints one line, for example "Clock started: Ops, at 17:27. 8 minutes, until 17:35. The room's plan: the next Block at 17:34." Put the time into your first message, in one short sentence: "We have 8 minutes for this, until 17:35." When it says that nothing hurries the person, they are at home: say nothing about time.
 
 How to read the pace is in `AGENTS.md`, under "The Role clock". This Role's must-do: the site live, when `node tools/live.mjs` says "Your site is live": the room's gallery shows it. Where the pace comes from at each step, and what to offer or cut:
 

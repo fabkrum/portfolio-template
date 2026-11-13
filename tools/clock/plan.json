@@ -20,14 +20,14 @@
     },
     "developer": {
       "startsAt": 61,
-      "minutes": 22,
+      "minutes": 15,
       "steps": [
-        { "id": "built", "by": 12 },
-        { "id": "checked", "by": 18, "tool": "check" }
+        { "id": "built", "by": 8 },
+        { "id": "checked", "by": 12, "tool": "check" }
       ]
     },
     "qa": {
-      "startsAt": 83,
+      "startsAt": 76,
       "minutes": 10,
       "steps": [
         { "id": "audited", "by": 5, "tool": "look" },
@@ -35,7 +35,7 @@
       ]
     },
     "ops": {
-      "startsAt": 93,
+      "startsAt": 86,
       "minutes": 8,
       "steps": [
         { "id": "live", "by": 6, "tool": "live" }
